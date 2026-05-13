@@ -74,6 +74,38 @@ OUTBOUND_CRON_LIMIT=1 \
 pnpm -C code cloud:cron
 ```
 
+## Free Render Bridge Mode
+
+If there is no budget for paid background workers yet, the web service can run a tiny sender worker in the same free container.
+
+This is a bridge, not the ideal production topology. Use it only for low-volume reviewed business outreach.
+
+Add these environment variables to the Render web service:
+
+```text
+WEB_EMBED_SENDER_WORKER=true
+WEB_EMBED_REPUTATION_WORKER=false
+OUTBOUND_CRON_ENABLED=true
+OUTBOUND_CRON_LIMIT=1
+OUTBOUND_CRON_MAX_LIMIT=3
+CRON_SECRET=<generate a long random value>
+SENDER_PHYSICAL_ADDRESS=Xavira Tech Labs, India
+OUTBOUND_CRON_RECIPIENTS=founder@company.com,ops@company.com
+```
+
+Then configure a free URL cron monitor to call:
+
+```text
+https://sovereignenginefor-render.onrender.com/api/cron/outbound?secret=<CRON_SECRET>&limit=1
+```
+
+Recommended free-mode cadence:
+
+- Every 30-60 minutes.
+- Limit 1 per run.
+- Keep under 20-30/day until reply, bounce, and inbox placement are stable.
+- Never put placeholder/test emails in `OUTBOUND_CRON_RECIPIENTS`.
+
 ## Volume Reality
 
 For new domains/mailboxes, start tiny. A credible ramp is more valuable than burning domains:
