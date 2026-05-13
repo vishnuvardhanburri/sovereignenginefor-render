@@ -21,6 +21,12 @@ Run command examples from the hardened engine folder:
 cd code
 ```
 
+## 24/7 Cloud Operation
+
+This repo includes a Render Blueprint at [`render.yaml`](render.yaml) for the API, reputation worker, sender worker, Postgres, Redis-compatible Key Value, and a guarded outbound cron.
+
+Read the cloud runbook before enabling real sending: [docs/cloud/RENDER_24_7_RUNBOOK.md](docs/cloud/RENDER_24_7_RUNBOOK.md)
+
 ## Acquisition Demo Video
 
 [![Sovereign Engine acquisition demo](docs/assets/sovereign-engine-acquisition-demo-poster.jpg)](docs/assets/sovereign-engine-acquisition-demo.mp4)

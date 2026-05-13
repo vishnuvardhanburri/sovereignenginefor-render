@@ -1,0 +1,3 @@
+email,first_name,company,consent_source,reason_to_contact
+founder@example.com,Alex,Example SaaS,prior_relationship,they run outbound sales and need safer deliverability monitoring
+ops@example.com,Sam,Example Agency,opt_in,they operate client outbound infrastructure and need queue/reputation visibility

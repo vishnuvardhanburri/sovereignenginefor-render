@@ -1,0 +1,2 @@
+buyer_email,buyer_name,company,consent_source,reason_to_contact,status
+jane@example.com,Jane Buyer,Example Co,legitimate_business_interest,Placeholder only. Replace with reviewed leads before enabling cloud cron,template

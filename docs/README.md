@@ -19,6 +19,9 @@
 - `acquisition/BUYER_REPLY_SYSTEM.md`: initial reply, data-room reply, negotiation reply, and close scripts
 - `acquisition/PRICE_STRATEGY.md`: listing range, target close range, and negotiation anchors
 - `acquisition/QUEUE_SCALING_PROOF.md`: queue system and 10,000 event proof narrative
+- `acquisition/FAST_25K_SALE_SPRINT.md`: 48-hour plan for a $25K license, deployment sprint, or acquisition deposit
+- `acquisition/600K_REVENUE_PLAN.md`: blended $25K fast-sale and $125K+ acquisition strategy
+- `acquisition/LEADS_TEMPLATE.csv`: lead research template for targeted buyer outreach
 - `flow.md`: Request and processing flow
 - `api.md`: API overview (gateway + validator)
 - `BUYER_DEMO_GUIDE.md`: Five-minute mock-safe buyer demo flow

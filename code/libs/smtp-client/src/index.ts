@@ -41,6 +41,11 @@ function cleanHeaderValue(value: unknown): string {
     .trim()
 }
 
+function cleanHeaderName(value: unknown): string {
+  const name = String(value ?? '').trim()
+  return /^[!#$%&'*+\-.^_`|~0-9A-Za-z]+$/.test(name) ? name : ''
+}
+
 function domainFromEmail(email: string): string {
   const domain = email.split('@')[1]?.trim().toLowerCase()
   return domain && /^[a-z0-9.-]+$/.test(domain) ? domain : 'localhost'
@@ -74,17 +79,14 @@ export function buildCompliantSmtpHeaders(req: SendEmailRequest): BuiltSmtpHeade
   ].join('.')
 
   const baseHeaders: Record<string, string> = {
-    'X-Mailer': 'Sovereign Engine Enterprise Mailer',
     'X-Entity-Ref-ID': traceId,
-    'X-Sovereign Engine-Trace': traceId,
-    'X-Sovereign Engine-Provider-Lane': cleanHeaderValue(ctx.provider ?? 'unknown'),
     'MIME-Version': '1.0',
   }
 
   const userHeaders = Object.fromEntries(
     Object.entries(req.headers ?? {})
       .filter(([key]) => !/^message-id$/i.test(key))
-      .map(([key, value]) => [cleanHeaderValue(key), cleanHeaderValue(value)])
+      .map(([key, value]) => [cleanHeaderName(key), cleanHeaderValue(value)])
       .filter(([key]) => Boolean(key))
   )
 
@@ -102,10 +104,10 @@ export async function sendSmtp(config: SmtpConfig, req: SendEmailRequest): Promi
     host: config.host,
     port: config.port ?? (config.secure ? 465 : 587),
     secure: Boolean(config.secure),
-    // Prevent hanging workers on slow/bad SMTP connections.
-    connectionTimeout: 10_000,
-    greetingTimeout: 10_000,
-    socketTimeout: 20_000,
+    // Hosted mailbox SMTP can be slower than ESP APIs; keep bounded, but avoid false timeouts.
+    connectionTimeout: 30_000,
+    greetingTimeout: 30_000,
+    socketTimeout: 60_000,
     auth: {
       user: config.user,
       pass: config.pass,

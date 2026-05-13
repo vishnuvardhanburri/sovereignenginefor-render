@@ -1,0 +1,191 @@
+services:
+  - type: keyvalue
+    name: sovereign-engine-redis
+    region: singapore
+    plan: starter
+
+  - type: web
+    name: sovereign-engine-api
+    runtime: docker
+    region: singapore
+    plan: starter
+    dockerContext: ./code
+    dockerfilePath: ./code/Dockerfile
+    dockerCommand: sh -lc "node scripts/sync-env.mjs && pnpm db:init && pnpm -C apps/api-gateway start -H 0.0.0.0 -p ${PORT:-3000}"
+    healthCheckPath: /api/health
+    autoDeployTrigger: commit
+    maxShutdownDelaySeconds: 120
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: sovereign-engine-postgres
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: sovereign-engine-redis
+          property: connectionString
+      - key: APP_PROTOCOL
+        value: https
+      - key: APP_DOMAIN
+        value: sovereign-engine-api.onrender.com
+      - key: NODE_ENV
+        value: production
+      - key: LOG_FORMAT
+        value: json
+      - key: MOCK_SMTP
+        value: "false"
+      - key: SEND_ALLOW_UNKNOWN_VALIDATION
+        value: "false"
+      - key: GLOBAL_SENDS_PER_MINUTE
+        value: "3"
+      - key: SENDER_WORKER_CONCURRENCY
+        value: "1"
+      - key: LEGACY_LOOP_BATCH_SIZE
+        value: "1"
+      - key: INVESTOR_LEAD_VALUE_USD
+        value: "0.75"
+      - key: ROI_INBOX_LEAD_VALUE_USD
+        value: "0.75"
+      - key: ROI_COST_PER_SEND_USD
+        value: "0.002"
+      - key: JWT_SECRET
+        generateValue: true
+      - key: MASTER_ENCRYPTION_KEY
+        generateValue: true
+      - key: SECURITY_KILL_SWITCH_TOKEN
+        generateValue: true
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: SMTP_SECURE
+        sync: false
+      - key: SMTP_FROM_EMAIL
+        sync: false
+      - key: ZEROBOUNCE_API_KEY
+        sync: false
+
+  - type: worker
+    name: sovereign-engine-reputation-worker
+    runtime: docker
+    region: singapore
+    plan: starter
+    dockerContext: ./code
+    dockerfilePath: ./code/Dockerfile
+    dockerCommand: sh -lc "node scripts/sync-env.mjs && pnpm db:init && pnpm -C workers/reputation-worker start"
+    autoDeployTrigger: commit
+    maxShutdownDelaySeconds: 120
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: sovereign-engine-postgres
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: sovereign-engine-redis
+          property: connectionString
+      - key: NODE_ENV
+        value: production
+      - key: LOG_FORMAT
+        value: json
+
+  - type: worker
+    name: sovereign-engine-sender-worker
+    runtime: docker
+    region: singapore
+    plan: starter
+    dockerContext: ./code
+    dockerfilePath: ./code/Dockerfile
+    dockerCommand: sh -lc "node scripts/sync-env.mjs && pnpm db:init && pnpm -C workers/sender-worker start"
+    autoDeployTrigger: commit
+    maxShutdownDelaySeconds: 180
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: sovereign-engine-postgres
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: sovereign-engine-redis
+          property: connectionString
+      - key: NODE_ENV
+        value: production
+      - key: LOG_FORMAT
+        value: json
+      - key: MOCK_SMTP
+        value: "false"
+      - key: SEND_ALLOW_UNKNOWN_VALIDATION
+        value: "false"
+      - key: GLOBAL_SENDS_PER_MINUTE
+        value: "3"
+      - key: SENDER_WORKER_CONCURRENCY
+        value: "1"
+      - key: LEGACY_LOOP_BATCH_SIZE
+        value: "1"
+      - key: WORKER_ID
+        value: render-sender-1
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: SMTP_SECURE
+        sync: false
+      - key: SMTP_FROM_EMAIL
+        sync: false
+      - key: SMTP_ACCOUNTS
+        sync: false
+      - key: ZEROBOUNCE_API_KEY
+        sync: false
+
+  - type: cron
+    name: sovereign-engine-outbound-cron
+    runtime: docker
+    region: singapore
+    plan: starter
+    schedule: "*/15 * * * *"
+    dockerContext: ./code
+    dockerfilePath: ./code/Dockerfile
+    dockerCommand: sh -lc "node scripts/sync-env.mjs && node scripts/cloud-outbound-cron.mjs"
+    autoDeployTrigger: commit
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: sovereign-engine-postgres
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: sovereign-engine-redis
+          property: connectionString
+      - key: NODE_ENV
+        value: production
+      - key: LOG_FORMAT
+        value: json
+      - key: OUTBOUND_CRON_ENABLED
+        value: "false"
+      - key: OUTBOUND_CRON_LIMIT
+        value: "5"
+      - key: OUTBOUND_CRON_MAX_LIMIT
+        value: "25"
+      - key: OUTBOUND_LEADS_SOURCE
+        value: docs/acquisition/LEADS_TEMPLATE.csv
+      - key: OUTBOUND_PREPARED_CSV
+        value: docs/acquisition/CLIENTS_TODAY.csv
+
+databases:
+  - name: sovereign-engine-postgres
+    region: singapore
+    plan: starter
+    databaseName: sovereign_engine
+    user: sovereign_engine

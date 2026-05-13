@@ -1631,6 +1631,43 @@ async function runSend(job: SendJob, bull?: Pick<Job<SendJob>, 'id' | 'attemptsM
       }
     }
 
+    const normalizedTo = String(job.toEmail || '').trim().toLowerCase()
+
+    // Duplicate anomaly fallback: if we already sent to the same recipient recently,
+    // suppress before SMTP so we protect domains without creating false "sent then failed" records.
+    if (!MOCK_SMTP_FASTLANE) {
+      const dupRes = await db<{ count: string }>(
+        `SELECT COUNT(*)::text AS count
+         FROM events
+         WHERE client_id = $1
+           AND event_type = 'sent'
+           AND COALESCE(metadata->>'to_email','') = $2
+           AND created_at > (CURRENT_TIMESTAMP - INTERVAL '1 hour')`,
+        [job.clientId, normalizedTo]
+      )
+      if (Number(dupRes.rows[0]?.count ?? 0) > 0) {
+        await recordMetric(job.clientId, 'duplicate_send_prevented', 1, { scope: 'worker', reason: 'recent_window' })
+        console.warn('[sender-worker] duplicate anomaly suppressed before smtp (recent window)', {
+          bullJobId,
+          idemKey,
+          to: maskEmail(normalizedTo),
+        })
+        await redis.set(doneKey, '1', 'EX', 60 * 60 * 24 * 7)
+        await redis.set(legacyDoneKey, '1', 'EX', 60 * 60 * 24 * 7)
+        await redis.del(inflightKey)
+        await redis.del(failedKey)
+        await handleTracking({
+          type: 'FAILED',
+          clientId: job.clientId,
+          campaignId: job.campaignId ?? null,
+          contactId: job.contactId ?? null,
+          queueJobId: job.queueJobId ?? null,
+          metadata: { event_code: 'EMAIL_FAILED', reason: 'duplicate_recent_window', to_email: normalizedTo, idempotency_key: idemKey },
+        })
+        return
+      }
+    }
+
     // Per-domain per-minute limiter.
     // NOTE: minuteBucket already defined above for global cap; keep it consistent for shaping.
     const domainRateKey = `xv:${REGION}:adaptive:domain_rate:${job.clientId}:${selection.domain.id}:${minuteBucket}`
@@ -1731,18 +1768,21 @@ async function runSend(job: SendJob, bull?: Pick<Job<SendJob>, 'id' | 'attemptsM
                     campaignId: job.campaignId ?? null,
                     queueJobId: job.queueJobId ?? null,
                     idempotencyKey: idemKey,
-                    sendingDomain: selection.domain.domain,
+                    sendingDomain: String(account.user).split('@')[1] || selection.domain.domain,
                     provider: recipientProvider,
                   },
-                  headers: {
-                    'X-Sovereign Engine-Lane': lane,
-                    'X-Sovereign Engine-Adaptive': adaptive.reasons.join(','),
-                    'X-Sovereign Engine-QueueJobId': String(job.queueJobId ?? ''),
-                    'X-Sovereign Engine-CampaignId': String(job.campaignId ?? ''),
-                  },
+                  headers:
+                    process.env.SMTP_DEBUG_HEADERS === 'true'
+                      ? {
+                          'X-Sovereign-Engine-Lane': lane,
+                          'X-Sovereign-Engine-Adaptive': adaptive.reasons.join(','),
+                          'X-Sovereign-Engine-QueueJobId': String(job.queueJobId ?? ''),
+                          'X-Sovereign-Engine-CampaignId': String(job.campaignId ?? ''),
+                        }
+                      : undefined,
                 }
               ),
-              sleep(35_000).then(() => {
+              sleep(75_000).then(() => {
                 throw new Error('smtp_timeout')
               }),
             ])
@@ -1774,39 +1814,6 @@ async function runSend(job: SendJob, bull?: Pick<Job<SendJob>, 'id' | 'attemptsM
          WHERE client_id = $1 AND id = $2`,
         [job.clientId, selection.domain.id]
       )
-    }
-
-    const normalizedTo = String(job.toEmail || '').trim().toLowerCase()
-
-    // Duplicate anomaly fallback: if we somehow already sent to the same email recently,
-    // suppress sending to protect domains. This should be extremely rare due to idempotency.
-    if (!MOCK_SMTP_FASTLANE) {
-      const dupRes = await db<{ count: string }>(
-        `SELECT COUNT(*)::text AS count
-         FROM events
-         WHERE client_id = $1
-           AND event_type = 'sent'
-           AND COALESCE(metadata->>'to_email','') = $2
-           AND created_at > (CURRENT_TIMESTAMP - INTERVAL '1 hour')`,
-        [job.clientId, normalizedTo]
-      )
-      if (Number(dupRes.rows[0]?.count ?? 0) > 0) {
-        await recordMetric(job.clientId, 'duplicate_send_prevented', 1, { scope: 'worker', reason: 'recent_window' })
-        console.warn('[sender-worker] duplicate anomaly suppressed (recent window)', { bullJobId, idemKey, to: maskEmail(normalizedTo) })
-        await redis.set(doneKey, '1', 'EX', 60 * 60 * 24 * 7)
-        await redis.set(legacyDoneKey, '1', 'EX', 60 * 60 * 24 * 7)
-        await redis.del(inflightKey)
-        await redis.del(failedKey)
-        await handleTracking({
-          type: 'FAILED',
-          clientId: job.clientId,
-          campaignId: job.campaignId ?? null,
-          contactId: job.contactId ?? null,
-          queueJobId: job.queueJobId ?? null,
-          metadata: { event_code: 'EMAIL_FAILED', reason: 'duplicate_recent_window', to_email: normalizedTo, idempotency_key: idemKey },
-        })
-        return
-      }
     }
 
     await handleTracking({

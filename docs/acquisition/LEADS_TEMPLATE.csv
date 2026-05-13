@@ -1,0 +1,2 @@
+company,website,buyer_name,buyer_role,buyer_email,linkedin,segment,reason_to_buy,offer_angle,status,next_action,last_contacted_at,notes
+Example Agency,https://example.com,Jane Founder,Founder,jane@example.com,https://linkedin.com/in/example,Outbound agency,Owns client outbound operations,$25K source-code license,not_contacted,send_message_1,,
