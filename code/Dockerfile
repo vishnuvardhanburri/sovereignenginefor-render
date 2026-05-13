@@ -85,4 +85,4 @@ COPY --from=builder /app /app
 
 EXPOSE 3000
 
-CMD ["pnpm", "-C", "apps/api-gateway", "start", "-p", "3000"]
+CMD ["sh", "-lc", "node scripts/sync-env.mjs && pnpm db:init && if [ -n \"$BOOTSTRAP_ADMIN_EMAIL\" ] && [ -n \"$BOOTSTRAP_ADMIN_PASSWORD\" ]; then pnpm user:create \"$BOOTSTRAP_ADMIN_EMAIL\" \"$BOOTSTRAP_ADMIN_PASSWORD\"; fi && pnpm -C apps/api-gateway start -p ${PORT:-3000}"]

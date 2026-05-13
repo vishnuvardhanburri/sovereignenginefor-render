@@ -11,7 +11,7 @@ services:
     plan: starter
     dockerContext: ./code
     dockerfilePath: ./code/Dockerfile
-    dockerCommand: sh -lc "node scripts/sync-env.mjs && pnpm db:init && pnpm -C apps/api-gateway start -H 0.0.0.0 -p ${PORT:-3000}"
+    dockerCommand: sh -lc "node scripts/sync-env.mjs && pnpm db:init && if [ -n \"$BOOTSTRAP_ADMIN_EMAIL\" ] && [ -n \"$BOOTSTRAP_ADMIN_PASSWORD\" ]; then pnpm user:create \"$BOOTSTRAP_ADMIN_EMAIL\" \"$BOOTSTRAP_ADMIN_PASSWORD\"; fi && pnpm -C apps/api-gateway start -H 0.0.0.0 -p ${PORT:-3000}"
     healthCheckPath: /api/health
     autoDeployTrigger: commit
     maxShutdownDelaySeconds: 120
@@ -55,6 +55,10 @@ services:
         generateValue: true
       - key: SECURITY_KILL_SWITCH_TOKEN
         generateValue: true
+      - key: BOOTSTRAP_ADMIN_EMAIL
+        sync: false
+      - key: BOOTSTRAP_ADMIN_PASSWORD
+        sync: false
       - key: SMTP_HOST
         sync: false
       - key: SMTP_PORT
