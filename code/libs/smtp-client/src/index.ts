@@ -99,7 +99,85 @@ export function buildCompliantSmtpHeaders(req: SendEmailRequest): BuiltSmtpHeade
   }
 }
 
+function providerMode(): 'smtp' | 'brevo' | 'resend' {
+  const mode = String(process.env.EMAIL_PROVIDER || process.env.SEND_PROVIDER || 'smtp')
+    .trim()
+    .toLowerCase()
+  return mode === 'brevo' || mode === 'resend' ? mode : 'smtp'
+}
+
+function reqSecret(name: string): string {
+  const value = process.env[name]
+  if (!value) throw new Error(`Missing required environment variable: ${name}`)
+  return value
+}
+
+async function sendBrevo(req: SendEmailRequest, built: BuiltSmtpHeaders): Promise<{ messageId: string }> {
+  const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+    method: 'POST',
+    headers: {
+      accept: 'application/json',
+      'api-key': reqSecret('BREVO_API_KEY'),
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({
+      sender: { email: req.from },
+      to: [{ email: req.to }],
+      subject: req.subject,
+      htmlContent: req.html,
+      textContent: req.text,
+      headers: {
+        ...built.headers,
+        'Message-ID': built.messageId,
+      },
+    }),
+  })
+
+  const body = (await response.json().catch(() => ({}))) as { messageId?: string; message?: string }
+  if (!response.ok) {
+    throw new Error(`brevo_send_failed:${response.status}:${body.message || response.statusText}`)
+  }
+
+  return { messageId: body.messageId || built.messageId }
+}
+
+async function sendResend(req: SendEmailRequest, built: BuiltSmtpHeaders): Promise<{ messageId: string }> {
+  const response = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      authorization: `Bearer ${reqSecret('RESEND_API_KEY')}`,
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({
+      from: req.from,
+      to: [req.to],
+      subject: req.subject,
+      html: req.html,
+      text: req.text,
+      headers: built.headers,
+    }),
+  })
+
+  const body = (await response.json().catch(() => ({}))) as { id?: string; message?: string; error?: string }
+  if (!response.ok) {
+    throw new Error(`resend_send_failed:${response.status}:${body.message || body.error || response.statusText}`)
+  }
+
+  return { messageId: body.id || built.messageId }
+}
+
 export async function sendSmtp(config: SmtpConfig, req: SendEmailRequest): Promise<{ messageId: string }> {
+  const built = buildCompliantSmtpHeaders(req)
+  const mode = providerMode()
+
+  if (mode === 'brevo') {
+    return sendBrevo(req, built)
+  }
+
+  if (mode === 'resend') {
+    return sendResend(req, built)
+  }
+
   const transporter = nodemailer.createTransport({
     host: config.host,
     port: config.port ?? (config.secure ? 465 : 587),
@@ -114,7 +192,6 @@ export async function sendSmtp(config: SmtpConfig, req: SendEmailRequest): Promi
     },
   })
 
-  const built = buildCompliantSmtpHeaders(req)
   const info = await transporter.sendMail({
     from: req.from,
     to: req.to,
