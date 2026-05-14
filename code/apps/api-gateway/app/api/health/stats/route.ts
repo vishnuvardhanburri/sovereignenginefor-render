@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import IORedis from 'ioredis'
 import { Queue } from 'bullmq'
+import crypto from 'node:crypto'
 import { query } from '@/lib/db'
 import { resolveClientId } from '@/lib/client-context'
 import { evaluateTlsPolicy } from '@/lib/security/tls-policy'
@@ -16,6 +17,32 @@ const WORKER_HEALTH_FRESH_MS = Number(process.env.WORKER_HEALTH_FRESH_MS ?? 45_0
 function safeError(error: unknown) {
   if (error instanceof Error) return error.message
   return String(error)
+}
+
+function redisUrlDiagnostic(raw = process.env.REDIS_URL || '') {
+  try {
+    const url = new URL(raw)
+    const password = url.password ? decodeURIComponent(url.password) : ''
+    return {
+      scheme: url.protocol.replace(':', ''),
+      username: decodeURIComponent(url.username || ''),
+      host: url.hostname,
+      port: url.port,
+      passwordLength: password.length,
+      passwordSha256Prefix: password
+        ? crypto.createHash('sha256').update(password).digest('hex').slice(0, 12)
+        : null,
+    }
+  } catch {
+    return {
+      scheme: raw.split('://')[0] || null,
+      username: null,
+      host: null,
+      port: null,
+      passwordLength: 0,
+      passwordSha256Prefix: null,
+    }
+  }
 }
 
 async function timed<T>(fn: () => Promise<T>): Promise<{ value: T; latencyMs: number }> {
@@ -232,6 +259,7 @@ export async function GET(request: NextRequest) {
         diagnostics: {
           hasDatabaseUrl: Boolean(process.env.DATABASE_URL),
           redisUrlScheme: process.env.REDIS_URL?.split('://')[0] ?? null,
+          redisUrl: redisUrlDiagnostic(),
           nodeEnv: process.env.NODE_ENV ?? null,
           sendQueue: process.env.SEND_QUEUE ?? 'xv-send-queue',
         },
