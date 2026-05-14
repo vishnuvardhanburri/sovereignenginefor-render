@@ -24,6 +24,11 @@ function enabled(value: string | undefined): boolean {
   return ['1', 'true', 'yes', 'on'].includes(String(value || '').trim().toLowerCase())
 }
 
+function safeError(error: unknown) {
+  if (error instanceof Error) return error.message
+  return String(error)
+}
+
 function isEmail(value: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
 }
@@ -201,7 +206,22 @@ export async function GET(request: NextRequest) {
     })
   } catch (error) {
     console.error('[api/cron/outbound] failed', error)
-    return NextResponse.json({ ok: false, error: 'failed' }, { status: 500 })
+    return NextResponse.json(
+      {
+        ok: false,
+        error: 'failed',
+        detail: safeError(error),
+        diagnostics: {
+          enabled: enabled(process.env.OUTBOUND_CRON_ENABLED),
+          hasRedisUrl: Boolean(process.env.REDIS_URL),
+          redisUrlScheme: process.env.REDIS_URL?.split('://')[0] ?? null,
+          hasRecipients: Boolean(String(process.env.OUTBOUND_CRON_RECIPIENTS || '').trim()),
+          hasLeadsJson: Boolean(String(process.env.OUTBOUND_CRON_LEADS_JSON || '').trim()),
+          sendQueue: process.env.SEND_QUEUE ?? 'xv-send-queue',
+        },
+      },
+      { status: 500 }
+    )
   } finally {
     await queue?.close()
   }

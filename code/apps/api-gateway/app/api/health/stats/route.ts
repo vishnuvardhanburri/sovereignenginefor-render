@@ -13,6 +13,11 @@ function reqEnv(name: string) {
 
 const WORKER_HEALTH_FRESH_MS = Number(process.env.WORKER_HEALTH_FRESH_MS ?? 45_000)
 
+function safeError(error: unknown) {
+  if (error instanceof Error) return error.message
+  return String(error)
+}
+
 async function timed<T>(fn: () => Promise<T>): Promise<{ value: T; latencyMs: number }> {
   const started = performance.now()
   const value = await fn()
@@ -219,7 +224,20 @@ export async function GET(request: NextRequest) {
     })
   } catch (error) {
     console.error('[api/health/stats] failed', error)
-    return NextResponse.json({ ok: false, error: 'failed' }, { status: 500 })
+    return NextResponse.json(
+      {
+        ok: false,
+        error: 'failed',
+        detail: safeError(error),
+        diagnostics: {
+          hasDatabaseUrl: Boolean(process.env.DATABASE_URL),
+          redisUrlScheme: process.env.REDIS_URL?.split('://')[0] ?? null,
+          nodeEnv: process.env.NODE_ENV ?? null,
+          sendQueue: process.env.SEND_QUEUE ?? 'xv-send-queue',
+        },
+      },
+      { status: 500 }
+    )
   } finally {
     await Promise.allSettled([queue?.close(), redis?.quit()])
   }
