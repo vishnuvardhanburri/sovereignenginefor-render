@@ -99,17 +99,41 @@ export function buildCompliantSmtpHeaders(req: SendEmailRequest): BuiltSmtpHeade
   }
 }
 
+function secretFromMisplacedProviderEnv(name: 'BREVO_API_KEY' | 'RESEND_API_KEY'): string {
+  const raw = [process.env.EMAIL_PROVIDER, process.env.SEND_PROVIDER]
+    .filter(Boolean)
+    .join('\n')
+    .trim()
+
+  if (!raw) return ''
+
+  const keyMatch = raw.match(new RegExp(`${name}\\s*=\\s*([^\\s,;]+)`, 'i'))
+  const candidate = keyMatch?.[1]?.trim().replace(/^['"]|['"]$/g, '')
+  if (candidate) return candidate
+
+  if (name === 'BREVO_API_KEY' && /^xsmtpsib-/i.test(raw)) return raw
+  if (name === 'RESEND_API_KEY' && /^re_/i.test(raw)) return raw
+
+  return ''
+}
+
+function hasSecret(name: 'BREVO_API_KEY' | 'RESEND_API_KEY'): boolean {
+  return Boolean(process.env[name] || secretFromMisplacedProviderEnv(name))
+}
+
 function providerMode(): 'smtp' | 'brevo' | 'resend' {
   const explicitMode = process.env.EMAIL_PROVIDER || process.env.SEND_PROVIDER
-  const inferredMode = process.env.BREVO_API_KEY ? 'brevo' : process.env.RESEND_API_KEY ? 'resend' : 'smtp'
+  const inferredMode = hasSecret('BREVO_API_KEY') ? 'brevo' : hasSecret('RESEND_API_KEY') ? 'resend' : 'smtp'
   const mode = String(explicitMode || inferredMode)
     .trim()
     .toLowerCase()
+  if (mode.includes('brevo_api_key=') || mode.startsWith('xsmtpsib-')) return 'brevo'
+  if (mode.includes('resend_api_key=') || mode.startsWith('re_')) return 'resend'
   return mode === 'brevo' || mode === 'resend' ? mode : 'smtp'
 }
 
-function reqSecret(name: string): string {
-  const value = process.env[name]
+function reqSecret(name: 'BREVO_API_KEY' | 'RESEND_API_KEY'): string {
+  const value = process.env[name] || secretFromMisplacedProviderEnv(name)
   if (!value) throw new Error(`Missing required environment variable: ${name}`)
   return value
 }

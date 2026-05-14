@@ -45,22 +45,57 @@ function redisUrlDiagnostic(raw = process.env.REDIS_URL || '') {
   }
 }
 
-function emailProviderDiagnostic() {
-  const explicitProvider = String(process.env.EMAIL_PROVIDER || process.env.SEND_PROVIDER || '')
+function secretFromMisplacedProviderEnv(name: 'BREVO_API_KEY' | 'RESEND_API_KEY') {
+  const raw = [process.env.EMAIL_PROVIDER, process.env.SEND_PROVIDER]
+    .filter(Boolean)
+    .join('\n')
     .trim()
-    .toLowerCase()
-  const inferredProvider = process.env.BREVO_API_KEY ? 'brevo' : process.env.RESEND_API_KEY ? 'resend' : 'smtp'
+
+  if (!raw) return ''
+
+  const keyMatch = raw.match(new RegExp(`${name}\\s*=\\s*([^\\s,;]+)`, 'i'))
+  const candidate = keyMatch?.[1]?.trim().replace(/^['"]|['"]$/g, '')
+  if (candidate) return candidate
+
+  if (name === 'BREVO_API_KEY' && /^xsmtpsib-/i.test(raw)) return raw
+  if (name === 'RESEND_API_KEY' && /^re_/i.test(raw)) return raw
+
+  return ''
+}
+
+function providerLabel(raw: string) {
+  const value = raw.trim().toLowerCase()
+  if (!value) return null
+  if (value === 'smtp' || value === 'brevo' || value === 'resend') return value
+  if (value.includes('brevo_api_key=') || value.startsWith('xsmtpsib-')) return 'brevo_key_misplaced'
+  if (value.includes('resend_api_key=') || value.startsWith('re_')) return 'resend_key_misplaced'
+  return 'invalid'
+}
+
+function emailProviderDiagnostic() {
+  const explicitProvider = providerLabel(String(process.env.EMAIL_PROVIDER || process.env.SEND_PROVIDER || ''))
+  const hasBrevoKey = Boolean(process.env.BREVO_API_KEY || secretFromMisplacedProviderEnv('BREVO_API_KEY'))
+  const hasResendKey = Boolean(process.env.RESEND_API_KEY || secretFromMisplacedProviderEnv('RESEND_API_KEY'))
+  const inferredProvider = hasBrevoKey ? 'brevo' : hasResendKey ? 'resend' : 'smtp'
   const selectedProvider =
     explicitProvider === 'brevo' || explicitProvider === 'resend' || explicitProvider === 'smtp'
       ? explicitProvider
+      : explicitProvider === 'brevo_key_misplaced'
+        ? 'brevo'
+        : explicitProvider === 'resend_key_misplaced'
+          ? 'resend'
       : inferredProvider
 
   return {
     selected_provider: selectedProvider,
-    explicit_provider: explicitProvider || null,
+    explicit_provider: explicitProvider,
     inferred_provider: inferredProvider,
-    has_brevo_key: Boolean(process.env.BREVO_API_KEY),
-    has_resend_key: Boolean(process.env.RESEND_API_KEY),
+    has_brevo_key: hasBrevoKey,
+    has_resend_key: hasResendKey,
+    config_warning:
+      explicitProvider === 'brevo_key_misplaced' || explicitProvider === 'resend_key_misplaced'
+        ? 'API key appears to be pasted into EMAIL_PROVIDER; move it into the dedicated key variable after testing.'
+        : null,
     smtp_from_email_configured: Boolean(process.env.SMTP_FROM_EMAIL),
   }
 }
