@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { importContacts } from '@/lib/backend'
 import { resolveClientId } from '@/lib/client-context'
-import { leadScoutToContacts, scoutOpenLeads } from '@/lib/lead-scout'
+import { leadScoutToContacts, scoutOpenLeads, verifyOpenLeadEvidence } from '@/lib/lead-scout'
 
 export const dynamic = 'force-dynamic'
 
@@ -31,8 +31,9 @@ export async function GET(request: NextRequest) {
       })
     }
 
+    const verifiedLeads = await verifyOpenLeadEvidence(result.leads)
     const contacts = await importContacts(clientId, {
-      contacts: leadScoutToContacts(result.leads),
+      contacts: leadScoutToContacts(verifiedLeads),
       verify: false,
       enrich: false,
       dedupeByDomain: true,
@@ -44,6 +45,7 @@ export async function GET(request: NextRequest) {
       imported: contacts.length,
       contacts,
       ...result,
+      leads: verifiedLeads,
     })
   } catch (error) {
     console.error('[LeadScout] Failed to scout leads', error)
@@ -79,8 +81,9 @@ export async function POST(request: NextRequest) {
       })
     }
 
+    const verifiedLeads = await verifyOpenLeadEvidence(result.leads)
     const contacts = await importContacts(clientId, {
-      contacts: leadScoutToContacts(result.leads),
+      contacts: leadScoutToContacts(verifiedLeads),
       verify: false,
       enrich: false,
       dedupeByDomain: true,
@@ -92,6 +95,7 @@ export async function POST(request: NextRequest) {
       imported: contacts.length,
       contacts,
       ...result,
+      leads: verifiedLeads,
     })
   } catch (error) {
     console.error('[LeadScout] Failed to scout leads', error)

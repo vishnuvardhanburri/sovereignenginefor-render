@@ -101,6 +101,10 @@ async function loadApprovedContacts(clientId: number, limit: number): Promise<Pr
        AND c.bounced_at IS NULL
        AND c.unsubscribed_at IS NULL
        AND COALESCE(c.custom_fields->>'send_status', 'not_approved') = 'approved'
+       AND NOT (
+         COALESCE(c.custom_fields->>'lead_scout', 'false') = 'true'
+         AND COALESCE(c.custom_fields->>'auto_approval_eligible', 'false') <> 'true'
+       )
        AND NOT EXISTS (
          SELECT 1
          FROM suppression_list s

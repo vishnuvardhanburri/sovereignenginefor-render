@@ -79,7 +79,9 @@ export async function POST(request: NextRequest) {
              'send_status', 'approved',
              'approval_required', false,
              'approved_at', to_char(CURRENT_TIMESTAMP AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),
-             'approved_by', 'operator'
+             'approved_by', 'operator',
+             'auto_approval_eligible', true,
+             'email_evidence', 'operator_selected'
            ),
            updated_at = CURRENT_TIMESTAMP
          WHERE client_id = $1
@@ -109,6 +111,7 @@ export async function POST(request: NextRequest) {
          AND unsubscribed_at IS NULL
          AND COALESCE(custom_fields->>'send_status', 'not_approved') <> 'approved'
          AND COALESCE(custom_fields->>'lead_scout', 'false') = 'true'
+         AND COALESCE(custom_fields->>'auto_approval_eligible', 'false') = 'true'
        ORDER BY
          COALESCE(NULLIF(custom_fields->>'fit_score', '')::int, 0) DESC,
          CASE COALESCE(custom_fields->>'confidence', '')
@@ -129,7 +132,7 @@ export async function POST(request: NextRequest) {
         approved: 0,
         systemApprovalWindow: approvalWindow,
         contacts: [],
-        skipped: 'no_reviewable_prospects',
+        skipped: 'no_publicly_verified_prospects',
       })
     }
 

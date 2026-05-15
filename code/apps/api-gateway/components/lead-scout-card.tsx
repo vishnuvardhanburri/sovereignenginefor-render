@@ -92,13 +92,13 @@ export function LeadScoutCard() {
               Open Lead Scout
             </CardTitle>
             <p className="mt-1 text-sm text-muted-foreground">
-              Owned lead source: no Apollo, Hunter, Serper, or Tavily. It imports company-level
-              prospects from a safe open lead graph for manual review.
+              Owned lead source: no Apollo, Hunter, Serper, or Tavily. The system now searches
+              for public email evidence before a scouted prospect can be auto-approved.
             </p>
           </div>
-          <Badge className="w-fit bg-green-500/10 text-green-400">
+          <Badge className="w-fit bg-amber-500/10 text-amber-300">
             <ShieldCheck className="mr-1 h-3 w-3" />
-            Review before sending
+            Evidence required
           </Badge>
         </div>
       </CardHeader>
@@ -165,7 +165,7 @@ export function LeadScoutCard() {
               <Badge variant="secondary">{result.leads.length} found</Badge>
               <Badge variant="secondary">{result.imported} imported</Badge>
               <span className="text-muted-foreground">
-                Generic company inboxes only. No personal email guessing.
+                Inferred role inboxes stay blocked until public evidence or operator verification exists.
               </span>
             </div>
             <div className="grid gap-2 md:grid-cols-2">

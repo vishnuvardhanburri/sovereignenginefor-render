@@ -33,6 +33,9 @@ export interface OpenLead {
   fitScore: number
   reason: string
   confidence: 'high' | 'medium' | 'low'
+  emailEvidence?: 'public_page_match' | 'public_domain_email' | 'synthetic_role_pattern'
+  publicEvidenceUrl?: string
+  autoApprovalEligible?: boolean
 }
 
 interface CompanySeed {
@@ -139,6 +142,36 @@ const PERSONA_MAILBOXES: Record<LeadScoutPersona, string[]> = {
   operations: ['ops', 'operations', 'admin', 'hello'],
 }
 
+const PUBLIC_EVIDENCE_PATHS = [
+  '/',
+  '/contact',
+  '/contact-us',
+  '/about',
+  '/about-us',
+  '/partners',
+  '/partnerships',
+]
+
+const BLOCKED_PUBLIC_EMAIL_PREFIXES = new Set([
+  'abuse',
+  'admin',
+  'billing',
+  'careers',
+  'compliance',
+  'copyright',
+  'dmca',
+  'dpo',
+  'jobs',
+  'legal',
+  'no-reply',
+  'noreply',
+  'postmaster',
+  'privacy',
+  'security',
+  'support',
+  'webmaster',
+])
+
 function normalizeIndustry(input?: string): LeadScoutIndustry {
   const value = String(input || 'saas').trim().toLowerCase()
   if (value in INDUSTRY_ALIASES) return INDUSTRY_ALIASES[value]
@@ -190,6 +223,104 @@ function toEmail(domain: string, persona: LeadScoutPersona): string {
   return `${mailbox}@${domain}`
 }
 
+function personaFromTitle(title: string): LeadScoutPersona {
+  const value = title.toLowerCase()
+  if (value.includes('partnership')) return 'partnerships'
+  if (value.includes('growth')) return 'growth'
+  if (value.includes('sales')) return 'sales'
+  if (value.includes('operation')) return 'operations'
+  return 'founder'
+}
+
+function publicUrl(domain: string, path: string): string {
+  return `https://${domain}${path}`
+}
+
+function extractDomainEmails(html: string, domain: string): string[] {
+  const normalizedDomain = domain.toLowerCase()
+  const matches = html.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi) ?? []
+  const unique = new Set<string>()
+
+  for (const match of matches) {
+    const email = match.trim().toLowerCase()
+    const [prefix, emailDomain] = email.split('@')
+    if (emailDomain !== normalizedDomain) continue
+    if (!prefix || BLOCKED_PUBLIC_EMAIL_PREFIXES.has(prefix)) continue
+    unique.add(email)
+  }
+
+  return Array.from(unique)
+}
+
+function pickPublicEmail(emails: string[], persona: LeadScoutPersona): string | null {
+  const preferred = PERSONA_MAILBOXES[persona]
+  const exact = emails.find((email) => preferred.includes(email.split('@')[0] ?? ''))
+  return exact ?? emails[0] ?? null
+}
+
+async function fetchEvidencePage(url: string): Promise<string | null> {
+  try {
+    const response = await fetch(url, {
+      headers: {
+        Accept: 'text/html,application/xhtml+xml',
+        'User-Agent': 'SovereignEngineLeadVerifier/1.0',
+      },
+      signal: AbortSignal.timeout(2500),
+    })
+
+    if (!response.ok) return null
+    const contentType = response.headers.get('content-type') || ''
+    if (!contentType.includes('text/html')) return null
+    return await response.text()
+  } catch {
+    return null
+  }
+}
+
+export async function verifyOpenLeadEvidence(leads: OpenLead[]): Promise<OpenLead[]> {
+  return Promise.all(
+    leads.map(async (lead) => {
+      const persona = personaFromTitle(lead.title)
+      const inferredEmail = lead.email.toLowerCase()
+
+      for (const path of PUBLIC_EVIDENCE_PATHS) {
+        const url = publicUrl(lead.companyDomain, path)
+        const html = await fetchEvidencePage(url)
+        if (!html) continue
+
+        const lowerHtml = html.toLowerCase()
+        if (lowerHtml.includes(inferredEmail)) {
+          return {
+            ...lead,
+            emailEvidence: 'public_page_match',
+            publicEvidenceUrl: url,
+            autoApprovalEligible: true,
+            reason: `${lead.reason} Public evidence confirms ${inferredEmail}.`,
+          }
+        }
+
+        const publicEmail = pickPublicEmail(extractDomainEmails(html, lead.companyDomain), persona)
+        if (publicEmail) {
+          return {
+            ...lead,
+            email: publicEmail,
+            emailEvidence: 'public_domain_email',
+            publicEvidenceUrl: url,
+            autoApprovalEligible: true,
+            reason: `${lead.reason} Public contact evidence found on ${url}.`,
+          }
+        }
+      }
+
+      return {
+        ...lead,
+        emailEvidence: 'synthetic_role_pattern',
+        autoApprovalEligible: false,
+      }
+    })
+  )
+}
+
 export function scoutOpenLeads(input: LeadScoutRequest = {}): {
   industry: LeadScoutIndustry
   persona: LeadScoutPersona
@@ -225,6 +356,8 @@ export function scoutOpenLeads(input: LeadScoutRequest = {}): {
     fitScore,
     reason: reasonFor(seed, industry),
     confidence: fitScore >= 85 ? 'high' : fitScore >= 70 ? 'medium' : 'low',
+    emailEvidence: 'synthetic_role_pattern',
+    autoApprovalEligible: false,
   } satisfies OpenLead))
 
   return {
@@ -252,13 +385,19 @@ export function leadScoutToContacts(leads: OpenLead[]): ContactInput[] {
     source: lead.source,
     companyDomain: lead.companyDomain,
     customFields: {
+      auto_approval_eligible: Boolean(lead.autoApprovalEligible),
+      data_source: 'owned_open_lead_graph',
+      email_evidence: lead.emailEvidence ?? 'synthetic_role_pattern',
       lead_scout: true,
       fit_score: lead.fitScore,
       confidence: lead.confidence,
       reason_to_contact: lead.reason,
+      public_evidence_url: lead.publicEvidenceUrl ?? null,
+      lead_quality_warning: lead.autoApprovalEligible
+        ? 'Public evidence found; still monitor bounces and complaints.'
+        : 'Role inbox inferred from company domain; blocked from cron until public evidence or operator verification exists.',
       approval_required: true,
       send_status: 'not_approved',
-      data_source: 'owned_open_lead_graph',
     },
   }))
 }

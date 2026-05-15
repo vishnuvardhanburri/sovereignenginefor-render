@@ -73,7 +73,7 @@ export default function ContactsPage() {
             disabled={approving}
           >
             <CheckCircle2 className="mr-2 h-4 w-4" />
-            {approving ? 'Approving...' : 'Approve System Recommended'}
+            {approving ? 'Approving...' : 'Approve Verified Recommended'}
           </Button>
           <AddContactModal />
           <UploadContactsModal />
