@@ -23,6 +23,9 @@ interface ScoutLead {
   fitScore: number
   reason: string
   confidence: 'high' | 'medium' | 'low'
+  emailEvidence?: 'public_page_match' | 'public_domain_email' | 'synthetic_role_pattern'
+  publicEvidenceUrl?: string
+  autoApprovalEligible?: boolean
 }
 
 interface ScoutResponse {
@@ -33,6 +36,8 @@ interface ScoutResponse {
   imported: number
   leads: ScoutLead[]
   guardrails: string[]
+  verifiedEvidenceCount?: number
+  blockedUnverified?: number
   error?: string
 }
 
@@ -71,9 +76,11 @@ export function LeadScoutCard() {
       setResult(next)
       if (importContacts) {
         await queryClient.invalidateQueries({ queryKey: ['contacts'] })
-        toast.success(`Imported ${next.imported} approved-review prospects`)
+        toast.success(
+          `Imported ${next.imported} evidence-backed prospects; blocked ${next.blockedUnverified ?? 0} inferred emails`
+        )
       } else {
-        toast.success(`Found ${next.leads.length} open-graph prospects`)
+        toast.success(`Found ${next.leads.length} prospects; ${next.verifiedEvidenceCount ?? 0} have public evidence`)
       }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Lead scout failed')
@@ -154,7 +161,7 @@ export function LeadScoutCard() {
               Preview
             </Button>
             <Button disabled={loading} onClick={() => scout(true)}>
-              Import
+              Import Verified
             </Button>
           </div>
         </div>
@@ -163,7 +170,15 @@ export function LeadScoutCard() {
           <div className="rounded-lg border bg-background/70 p-3">
             <div className="mb-3 flex flex-wrap items-center gap-2 text-sm">
               <Badge variant="secondary">{result.leads.length} found</Badge>
+              <Badge className="bg-emerald-500/10 text-emerald-400">
+                {result.verifiedEvidenceCount ?? 0} evidence-backed
+              </Badge>
               <Badge variant="secondary">{result.imported} imported</Badge>
+              {typeof result.blockedUnverified === 'number' ? (
+                <Badge className="bg-amber-500/10 text-amber-300">
+                  {result.blockedUnverified} blocked
+                </Badge>
+              ) : null}
               <span className="text-muted-foreground">
                 Inferred role inboxes stay blocked until public evidence or operator verification exists.
               </span>
@@ -175,8 +190,24 @@ export function LeadScoutCard() {
                     <div>
                       <div className="font-medium">{lead.company}</div>
                       <div className="text-muted-foreground">{lead.email}</div>
+                      {lead.publicEvidenceUrl ? (
+                        <div className="mt-1 truncate text-xs text-cyan-300">
+                          Evidence: {lead.publicEvidenceUrl}
+                        </div>
+                      ) : null}
                     </div>
-                    <Badge variant="outline">{lead.fitScore}</Badge>
+                    <div className="flex flex-col items-end gap-1">
+                      <Badge variant="outline">{lead.fitScore}</Badge>
+                      <Badge
+                        className={
+                          lead.autoApprovalEligible
+                            ? 'bg-emerald-500/10 text-emerald-400'
+                            : 'bg-amber-500/10 text-amber-300'
+                        }
+                      >
+                        {lead.autoApprovalEligible ? 'verified' : 'blocked'}
+                      </Badge>
+                    </div>
                   </div>
                   <p className="mt-2 line-clamp-2 text-xs text-muted-foreground">{lead.reason}</p>
                 </div>

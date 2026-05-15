@@ -146,10 +146,30 @@ const PUBLIC_EVIDENCE_PATHS = [
   '/',
   '/contact',
   '/contact-us',
+  '/contact/sales',
+  '/sales',
   '/about',
   '/about-us',
+  '/company',
+  '/team',
   '/partners',
   '/partnerships',
+  '/partner',
+  '/connect',
+]
+
+const PUBLIC_EVIDENCE_LINK_KEYWORDS = [
+  'about',
+  'bizdev',
+  'business-development',
+  'connect',
+  'contact',
+  'contact-us',
+  'growth',
+  'partner',
+  'partnership',
+  'sales',
+  'team',
 ]
 
 const BLOCKED_PUBLIC_EMAIL_PREFIXES = new Set([
@@ -238,7 +258,10 @@ function publicUrl(domain: string, path: string): string {
 
 function extractDomainEmails(html: string, domain: string): string[] {
   const normalizedDomain = domain.toLowerCase()
-  const matches = html.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi) ?? []
+  const decodedHtml = html
+    .replace(/\s*(?:\[at\]|\(at\)|\sat\s)\s*/gi, '@')
+    .replace(/\s*(?:\[dot\]|\(dot\)|\sdot\s)\s*/gi, '.')
+  const matches = `${html}\n${decodedHtml}`.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi) ?? []
   const unique = new Set<string>()
 
   for (const match of matches) {
@@ -256,6 +279,40 @@ function pickPublicEmail(emails: string[], persona: LeadScoutPersona): string | 
   const preferred = PERSONA_MAILBOXES[persona]
   const exact = emails.find((email) => preferred.includes(email.split('@')[0] ?? ''))
   return exact ?? emails[0] ?? null
+}
+
+function isSamePublicDomain(hostname: string, domain: string): boolean {
+  const host = hostname.toLowerCase().replace(/^www\./, '')
+  const root = domain.toLowerCase().replace(/^www\./, '')
+  return host === root || host.endsWith(`.${root}`)
+}
+
+function extractEvidenceLinks(html: string, domain: string): string[] {
+  const urls = new Set<string>()
+  const hrefs = html.matchAll(/href=["']([^"']+)["']/gi)
+
+  for (const match of hrefs) {
+    const rawHref = String(match[1] || '').trim()
+    if (!rawHref || rawHref.startsWith('#') || rawHref.startsWith('mailto:') || rawHref.startsWith('tel:')) {
+      continue
+    }
+
+    try {
+      const url = new URL(rawHref, publicUrl(domain, '/'))
+      if (url.protocol !== 'https:' && url.protocol !== 'http:') continue
+      if (!isSamePublicDomain(url.hostname, domain)) continue
+
+      const candidate = `${url.pathname}${url.search}`.toLowerCase()
+      if (!PUBLIC_EVIDENCE_LINK_KEYWORDS.some((keyword) => candidate.includes(keyword))) continue
+
+      url.hash = ''
+      urls.add(url.toString())
+    } catch {
+      // Ignore malformed marketing links; discovery should never block the operator flow.
+    }
+  }
+
+  return Array.from(urls).slice(0, 8)
 }
 
 async function fetchEvidencePage(url: string): Promise<string | null> {
@@ -283,10 +340,22 @@ export async function verifyOpenLeadEvidence(leads: OpenLead[]): Promise<OpenLea
       const persona = personaFromTitle(lead.title)
       const inferredEmail = lead.email.toLowerCase()
 
-      for (const path of PUBLIC_EVIDENCE_PATHS) {
-        const url = publicUrl(lead.companyDomain, path)
+      const urls = PUBLIC_EVIDENCE_PATHS.map((path) => publicUrl(lead.companyDomain, path))
+      const visited = new Set<string>()
+
+      for (let index = 0; index < urls.length && index < 20; index += 1) {
+        const url = urls[index]
+        if (visited.has(url)) continue
+        visited.add(url)
+
         const html = await fetchEvidencePage(url)
         if (!html) continue
+
+        if (url === publicUrl(lead.companyDomain, '/')) {
+          for (const discoveredUrl of extractEvidenceLinks(html, lead.companyDomain)) {
+            if (!visited.has(discoveredUrl)) urls.push(discoveredUrl)
+          }
+        }
 
         const lowerHtml = html.toLowerCase()
         if (lowerHtml.includes(inferredEmail)) {

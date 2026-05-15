@@ -223,15 +223,32 @@ export async function GET(request: NextRequest) {
     const useConfiguredOnly =
       request.nextUrl.searchParams.get('source') === 'configured' ||
       enabled(process.env.OUTBOUND_CRON_CONFIGURED_ONLY)
+    const allowConfiguredFallback =
+      request.nextUrl.searchParams.get('source') === 'configured' ||
+      enabled(process.env.OUTBOUND_CRON_ALLOW_CONFIGURED_FALLBACK)
     const leads: PreparedCronLead[] = useConfiguredOnly
       ? configuredLeads
       : approvedLeads.length > 0
         ? approvedLeads
-        : configuredLeads
-    const leadSource = useConfiguredOnly ? 'configured' : approvedLeads.length > 0 ? 'approved_contacts' : 'configured_fallback'
+        : allowConfiguredFallback
+          ? configuredLeads
+          : []
+    const leadSource = useConfiguredOnly
+      ? 'configured'
+      : approvedLeads.length > 0
+        ? 'approved_contacts'
+        : allowConfiguredFallback
+          ? 'configured_fallback'
+          : 'approved_contacts_only'
 
     if (leads.length === 0) {
-      return NextResponse.json({ ok: true, enabled: true, queued: 0, skipped: 'no_approved_leads' })
+      return NextResponse.json({
+        ok: true,
+        enabled: true,
+        queued: 0,
+        source: leadSource,
+        skipped: 'no_verified_approved_leads',
+      })
     }
 
     const queueName = process.env.SEND_QUEUE ?? 'xv-send-queue'

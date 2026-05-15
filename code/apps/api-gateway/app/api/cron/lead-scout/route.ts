@@ -64,8 +64,12 @@ export async function GET(request: NextRequest) {
     })
 
     const verifiedLeads = await verifyOpenLeadEvidence(result.leads)
+    const importUnverified = String(process.env.LEAD_SCOUT_IMPORT_UNVERIFIED || '').toLowerCase() === 'true'
+    const importableLeads = importUnverified
+      ? verifiedLeads
+      : verifiedLeads.filter((lead) => lead.autoApprovalEligible)
     const contacts = await importContacts(clientId, {
-      contacts: leadScoutToContacts(verifiedLeads),
+      contacts: leadScoutToContacts(importableLeads),
       verify: false,
       enrich: false,
       dedupeByDomain: true,
@@ -81,7 +85,8 @@ export async function GET(request: NextRequest) {
       persona: result.persona,
       region: result.region,
       leadCount: result.leads.length,
-      verifiedEvidenceCount: verifiedLeads.filter((lead) => lead.autoApprovalEligible).length,
+      verifiedEvidenceCount: importableLeads.length,
+      blockedUnverified: verifiedLeads.length - importableLeads.length,
       guardrails: result.guardrails,
     })
   } catch (error) {

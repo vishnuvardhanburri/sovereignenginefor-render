@@ -5,6 +5,13 @@ import { leadScoutToContacts, scoutOpenLeads, verifyOpenLeadEvidence } from '@/l
 
 export const dynamic = 'force-dynamic'
 
+function filterImportableLeads<T extends { autoApprovalEligible?: boolean }>(
+  leads: T[],
+  includeUnverified: boolean
+) {
+  return includeUnverified ? leads : leads.filter((lead) => lead.autoApprovalEligible)
+}
+
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams
@@ -21,19 +28,23 @@ export async function GET(request: NextRequest) {
       offset: Number(searchParams.get('offset') ?? 0),
     })
 
+    const verifiedLeads = await verifyOpenLeadEvidence(result.leads)
     const shouldImport = searchParams.get('import') === '1'
+    const includeUnverified = searchParams.get('include_unverified') === '1'
     if (!shouldImport) {
       return NextResponse.json({
         ok: true,
         clientId,
         imported: 0,
         ...result,
+        leads: verifiedLeads,
+        verifiedEvidenceCount: verifiedLeads.filter((lead) => lead.autoApprovalEligible).length,
       })
     }
 
-    const verifiedLeads = await verifyOpenLeadEvidence(result.leads)
+    const importableLeads = filterImportableLeads(verifiedLeads, includeUnverified)
     const contacts = await importContacts(clientId, {
-      contacts: leadScoutToContacts(verifiedLeads),
+      contacts: leadScoutToContacts(importableLeads),
       verify: false,
       enrich: false,
       dedupeByDomain: true,
@@ -46,6 +57,8 @@ export async function GET(request: NextRequest) {
       contacts,
       ...result,
       leads: verifiedLeads,
+      verifiedEvidenceCount: importableLeads.length,
+      blockedUnverified: verifiedLeads.length - importableLeads.length,
     })
   } catch (error) {
     console.error('[LeadScout] Failed to scout leads', error)
@@ -72,18 +85,21 @@ export async function POST(request: NextRequest) {
       offset: body.offset,
     })
 
+    const verifiedLeads = await verifyOpenLeadEvidence(result.leads)
     if (!body.importContacts) {
       return NextResponse.json({
         ok: true,
         clientId,
         imported: 0,
         ...result,
+        leads: verifiedLeads,
+        verifiedEvidenceCount: verifiedLeads.filter((lead) => lead.autoApprovalEligible).length,
       })
     }
 
-    const verifiedLeads = await verifyOpenLeadEvidence(result.leads)
+    const importableLeads = filterImportableLeads(verifiedLeads, Boolean(body.includeUnverified))
     const contacts = await importContacts(clientId, {
-      contacts: leadScoutToContacts(verifiedLeads),
+      contacts: leadScoutToContacts(importableLeads),
       verify: false,
       enrich: false,
       dedupeByDomain: true,
@@ -96,6 +112,8 @@ export async function POST(request: NextRequest) {
       contacts,
       ...result,
       leads: verifiedLeads,
+      verifiedEvidenceCount: importableLeads.length,
+      blockedUnverified: verifiedLeads.length - importableLeads.length,
     })
   } catch (error) {
     console.error('[LeadScout] Failed to scout leads', error)
