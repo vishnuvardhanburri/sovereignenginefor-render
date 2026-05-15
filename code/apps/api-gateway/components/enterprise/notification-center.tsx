@@ -59,7 +59,7 @@ function alertTone(severity: EnterpriseAlertSeverity) {
 }
 
 export function NotificationCenter() {
-  const { alerts, upsertAlert, acknowledge, acknowledgeAll } = useEnterpriseAlerts()
+  const { alerts, upsertAlert, acknowledge, acknowledgeAll, resolve } = useEnterpriseAlerts()
   const notified = useRef(new Set<string>())
   const health = useQuery({ queryKey: ['enterprise-health-alerts'], queryFn: fetchHealth, refetchInterval: 4_000 })
   const reputation = useQuery({ queryKey: ['enterprise-reputation-alerts'], queryFn: fetchReputation, refetchInterval: 5_000 })
@@ -81,6 +81,8 @@ export function NotificationCenter() {
         title: 'Sender workers offline',
         detail: 'No active sender-worker heartbeat is visible. Pause outbound operations until recovered.',
       })
+    } else {
+      resolve('workers-offline')
     }
     if (waiting > 1000) {
       upsertAlert({
@@ -90,6 +92,8 @@ export function NotificationCenter() {
         title: 'Queue pressure rising',
         detail: `${waiting.toLocaleString()} jobs waiting. Watch throughput and worker capacity.`,
       })
+    } else {
+      resolve('queue-pressure-high')
     }
     if (failed > 0) {
       upsertAlert({
@@ -99,6 +103,8 @@ export function NotificationCenter() {
         title: 'Queue failures detected',
         detail: `${failed.toLocaleString()} failed jobs are visible in BullMQ.`,
       })
+    } else {
+      resolve('queue-failures')
     }
     if (redisMs > 120 || dbMs > 120) {
       upsertAlert({
@@ -108,8 +114,10 @@ export function NotificationCenter() {
         title: 'Infrastructure latency elevated',
         detail: `Redis ${redisMs.toFixed(1)}ms · DB ${dbMs.toFixed(1)}ms.`,
       })
+    } else {
+      resolve('infra-latency-high')
     }
-  }, [health.data, upsertAlert])
+  }, [health.data, resolve, upsertAlert])
 
   useEffect(() => {
     for (const event of reputation.data?.events?.slice(0, 8) ?? []) {

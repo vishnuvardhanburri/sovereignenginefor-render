@@ -63,7 +63,12 @@ export default function SentMailPage() {
     try {
       const res = await fetch(`/api/dashboard/sent?kind=${kind}`, { method: 'DELETE' })
       if (!res.ok) throw new Error('failed')
+      if (kind === 'failed') {
+        const queueRes = await fetch('/api/queue?status=failed&limit=1000', { method: 'DELETE' })
+        if (!queueRes.ok) throw new Error('queue_clear_failed')
+      }
       await queryClient.invalidateQueries({ queryKey: ['dashboard', 'sent', 200] })
+      await queryClient.invalidateQueries({ queryKey: ['enterprise-health-alerts'] })
     } finally {
       setClearing(null)
     }
