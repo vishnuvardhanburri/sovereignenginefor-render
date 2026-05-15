@@ -21,6 +21,7 @@ export interface LeadScoutRequest {
   region?: string
   persona?: string
   limit?: number
+  offset?: number
 }
 
 export interface OpenLead {
@@ -165,6 +166,12 @@ function clampLimit(value?: number): number {
   return Math.min(Math.max(Math.trunc(limit), 1), 100)
 }
 
+function clampOffset(value?: number): number {
+  const offset = Number(value ?? 0)
+  if (!Number.isFinite(offset)) return 0
+  return Math.max(Math.trunc(offset), 0)
+}
+
 function scoreSeed(seed: CompanySeed, industry: LeadScoutIndustry, region: string): number {
   let score = seed.industries.includes(industry) ? 76 : 45
   if (seed.region === region) score += 10
@@ -195,15 +202,19 @@ export function scoutOpenLeads(input: LeadScoutRequest = {}): {
   const persona = normalizePersona(input.persona)
   const region = normalizeRegion(input.region)
   const limit = clampLimit(input.limit)
+  const offset = clampOffset(input.offset)
 
-  const seeds = COMPANY_SEEDS
+  const rankedSeeds = COMPANY_SEEDS
     .filter((seed) => seed.industries.includes(industry) || industry === 'saas')
     .map((seed) => ({
       seed,
       fitScore: scoreSeed(seed, industry, region),
     }))
     .sort((a, b) => b.fitScore - a.fitScore || a.seed.company.localeCompare(b.seed.company))
-    .slice(0, limit)
+  const rotatedSeeds = rankedSeeds.length
+    ? rankedSeeds.slice(offset % rankedSeeds.length).concat(rankedSeeds.slice(0, offset % rankedSeeds.length))
+    : []
+  const seeds = rotatedSeeds.slice(0, limit)
 
   const leads = seeds.map(({ seed, fitScore }) => ({
     email: toEmail(seed.domain, persona),

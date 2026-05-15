@@ -18,6 +18,7 @@ export async function GET(request: NextRequest) {
       region: searchParams.get('region') ?? undefined,
       persona: searchParams.get('persona') ?? undefined,
       limit: Number(searchParams.get('limit') ?? 25),
+      offset: Number(searchParams.get('offset') ?? 0),
     })
 
     const shouldImport = searchParams.get('import') === '1'
@@ -66,6 +67,7 @@ export async function POST(request: NextRequest) {
       region: body.region,
       persona: body.persona,
       limit: body.limit,
+      offset: body.offset,
     })
 
     if (!body.importContacts) {
