@@ -5,6 +5,7 @@ import { useContacts, useDeleteContact } from '@/lib/hooks'
 import { Contact } from '@/lib/api'
 import { UploadContactsModal } from '@/components/upload-contacts-modal'
 import { AddContactModal } from '@/components/add-contact-modal'
+import { LeadScoutCard } from '@/components/lead-scout-card'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import {
@@ -67,6 +68,8 @@ export default function ContactsPage() {
           <UploadContactsModal />
         </div>
       </div>
+
+      <LeadScoutCard />
 
       {/* Filters */}
       <Card>
