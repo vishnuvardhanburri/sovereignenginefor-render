@@ -153,6 +153,77 @@ const SMTP_ACCOUNTS = readJsonArray('SMTP_ACCOUNTS')
   .map((x) => ({ user: String(x?.user ?? ''), pass: String(x?.pass ?? '') }))
   .filter((x) => x.user && x.pass)
 
+type SenderAccount = { user: string; pass: string }
+
+function cleanEmail(raw: unknown): string {
+  const email = String(raw ?? '').trim().toLowerCase()
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? email : ''
+}
+
+function emailDomain(raw: unknown): string {
+  return cleanEmail(raw).split('@')[1] ?? ''
+}
+
+function providerModeFromEnv(): 'smtp' | 'brevo' | 'resend' {
+  const explicit = String(process.env.EMAIL_PROVIDER || process.env.SEND_PROVIDER || '').trim().toLowerCase()
+  if (explicit === 'resend' || explicit.startsWith('re_') || explicit.includes('resend_api_key=')) return 'resend'
+  if (explicit === 'brevo' || explicit.startsWith('xsmtpsib-') || explicit.includes('brevo_api_key=')) return 'brevo'
+  if (process.env.BREVO_API_KEY) return 'brevo'
+  if (process.env.RESEND_API_KEY) return 'resend'
+  return 'smtp'
+}
+
+function firstConfiguredSendingEmail(): string {
+  const raw = String(process.env.BOOTSTRAP_SENDING_EMAILS ?? '').trim()
+  if (!raw) return ''
+
+  try {
+    const parsed = JSON.parse(raw)
+    if (Array.isArray(parsed)) {
+      return cleanEmail(parsed.find((item) => cleanEmail(item)) ?? '')
+    }
+  } catch {
+    // Also support comma/newline-separated env values from hosting dashboards.
+  }
+
+  return cleanEmail(raw.split(/[\n,;]/).find((item) => cleanEmail(item)) ?? '')
+}
+
+function preferredEspFromAddress(): string {
+  return (
+    cleanEmail(process.env.SMTP_FROM_EMAIL) ||
+    cleanEmail(process.env.RESEND_FROM_EMAIL) ||
+    cleanEmail(process.env.SEND_FROM_EMAIL) ||
+    firstConfiguredSendingEmail()
+  )
+}
+
+function selectSenderAccount(idemKey: string): SenderAccount {
+  const provider = providerModeFromEnv()
+  const preferredFrom = preferredEspFromAddress()
+
+  if ((provider === 'resend' || provider === 'brevo') && preferredFrom) {
+    const matched = SMTP_ACCOUNTS.find((account) => cleanEmail(account.user) === preferredFrom)
+    return { user: preferredFrom, pass: matched?.pass ?? process.env.SMTP_PASS ?? '' }
+  }
+
+  if ((provider === 'resend' || provider === 'brevo') && SMTP_ACCOUNTS.length > 0) {
+    const preferredDomain = String(
+      process.env.BOOTSTRAP_SENDING_DOMAIN || process.env.RESEND_SENDING_DOMAIN || ''
+    )
+      .trim()
+      .toLowerCase()
+    const matched = preferredDomain
+      ? SMTP_ACCOUNTS.find((account) => emailDomain(account.user) === preferredDomain)
+      : undefined
+    return matched ?? SMTP_ACCOUNTS[0]!
+  }
+
+  if (SMTP_ACCOUNTS.length > 0) return SMTP_ACCOUNTS[stableIndex(idemKey, SMTP_ACCOUNTS.length)]!
+
+  return { user: reqEnv('SMTP_USER'), pass: reqEnv('SMTP_PASS') }
+}
+
 const GLOBAL_RISK_SLOWDOWN_FACTOR = 0.75
 const GLOBAL_RISK_WINDOW_SEC = 60 * 60 // 1h
 const GLOBAL_RISK_THRESHOLD = 3 // domains spiking before applying slowdown
@@ -1309,6 +1380,7 @@ async function runSend(job: SendJob, bull?: Pick<Job<SendJob>, 'id' | 'attemptsM
   }
 
   let expGroup: 'adaptive' | 'baseline' | null = null
+  let fromAddress = ''
 
   try {
     if (!MOCK_SMTP_FASTLANE) {
@@ -1719,7 +1791,6 @@ async function runSend(job: SendJob, bull?: Pick<Job<SendJob>, 'id' | 'attemptsM
     }
 
     let messageId = ''
-    let fromAddress = ''
     let smtpAttempted = false
     try {
       smtpAttempted = true
@@ -1740,10 +1811,7 @@ async function runSend(job: SendJob, bull?: Pick<Job<SendJob>, 'id' | 'attemptsM
             }
           })()
         : await (async () => {
-            const account =
-              SMTP_ACCOUNTS.length > 0
-                ? SMTP_ACCOUNTS[stableIndex(idemKey, SMTP_ACCOUNTS.length)]!
-                : { user: reqEnv('SMTP_USER'), pass: reqEnv('SMTP_PASS') }
+            const account = selectSenderAccount(idemKey)
             fromAddress = String(account.user).toLowerCase()
 
             console.log('[sender-worker] smtp send start', {
@@ -2009,11 +2077,7 @@ async function runSend(job: SendJob, bull?: Pick<Job<SendJob>, 'id' | 'attemptsM
           event_code: smtpClass === 'bounce' ? 'EMAIL_BOUNCED' : 'EMAIL_FAILED',
           idempotency_key: idemKey,
           to_email: String(job.toEmail || '').trim().toLowerCase(),
-          from_email: String(
-            (SMTP_ACCOUNTS.length > 0 ? SMTP_ACCOUNTS[stableIndex(idemKey, SMTP_ACCOUNTS.length)]?.user : process.env.SMTP_USER) ?? ''
-          )
-            .trim()
-            .toLowerCase(),
+          from_email: fromAddress || cleanEmail(selectSenderAccount(idemKey).user),
           subject: outboundSubject,
           body_text: truncateText(outboundText, 20_000),
           body_html: truncateText(outboundHtml, 40_000),
