@@ -197,11 +197,12 @@ export async function GET(request: NextRequest) {
     const seen = new Set<string>()
 
     const configuredLeads = parseLeads()
-    const leads = (configuredLeads.length > 0
+    const leads: PreparedCronLead[] = (configuredLeads.length > 0
       ? configuredLeads
       .map((lead) => {
         const email = String(lead.email || '').trim().toLowerCase()
         return {
+          contact_id: undefined,
           email,
           first_name: String(lead.first_name || lead.firstName || 'there').trim(),
           company: String(lead.company || email.split('@')[1] || 'your team').trim(),
