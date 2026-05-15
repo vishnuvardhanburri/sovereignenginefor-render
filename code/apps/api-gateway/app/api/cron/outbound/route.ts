@@ -197,8 +197,6 @@ export async function GET(request: NextRequest) {
     const seen = new Set<string>()
 
     const configuredLeads = parseLeads()
-    const leads: PreparedCronLead[] = (configuredLeads.length > 0
-      ? configuredLeads
       .map((lead) => {
         const email = String(lead.email || '').trim().toLowerCase()
         return {
@@ -217,7 +215,16 @@ export async function GET(request: NextRequest) {
         return Boolean(lead.consent_source || lead.reason_to_contact)
       })
       .slice(0, limit)
-      : await loadApprovedContacts(clientId, limit))
+    const approvedLeads = await loadApprovedContacts(clientId, limit)
+    const useConfiguredOnly =
+      request.nextUrl.searchParams.get('source') === 'configured' ||
+      enabled(process.env.OUTBOUND_CRON_CONFIGURED_ONLY)
+    const leads: PreparedCronLead[] = useConfiguredOnly
+      ? configuredLeads
+      : approvedLeads.length > 0
+        ? approvedLeads
+        : configuredLeads
+    const leadSource = useConfiguredOnly ? 'configured' : approvedLeads.length > 0 ? 'approved_contacts' : 'configured_fallback'
 
     if (leads.length === 0) {
       return NextResponse.json({ ok: true, enabled: true, queued: 0, skipped: 'no_approved_leads' })
@@ -274,6 +281,7 @@ export async function GET(request: NextRequest) {
       queue: queueName,
       queued: added.length,
       limit,
+      source: leadSource,
       firstJobId: added[0]?.id ?? null,
       lastJobId: added.at(-1)?.id ?? null,
     })
