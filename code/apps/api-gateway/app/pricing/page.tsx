@@ -2,28 +2,47 @@ import { CheckCircle2, KeyRound, LockKeyhole, ShieldCheck } from 'lucide-react'
 
 const plans = [
   {
-    name: 'Starter',
-    price: '$1,499/mo',
-    description: 'For serious outbound teams protecting early production sending infrastructure.',
-    features: ['Up to 25k/day control-plane proof', 'Domain health monitoring', 'Reputation scoring', 'Queue visibility', 'Demo-safe API access'],
+    name: 'Private License',
+    price: '$25,000',
+    description: 'For agencies, SaaS teams, and growth operators that want a private outbound and AI security infrastructure layer.',
+    features: [
+      'One-time Sovereign Stack license',
+      'Outbound reputation command center',
+      'AI security and PII-risk positioning pack',
+      'Self-hosted or managed deployment path',
+      'Payment plan: $8k now, $8k in 30 days, $9k in 60 days',
+    ],
   },
   {
-    name: 'Growth',
-    price: '$4,999/mo',
-    description: 'For teams operating 100k+/day outbound workflows across multiple domains.',
-    features: ['Everything in Starter', '100k+/day infrastructure control plane', 'Worker health telemetry', 'Inbox placement simulation', 'Sending throttles', 'Reputation event logs'],
+    name: 'Agency Master License',
+    price: '$100,000',
+    description: 'For agencies that want to white-label Sovereign Stack as a premium client infrastructure offer.',
+    features: [
+      'White-label positioning and handoff pack',
+      'Unlimited client deployment rights under one agency',
+      'Outbound infrastructure plus AI-risk audit offer',
+      'Agency sales scripts and client onboarding templates',
+      'Built to recover cost across 5-8 client deployments',
+    ],
     featured: true,
   },
   {
-    name: 'Enterprise',
-    price: 'From $12,000/mo',
-    description: 'For agencies and growth infrastructure companies treating deliverability as revenue infrastructure.',
-    features: ['Everything in Growth', '250k+/day architecture planning', 'Custom sender topology', 'Dedicated warmup policy', 'Queue scaling proof', 'CTO handoff pack'],
+    name: 'Strategic Acquisition',
+    price: 'Contact Sales',
+    description: 'For buyers evaluating the full asset, private repo, deployment system, and acquisition-grade data room.',
+    features: [
+      'Full source-code review and technical diligence pack',
+      'Architecture, queue, worker, and audit-chain proof',
+      'Buyer data room and deployment runbook',
+      'Custom transition and founder handoff',
+      'Strategic discussions for $125k+ acquisition paths',
+    ],
   },
 ]
 
 const platformIncludes = [
   'Command center for provider lanes, queue state, worker heartbeat, and reputation events.',
+  'AI security positioning for teams worried about PII exposure, model usage, and audit trails.',
   'Postgres, Redis/BullMQ, sender-worker, reputation-worker, audit trail, and health oracle.',
   'Safe evaluation mode with 10,000-event mock proof and no external email traffic.',
   'Production gate that blocks real sending until required operator inputs are configured.',
@@ -37,8 +56,8 @@ const operatorConnects = [
 ]
 
 export const metadata = {
-  title: 'Pricing | Sovereign Engine',
-  description: 'Pricing for Sovereign Engine, a deliverability operating system for outbound revenue teams.',
+  title: 'Pricing | Sovereign Stack',
+  description: 'Pricing for Sovereign Stack, outbound revenue protection and AI security infrastructure.',
 }
 
 export default function PricingPage() {
@@ -47,14 +66,15 @@ export default function PricingPage() {
       <section className="mx-auto max-w-6xl px-6 py-16">
         <div className="max-w-3xl">
           <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-cyan-400/30 bg-cyan-400/10 px-4 py-2 text-sm font-semibold text-cyan-200">
-            <ShieldCheck size={16} /> Deliverability Operating System
+            <ShieldCheck size={16} /> Outbound + AI Security Infrastructure
           </div>
           <h1 className="text-4xl font-black tracking-tight md:text-6xl">
-            Protect outbound revenue before domain reputation breaks.
+            Sovereign Stack protects outbound revenue and AI usage in one license.
           </h1>
           <p className="mt-5 text-lg leading-8 text-slate-300">
-            Sovereign Engine gives outbound teams domain protection, inbox placement visibility,
-            worker telemetry, and reputation control in one operating layer.
+            Stop burning domains, reduce deliverability surprises, and give teams a private
+            infrastructure layer for outbound operations, AI-risk reviews, audit trails, and
+            deployment control.
           </p>
         </div>
         <div className="mt-12 grid gap-5 md:grid-cols-3">
@@ -78,13 +98,15 @@ export default function PricingPage() {
           ))}
         </div>
         <p className="mt-8 text-sm text-slate-500">
-          Pricing reflects an enterprise infrastructure layer, not commodity email volume. Real 100k+/day sending depends on operator-owned domains, ESP quotas, DNS, compliance policy, and warmup strategy. No revenue claims are implied.
+          Pricing reflects an enterprise infrastructure layer, not commodity email volume.
+          Production sending depends on operator-owned domains, ESP quotas, DNS, compliance
+          policy, and warmup strategy. No revenue claims are implied.
         </p>
 
         <div className="mt-12 grid gap-5 md:grid-cols-2">
           <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 p-6">
             <div className="flex items-center gap-2 text-sm font-bold uppercase tracking-[0.22em] text-emerald-200">
-              <ShieldCheck size={16} /> Included in Sovereign Engine
+              <ShieldCheck size={16} /> Included in Sovereign Stack
             </div>
             <ul className="mt-5 space-y-3 text-sm text-slate-200">
               {platformIncludes.map((item) => (

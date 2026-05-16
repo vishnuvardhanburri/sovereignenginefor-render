@@ -1,6 +1,7 @@
 import { query } from '@/lib/db'
 import { createEvent, deferQueueJob, markQueueJobFailed, markQueueJobSkipped, type QueueExecutionContext, type SendIdentitySelection } from '@/lib/backend'
 import { checkAndActOnDomainHealth } from '@/lib/infrastructure/domain-health'
+import { notifyTelegramEvent } from '@/lib/telegram-notifications'
 
 export type SafeSendDeps = {
   coordinatorSend: (req: {
@@ -170,8 +171,17 @@ export async function sendSafe(input: SafeSendInput): Promise<SafeSendResult> {
   })
 
   if (!coordResult.success) {
-    await markQueueJobFailed(context, coordResult.error || 'coordinator send failed')
-    return { ok: false, action: 'failed', error: coordResult.error || 'coordinator send failed' }
+    const error = coordResult.error || 'coordinator send failed'
+    await markQueueJobFailed(context, error)
+    void notifyTelegramEvent({
+      type: 'email_failed',
+      to,
+      from: selection.identity.email,
+      subject: message.subject,
+      error,
+      campaign: context.campaign.name,
+    })
+    return { ok: false, action: 'failed', error }
   }
 
   const smtpResult = await deps.smtpSend({
@@ -191,9 +201,27 @@ export async function sendSafe(input: SafeSendInput): Promise<SafeSendResult> {
   })
 
   if (!smtpResult.success) {
-    await markQueueJobFailed(context, smtpResult.error ?? 'smtp send failed')
-    return { ok: false, action: 'failed', error: smtpResult.error ?? 'smtp send failed' }
+    const error = smtpResult.error ?? 'smtp send failed'
+    await markQueueJobFailed(context, error)
+    void notifyTelegramEvent({
+      type: 'email_failed',
+      to,
+      from: selection.identity.email,
+      subject: message.subject,
+      error,
+      campaign: context.campaign.name,
+    })
+    return { ok: false, action: 'failed', error }
   }
+
+  void notifyTelegramEvent({
+    type: 'email_sent',
+    to,
+    from: selection.identity.email,
+    subject: message.subject,
+    providerMessageId: smtpResult.providerMessageId ?? null,
+    campaign: context.campaign.name,
+  })
 
   // Success path: caller should invoke markQueueJobCompleted (single source of truth for counters + 'sent' event).
   return { ok: true, action: 'sent', providerMessageId: smtpResult.providerMessageId ?? null }

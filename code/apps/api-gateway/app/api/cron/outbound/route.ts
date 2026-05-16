@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { Queue } from 'bullmq'
 import { appEnv } from '@/lib/env'
 import { query } from '@/lib/db'
+import { notifyTelegramEvent } from '@/lib/telegram-notifications'
 
 type CronLead = {
   email?: string
@@ -237,6 +238,12 @@ export async function GET(request: NextRequest) {
           : 'approved_contacts_only'
 
     if (leads.length === 0) {
+      void notifyTelegramEvent({
+        type: 'queue_skipped',
+        reason: 'no_verified_approved_leads',
+        source: leadSource,
+      })
+
       return NextResponse.json({
         ok: true,
         enabled: true,
@@ -290,6 +297,14 @@ export async function GET(request: NextRequest) {
         [clientId, contactIds]
       )
     }
+
+    void notifyTelegramEvent({
+      type: 'queue_batch',
+      queued: added.length,
+      source: leadSource,
+      queue: queueName,
+      limit,
+    })
 
     return NextResponse.json({
       ok: true,

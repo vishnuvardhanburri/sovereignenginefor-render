@@ -2,9 +2,21 @@ export async function sendTelegramMessage(input: {
   botToken?: string | null
   chatId?: string | null
   text: string
+  parseMode?: 'Markdown' | 'HTML' | 'none'
 }) {
   if (!input.botToken || !input.chatId) {
     return { delivered: false, reason: 'telegram not configured' as const }
+  }
+
+  const body: Record<string, unknown> = {
+    chat_id: input.chatId,
+    text: input.text,
+    disable_web_page_preview: true,
+  }
+
+  const parseMode = input.parseMode ?? 'Markdown'
+  if (parseMode !== 'none') {
+    body.parse_mode = parseMode
   }
 
   const response = await fetch(
@@ -14,12 +26,7 @@ export async function sendTelegramMessage(input: {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        chat_id: input.chatId,
-        text: input.text,
-        parse_mode: 'Markdown',
-        disable_web_page_preview: true,
-      }),
+      body: JSON.stringify(body),
     }
   )
 
@@ -30,4 +37,3 @@ export async function sendTelegramMessage(input: {
 
   return { delivered: true as const }
 }
-

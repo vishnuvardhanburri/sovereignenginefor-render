@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { query } from '@/lib/db'
 import { resolveClientId } from '@/lib/client-context'
+import { notifyTelegramEvent } from '@/lib/telegram-notifications'
 
 const FALLBACK_REVIEW_WINDOW = 5
 const SYSTEM_APPROVAL_CEILING = Math.max(
@@ -92,11 +93,18 @@ export async function POST(request: NextRequest) {
          RETURNING id, email, company, custom_fields`,
         [clientId, ids]
       )
+      const approved = result.rowCount ?? result.rows.length
+
+      void notifyTelegramEvent({
+        type: 'contacts_approved',
+        approved,
+        mode: 'selected',
+      })
 
       return NextResponse.json({
         ok: true,
         mode: 'selected',
-        approved: result.rowCount ?? result.rows.length,
+        approved,
         systemApprovalWindow: approvalWindow,
         contacts: result.rows,
       })
@@ -152,11 +160,18 @@ export async function POST(request: NextRequest) {
        RETURNING id, email, company, custom_fields`,
       [clientId, candidateIds]
     )
+    const approved = result.rowCount ?? result.rows.length
+
+    void notifyTelegramEvent({
+      type: 'contacts_approved',
+      approved,
+      mode: 'safest',
+    })
 
     return NextResponse.json({
       ok: true,
       mode: 'safest',
-      approved: result.rowCount ?? result.rows.length,
+      approved,
       systemApprovalWindow: approvalWindow,
       contacts: result.rows,
     })

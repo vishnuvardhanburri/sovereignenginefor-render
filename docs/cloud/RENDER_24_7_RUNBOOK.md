@@ -54,6 +54,50 @@ OUTBOUND_CRON_MAX_LIMIT=25
 
 Start with 5 emails per 15 minutes. Do not jump to high daily volume until replies, bounces, complaints, and DNS health stay clean.
 
+## Google Sheet Lead Intake
+
+You can paste a Google Sheet link inside `Prospects -> Google Sheet Lead Intake`.
+
+The sheet must be shared as `Anyone with the link can view`. Sovereign Engine will:
+
+- reject personal/free inboxes and unsafe role inboxes,
+- reject estimated personal emails unless there is a specific public evidence URL,
+- import usable rows as `not_approved`,
+- keep sending blocked until you approve contacts.
+
+Recommended columns:
+
+```csv
+Company Name,Website,Work Email,Role,Why They Are A Fit,Source URL
+Example Agency,https://example.com/contact,sales@example.com,Sales,Agency runs outbound-heavy campaigns,https://example.com/contact
+```
+
+If your sheet contains `Work Email (best estimated)` and placeholder values like `[URL]`, those rows will be filtered instead of sent. This is intentional.
+
+## Telegram Operator Feed
+
+Set these Render environment variables to receive control-room updates:
+
+```text
+TELEGRAM_BOT_TOKEN=<bot token from BotFather>
+TELEGRAM_CHAT_ID=<your Telegram chat id>
+TELEGRAM_NOTIFICATIONS_ENABLED=true
+TELEGRAM_NOTIFY_SENT=true
+TELEGRAM_NOTIFY_FAILED=true
+TELEGRAM_NOTIFY_IMPORTS=true
+TELEGRAM_NOTIFY_APPROVALS=true
+TELEGRAM_NOTIFY_QUEUE=true
+TELEGRAM_FULL_EMAILS=false
+```
+
+Test the bot after deploy:
+
+```text
+https://sovereignenginefor-render.onrender.com/api/telegram/test?secret=<CRON_SECRET>
+```
+
+Keep `TELEGRAM_FULL_EMAILS=false` unless you explicitly want full recipient addresses in Telegram.
+
 ## Local Cloud-Cron Test
 
 From the repo root:
