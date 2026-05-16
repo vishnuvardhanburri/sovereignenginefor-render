@@ -156,10 +156,10 @@ export function OperationsCommandCenter({ mode = 'executive' }: { mode?: 'execut
               <span className="text-slate-400">{waiting.toLocaleString()} waiting · {active.toLocaleString()} active</span>
             </div>
             <QueueFlow pressure={queuePressure} />
-            <div className="mt-4 grid grid-cols-[repeat(auto-fit,minmax(170px,1fr))] gap-3">
+            <div className="mt-4 grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-3">
               {lanes.map((lane) => (
                 <div key={lane.provider} className="min-w-0 rounded-xl border border-white/10 bg-white/[0.035] p-3">
-                  <div className="flex min-w-0 flex-wrap items-start justify-between gap-2">
+                  <div className="grid min-w-0 gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
                     <span className="min-w-0 max-w-full truncate text-sm font-medium">{lane.label}</span>
                     <Badge
                       variant="outline"

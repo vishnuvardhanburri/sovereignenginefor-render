@@ -92,11 +92,29 @@ TELEGRAM_FULL_EMAILS=false
 
 Test the bot after deploy:
 
-```text
-https://sovereignenginefor-render.onrender.com/api/telegram/test?secret=<CRON_SECRET>
+```bash
+CRON_SECRET='<your cron secret>' \
+curl -s -H "x-cron-secret: $CRON_SECRET" \
+  https://sovereignenginefor-render.onrender.com/api/telegram/test
 ```
 
 Keep `TELEGRAM_FULL_EMAILS=false` unless you explicitly want full recipient addresses in Telegram.
+
+## One-Command Operator E2E Check
+
+Run this before every outreach session. It validates the live Render app, GitHub CI, health oracle,
+worker heartbeat, queue failures, pricing page, Telegram guard, and Google Sheet quality. It does
+not send real email.
+
+```bash
+cd "/Users/vishnuvardhanburri/Code/sovereign-engine"
+SHEET_URL='https://docs.google.com/spreadsheets/d/<sheet-id>/edit?usp=sharing' \
+pnpm -C code operator:e2e
+```
+
+If the command says `sheet has no send-ready leads`, fix the sheet first. Rows need real public
+evidence, not `[URL]` placeholders, and business inboxes such as `sales@`, `partnerships@`,
+`opportunity@`, or `hello@`.
 
 ## Local Cloud-Cron Test
 

@@ -32,6 +32,7 @@
     "deploy:production": "node scripts/deploy-production.mjs",
     "generate:data-room": "node scripts/generate-data-room.mjs",
     "sales:ready": "node scripts/sales-ready.mjs",
+    "operator:e2e": "node scripts/operator-e2e-check.mjs",
     "outbound:prepare": "node scripts/prepare-outbound-leads.mjs",
     "cloud:cron": "node scripts/sync-env.mjs && node scripts/cloud-outbound-cron.mjs",
     "ready:launch": "node scripts/launch-ready.mjs",
