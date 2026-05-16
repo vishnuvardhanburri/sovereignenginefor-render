@@ -5,13 +5,21 @@ import fs from 'node:fs/promises'
 import path from 'node:path'
 import { Queue } from 'bullmq'
 import { appEnv } from '@/lib/env'
+import {
+  renderSovereignTemplate,
+  sovereignBodyForLead,
+  sovereignSubjectForLead,
+} from '@/lib/outbound-copy'
 
 type LeadRow = {
   email: string
   first_name: string
   company: string
+  company_domain?: string
+  title?: string
   consent_source: string
   reason_to_contact: string
+  offer_type?: string
 }
 
 function arg(name: string): string | null {
@@ -84,55 +92,17 @@ async function readLeads(inputPath: string): Promise<LeadRow[]> {
       email: get('email').toLowerCase(),
       first_name: get('first_name'),
       company: get('company'),
+      company_domain: values[headers.indexOf('company_domain')]?.trim() ?? '',
+      title: values[headers.indexOf('title')]?.trim() ?? '',
       consent_source: get('consent_source'),
       reason_to_contact: get('reason_to_contact'),
+      offer_type: values[headers.indexOf('offer_type')]?.trim() ?? '',
     }
   })
 }
 
 function isEmail(value: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
-}
-
-function fillTemplate(template: string, row: LeadRow, physicalAddress: string): string {
-  const firstName = row.first_name || 'there'
-  const company = row.company || 'your team'
-  return template
-    .replaceAll('{{first_name}}', firstName)
-    .replaceAll('{{company}}', company)
-    .replaceAll('{{reason_to_contact}}', row.reason_to_contact || 'your team works around outbound or growth infrastructure')
-    .replaceAll('{{physical_address}}', physicalAddress)
-}
-
-function defaultBody() {
-  return `Hi {{first_name}},
-
-I came across {{company}} while researching teams with outbound or sales-led growth workflows.
-
-Quick question: are domain reputation, Gmail/Outlook throttling, or follow-up reliability things your team watches today?
-
-I built Sovereign Engine at Xavira Tech Labs as an outbound revenue infrastructure system, not a basic email tool.
-
-It is designed to help teams run outbound through one controlled system:
-
-- lead validation and suppression safety
-- provider-aware sending lanes
-- queue and worker monitoring
-- autonomous follow-up sequencing
-- reply and bounce visibility
-- reputation controls before domains burn
-- production architecture designed for 100k+ emails/day with the right SMTP/ESP and domain setup
-
-I am offering a short walkthrough for a few outbound-heavy teams this week.
-
-Would a short 5-minute walkthrough be useful?
-
-Best,
-Vishnu
-
-{{physical_address}}
-
-If this is not relevant, reply "no" and I will not follow up.`
 }
 
 function requireRealSendGate(dryRun: boolean) {
@@ -166,9 +136,9 @@ async function main() {
 
   const rawLimit = Number(arg('limit') ?? '10')
   const limit = Math.min(Math.max(Number.isFinite(rawLimit) ? rawLimit : 10, 1), 50)
-  const subject = arg('subject') ?? 'quick question on outbound scale'
+  const subjectOverride = arg('subject')
   const bodyPath = arg('body-file')
-  const bodyTemplate = bodyPath ? await fs.readFile(bodyPath, 'utf8') : defaultBody()
+  const bodyOverride = bodyPath ? await fs.readFile(bodyPath, 'utf8') : null
   const physicalAddress = process.env.SENDER_PHYSICAL_ADDRESS || 'Xavira Tech Labs'
 
   const leads = (await readLeads(csv))
@@ -182,17 +152,21 @@ async function main() {
   }
 
   console.log(`Prepared ${leads.length} lead(s). Mode: ${dryRun ? 'dry-run' : 'real-queue'}`)
-  console.log(`Subject: ${subject}`)
+  console.log(`Subject: ${subjectOverride ?? 'Sovereign Stack default by lead type'}`)
   if (!dryRun && process.env.SEND_ALLOW_UNKNOWN_VALIDATION !== 'false') {
     console.warn('Warning: validation provider is not enforced. Keep this to tiny test batches only.')
   }
 
   if (dryRun) {
-    const preview = leads.slice(0, 3).map((row) => ({
-      to: row.email,
-      subject,
-      text: fillTemplate(bodyTemplate, row, physicalAddress),
-    }))
+    const preview = leads.slice(0, 3).map((row) => {
+      const subject = subjectOverride ?? sovereignSubjectForLead(row)
+      const bodyTemplate = bodyOverride ?? sovereignBodyForLead(row)
+      return {
+        to: row.email,
+        subject,
+        text: renderSovereignTemplate(bodyTemplate, row, physicalAddress),
+      }
+    })
     console.log(JSON.stringify({ preview }, null, 2))
     return
   }
@@ -203,6 +177,8 @@ async function main() {
   const jobs = []
 
   for (const row of leads) {
+    const subject = subjectOverride ?? sovereignSubjectForLead(row)
+    const bodyTemplate = bodyOverride ?? sovereignBodyForLead(row)
     const idem = crypto
       .createHash('sha256')
       .update(`sales:${clientId}:${row.email}:${subject}`)
@@ -214,7 +190,7 @@ async function main() {
         clientId,
         toEmail: row.email,
         subject,
-        text: fillTemplate(bodyTemplate, row, physicalAddress),
+        text: renderSovereignTemplate(bodyTemplate, row, physicalAddress),
         idempotencyKey: idem,
       },
       opts: {

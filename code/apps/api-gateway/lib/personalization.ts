@@ -60,6 +60,8 @@ export function renderVariables(
     Company: contact.company?.trim() || 'your team',
     Title: contact.title?.trim() || 'team',
     EmailLocalPart: localPart || '',
+    physical_address: process.env.SENDER_PHYSICAL_ADDRESS || 'Xavira Tech Labs, India',
+    PhysicalAddress: process.env.SENDER_PHYSICAL_ADDRESS || 'Xavira Tech Labs, India',
     ...flattenCustomFields(contact.custom_fields ?? {}),
   }
 

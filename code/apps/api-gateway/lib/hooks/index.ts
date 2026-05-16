@@ -161,6 +161,31 @@ export const useApproveContacts = () => {
   })
 }
 
+export const useResearchApproveContacts = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (input: { dryRun?: boolean; limit?: number; threshold?: number } = {}) =>
+      api.contacts.researchApprove(input),
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ['contacts'] })
+      const approved = Number(result.approved ?? result.approvalReady ?? 0)
+      if (result.dryRun) {
+        toast.success(`${approved} research-verified prospects ready; ${result.blocked?.length ?? 0} blocked for review`)
+        return
+      }
+
+      toast.success(
+        approved > 0
+          ? `${approved} research-verified prospect${approved === 1 ? '' : 's'} approved`
+          : 'No research-verified prospects found'
+      )
+    },
+    onError: () => {
+      toast.error('Research approval failed')
+    },
+  })
+}
+
 // Sequences
 export const useSequences = () => {
   return useQuery({

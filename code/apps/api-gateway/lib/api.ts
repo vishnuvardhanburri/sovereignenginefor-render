@@ -26,6 +26,29 @@ export interface Contact {
   addedAt: Date
 }
 
+export interface ResearchApprovalDecision {
+  id: number
+  email: string
+  company: string | null
+  score: number
+  approved: boolean
+  reasons: string[]
+  blockers: string[]
+  evidenceUrl: string | null
+  source: string | null
+}
+
+export interface ResearchApprovalResult {
+  ok: boolean
+  dryRun: boolean
+  approved?: number
+  scanned: number
+  approvalReady?: number
+  candidates?: ResearchApprovalDecision[]
+  blocked?: ResearchApprovalDecision[]
+  skipped?: string
+}
+
 export interface SequenceStep {
   id: string
   day: number
@@ -711,6 +734,23 @@ export const api = {
       return fetchJson<{ ok: boolean; approved: number; contacts: unknown[]; skipped?: string }>('/api/contacts/approval', {
         method: 'POST',
         body: JSON.stringify(input),
+      })
+    },
+    async researchApprove(input: { dryRun?: boolean; limit?: number; threshold?: number } = {}): Promise<ResearchApprovalResult> {
+      if (input.dryRun) {
+        const params = new URLSearchParams()
+        if (input.limit) params.set('limit', String(input.limit))
+        if (input.threshold) params.set('threshold', String(input.threshold))
+        const query = params.toString()
+        return fetchJson<ResearchApprovalResult>(`/api/contacts/research-approval${query ? `?${query}` : ''}`)
+      }
+
+      return fetchJson<ResearchApprovalResult>('/api/contacts/research-approval', {
+        method: 'POST',
+        body: JSON.stringify({
+          limit: input.limit,
+          threshold: input.threshold,
+        }),
       })
     },
   },

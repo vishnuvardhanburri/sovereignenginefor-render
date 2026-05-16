@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useApproveContacts, useContacts, useDeleteContact } from '@/lib/hooks'
+import { useApproveContacts, useContacts, useDeleteContact, useResearchApproveContacts } from '@/lib/hooks'
 import { Contact } from '@/lib/api'
 import { UploadContactsModal } from '@/components/upload-contacts-modal'
 import { AddContactModal } from '@/components/add-contact-modal'
@@ -27,7 +27,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
-import { CheckCircle2, Search, Trash2 } from 'lucide-react'
+import { CheckCircle2, Search, ShieldCheck, Trash2 } from 'lucide-react'
 
 export default function ContactsPage() {
   const [searchTerm, setSearchTerm] = useState('')
@@ -35,6 +35,7 @@ export default function ContactsPage() {
   const { data: contacts, isLoading } = useContacts()
   const { mutate: deleteContact } = useDeleteContact()
   const { mutate: approveContacts, isPending: approving } = useApproveContacts()
+  const { mutate: researchApproveContacts, isPending: researching } = useResearchApproveContacts()
 
   const filteredContacts = contacts
     ?.filter((contact: Contact) => {
@@ -70,11 +71,11 @@ export default function ContactsPage() {
         <div className="flex gap-2">
           <Button
             variant="secondary"
-            onClick={() => approveContacts({})}
-            disabled={approving}
+            onClick={() => researchApproveContacts({})}
+            disabled={researching}
           >
-            <CheckCircle2 className="mr-2 h-4 w-4" />
-            {approving ? 'Approving...' : 'Approve Verified Recommended'}
+            <ShieldCheck className="mr-2 h-4 w-4" />
+            {researching ? 'Researching...' : 'Research & Approve Best'}
           </Button>
           <AddContactModal />
           <UploadContactsModal />
@@ -172,6 +173,7 @@ export default function ContactsPage() {
                             onClick={() => approveContacts({ ids: [contact.id] })}
                             disabled={approving || contact.status !== 'active'}
                           >
+                            <CheckCircle2 className="mr-2 h-3.5 w-3.5" />
                             Approve
                           </Button>
                         )}

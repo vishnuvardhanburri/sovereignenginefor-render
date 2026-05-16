@@ -4,14 +4,22 @@ import { Queue } from 'bullmq'
 import { appEnv } from '@/lib/env'
 import { query } from '@/lib/db'
 import { notifyTelegramEvent } from '@/lib/telegram-notifications'
+import {
+  inferSovereignOfferType,
+  renderSovereignTemplate,
+  sovereignBodyForLead,
+  sovereignSubjectForLead,
+} from '@/lib/outbound-copy'
 
 type CronLead = {
   email?: string
   first_name?: string
   firstName?: string
   company?: string
+  title?: string
   consent_source?: string
   reason_to_contact?: string
+  offer_type?: string
 }
 
 type PreparedCronLead = {
@@ -19,8 +27,11 @@ type PreparedCronLead = {
   email: string
   first_name: string
   company: string
+  title?: string
+  company_domain?: string
   consent_source: string
   reason_to_contact: string
+  offer_type: 'direct' | 'agency'
 }
 
 function enabled(value: string | undefined): boolean {
@@ -88,14 +99,22 @@ async function loadApprovedContacts(clientId: number, limit: number): Promise<Pr
     email: string
     first_name: string | null
     company: string | null
+    company_domain: string | null
+    title: string | null
+    source: string | null
     reason_to_contact: string | null
+    custom_fields: Record<string, unknown> | null
   }>(
     `SELECT
        c.id::text,
        c.email,
        COALESCE(NULLIF(c.name, ''), split_part(c.email, '@', 1)) AS first_name,
        COALESCE(NULLIF(c.company, ''), c.company_domain, c.email_domain, 'your team') AS company,
-       COALESCE(c.custom_fields->>'reason_to_contact', 'reviewed approved business prospect') AS reason_to_contact
+       c.company_domain,
+       c.title,
+       c.source,
+       COALESCE(c.custom_fields->>'reason_to_contact', 'reviewed approved business prospect') AS reason_to_contact,
+       c.custom_fields
      FROM contacts c
      WHERE c.client_id = $1
        AND c.status = 'active'
@@ -129,43 +148,19 @@ async function loadApprovedContacts(clientId: number, limit: number): Promise<Pr
     email: row.email,
     first_name: row.first_name || row.email.split('@')[0] || 'there',
     company: row.company || row.email.split('@')[1] || 'your team',
+    title: row.title || undefined,
+    company_domain: row.company_domain || undefined,
     consent_source: 'operator_approved_business_outreach',
     reason_to_contact: row.reason_to_contact || 'reviewed approved business prospect',
+    offer_type: inferSovereignOfferType({
+      company: row.company,
+      companyDomain: row.company_domain,
+      title: row.title,
+      source: row.source,
+      reasonToContact: row.reason_to_contact,
+      customFields: row.custom_fields,
+    }),
   }))
-}
-
-function fillTemplate(template: string, lead: PreparedCronLead, physicalAddress: string): string {
-  return template
-    .replaceAll('{{first_name}}', lead.first_name || 'there')
-    .replaceAll('{{company}}', lead.company || 'your team')
-    .replaceAll('{{reason_to_contact}}', lead.reason_to_contact || 'your team works around outbound or growth infrastructure')
-    .replaceAll('{{physical_address}}', physicalAddress)
-}
-
-function defaultBody(): string {
-  return `Hi {{first_name}},
-
-I came across {{company}} while researching teams that depend on outbound, sales-led growth, or agency pipeline.
-
-A lot of teams only notice deliverability problems after volume increases:
-
-- inbox placement drops
-- Gmail/Outlook throttling starts
-- follow-ups become inconsistent
-- domains get harder to recover
-
-I built Sovereign Engine at Xavira Tech Labs to help teams monitor domain reputation, control sending pressure, and catch outbound risk before it damages pipeline.
-
-I am offering a short infrastructure review for a few outbound-heavy teams this week.
-
-Would a 5-minute walkthrough be useful?
-
-Best,
-Vishnu
-
-{{physical_address}}
-
-If this is not relevant, reply "no" and I will not follow up.`
 }
 
 function authorize(request: NextRequest): boolean {
@@ -189,9 +184,8 @@ export async function GET(request: NextRequest) {
   let queue: Queue | null = null
   try {
     const clientId = appEnv.defaultClientId()
-    const subject = process.env.OUTBOUND_CRON_SUBJECT || 'quick question on outbound reliability'
     const physicalAddress = process.env.SENDER_PHYSICAL_ADDRESS || 'Xavira Tech Labs, India'
-    const template = process.env.OUTBOUND_CRON_BODY || defaultBody()
+    const allowCopyOverride = enabled(process.env.OUTBOUND_CRON_ALLOW_COPY_OVERRIDE)
     const limit = safeLimit(request.nextUrl.searchParams.get('limit'))
     const today = new Date().toISOString().slice(0, 10)
     const seen = new Set<string>()
@@ -204,8 +198,15 @@ export async function GET(request: NextRequest) {
           email,
           first_name: String(lead.first_name || lead.firstName || 'there').trim(),
           company: String(lead.company || email.split('@')[1] || 'your team').trim(),
+          title: String(lead.title || '').trim() || undefined,
           consent_source: String(lead.consent_source || 'legitimate_business_interest').trim(),
           reason_to_contact: String(lead.reason_to_contact || 'reviewed business outreach list').trim(),
+          offer_type: inferSovereignOfferType({
+            company: lead.company,
+            title: lead.title,
+            reason_to_contact: lead.reason_to_contact,
+            offer_type: lead.offer_type,
+          }),
         }
       })
       .filter((lead) => {
@@ -256,6 +257,14 @@ export async function GET(request: NextRequest) {
     const queueName = process.env.SEND_QUEUE ?? 'xv-send-queue'
     queue = new Queue(queueName, { connection: { url: appEnv.redisUrl() } })
     const jobs = leads.map((lead) => {
+      const subject =
+        allowCopyOverride && process.env.OUTBOUND_CRON_SUBJECT
+          ? process.env.OUTBOUND_CRON_SUBJECT
+          : sovereignSubjectForLead(lead)
+      const template =
+        allowCopyOverride && process.env.OUTBOUND_CRON_BODY
+          ? process.env.OUTBOUND_CRON_BODY
+          : sovereignBodyForLead(lead)
       const idempotencyKey = crypto
         .createHash('sha256')
         .update(`cron:${today}:${clientId}:${lead.email}:${subject}`)
@@ -266,7 +275,7 @@ export async function GET(request: NextRequest) {
           clientId,
           toEmail: lead.email,
           subject,
-          text: fillTemplate(template, lead, physicalAddress),
+          text: renderSovereignTemplate(template, lead, physicalAddress),
           idempotencyKey,
         },
         opts: {

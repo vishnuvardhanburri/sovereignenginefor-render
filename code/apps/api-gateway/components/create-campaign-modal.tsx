@@ -13,6 +13,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { SOVEREIGN_STACK_DIRECT_SEQUENCE_STEPS } from '@/lib/outbound-copy'
 import {
   Select,
   SelectContent,
@@ -23,59 +24,8 @@ import {
 import { Spinner } from '@/components/ui/spinner'
 
 const SAFE_DEFAULT_SEQUENCE = {
-  name: 'Safe Infrastructure Review Sequence',
-  steps: [
-    {
-      id: 'default-step-1',
-      day: 0,
-      subject: 'quick question on outbound reliability',
-      body: `Hi {{first_name}},
-
-I came across {{company}} and noticed outbound or partner-led growth may be part of your revenue workflow.
-
-I built Sovereign Engine at Xavira Tech Labs to help teams review outbound infrastructure before volume increases: DNS alignment, provider throttling risk, domain reputation, queue pressure, bounce handling, and suppression hygiene.
-
-Would a short 5-minute infrastructure review be useful?
-
-Best,
-Vishnu
-Xavira Tech Labs
-
-If this is not relevant, reply "no" and I will not follow up.`,
-    },
-    {
-      id: 'default-step-2',
-      day: 3,
-      subject: 'worth checking before outbound scales?',
-      body: `Hi {{first_name}},
-
-Following up once here.
-
-The reason I reached out is that many outbound-heavy teams only notice infrastructure issues after volume increases: Gmail or Outlook throttling, domain reputation drops, queue instability, or silent bounce growth.
-
-I can share a concise review checklist your team can use to spot those risks early.
-
-Worth sending over?
-
-Best,
-Vishnu`,
-    },
-    {
-      id: 'default-step-3',
-      day: 7,
-      subject: 'should I close the loop?',
-      body: `Hi {{first_name}},
-
-Last note from me.
-
-If outbound reliability is not a current priority at {{company}}, no problem. If it is, I can show the dashboard and risk-review workflow in a quick walkthrough.
-
-Should I close the loop?
-
-Best,
-Vishnu`,
-    },
-  ],
+  name: 'Sovereign Stack $25k Direct Offer Sequence',
+  steps: SOVEREIGN_STACK_DIRECT_SEQUENCE_STEPS,
 }
 
 export function CreateCampaignModal() {
