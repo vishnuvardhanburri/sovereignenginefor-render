@@ -44,7 +44,10 @@ const directBody = renderSovereignTemplate(
   'Xavira Tech Labs, India'
 )
 assert(directBody.includes('Sovereign Stack'), 'direct body should mention Sovereign Stack')
-assert(directBody.includes('$25k one-time license'), 'direct body should mention $25k one-time license')
+assert(
+  directBody.includes('$25,000 one-time license (Sovereign Engine + Sovereign Shield)'),
+  'direct body should mention the $25,000 Engine + Shield license'
+)
 assert(directBody.includes('Example SaaS'), 'direct body should render company')
 assert(!directBody.includes('{{'), 'direct body should render all placeholders')
 

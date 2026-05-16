@@ -63,7 +63,7 @@ Most teams we speak with are losing leads because of:
 * AI tools leaking PII / sensitive data
 * Compliance pressure (GDPR / DPDP)
 
-We built Sovereign Stack - one $25k one-time license that combines:
+We built Sovereign Stack - one $25,000 one-time license (Sovereign Engine + Sovereign Shield) that combines:
 * Adaptive deliverability OS (protects your domains & inbox placement)
 * Private AI Security Gateway (blocks prompt injection + masks PII)
 
