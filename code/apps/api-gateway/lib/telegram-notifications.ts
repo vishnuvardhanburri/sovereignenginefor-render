@@ -8,6 +8,7 @@ export type TelegramNotificationType =
   | 'contacts_approved'
   | 'queue_batch'
   | 'queue_skipped'
+  | 'daily_outbound'
 
 type TelegramEnv = Record<string, string | undefined>
 
@@ -53,6 +54,16 @@ type TelegramNotification =
       reason: string
       source?: string | null
     }
+  | {
+      type: 'daily_outbound'
+      dryRun?: boolean
+      imported?: number
+      approved?: number
+      queued?: number
+      sendLimit?: number
+      approveLimit?: number
+      failures?: number
+    }
 
 function envBool(value: string | undefined, fallback: boolean): boolean {
   if (value === undefined || value === null || value === '') return fallback
@@ -85,6 +96,7 @@ export function shouldNotifyTelegram(type: TelegramNotificationType, env: Telegr
     contacts_approved: 'TELEGRAM_NOTIFY_APPROVALS',
     queue_batch: 'TELEGRAM_NOTIFY_QUEUE',
     queue_skipped: 'TELEGRAM_NOTIFY_QUEUE',
+    daily_outbound: 'TELEGRAM_NOTIFY_QUEUE',
   }
 
   return envBool(env[eventFlags[type]], true)
@@ -149,6 +161,19 @@ export function formatTelegramNotification(input: TelegramNotification, options?
       input.queue ? `Queue: ${input.queue}` : null,
       input.limit ? `Limit: ${input.limit}` : null,
     ].filter(Boolean).join('\n')
+  }
+
+  if (input.type === 'daily_outbound') {
+    return [
+      'Sovereign Engine',
+      input.dryRun ? 'Daily autopilot preview' : 'Daily autopilot run',
+      `Imported: ${input.imported ?? 0}`,
+      `Approved: ${input.approved ?? 0}`,
+      `Queued: ${input.queued ?? 0}`,
+      `Approval limit: ${input.approveLimit ?? 0}`,
+      `Send limit: ${input.sendLimit ?? 0}`,
+      `Stage failures: ${input.failures ?? 0}`,
+    ].join('\n')
   }
 
   return [

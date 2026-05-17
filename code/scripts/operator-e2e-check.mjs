@@ -118,6 +118,34 @@ async function checkTelegramGuard() {
   record(Boolean(live.response.ok && live.json?.ok), 'telegram live test', live.json?.telegram?.ok ? 'message accepted' : live.text.slice(0, 160))
 }
 
+async function checkDailyAutopilotGuard() {
+  const unauthorized = await fetchJson('/api/cron/daily-outbound?client_id=1&dryRun=1')
+  record(unauthorized.response.status === 401, 'daily autopilot secret guard', `HTTP ${unauthorized.response.status}`)
+
+  const secret = process.env.CRON_SECRET
+  if (!secret) {
+    warn('daily autopilot dry-run skipped', 'Set CRON_SECRET locally to validate the protected dry-run endpoint.')
+    return
+  }
+
+  const params = new URLSearchParams({
+    client_id: '1',
+    dryRun: '1',
+  })
+  if (sheetUrl) params.set('sheetUrl', sheetUrl)
+
+  const dryRun = await fetchJson(`/api/cron/daily-outbound?${params.toString()}`, {
+    headers: { 'x-cron-secret': secret },
+  })
+  record(
+    Boolean(dryRun.response.ok && dryRun.json?.ok && dryRun.json?.dryRun),
+    'daily autopilot dry-run',
+    dryRun.json?.summary
+      ? `import ${dryRun.json.summary.imported}, approve ${dryRun.json.summary.approved}, queue ${dryRun.json.summary.queued}`
+      : dryRun.text.slice(0, 180)
+  )
+}
+
 async function checkSheet() {
   if (!sheetUrl) {
     warn('google sheet preview skipped', 'Pass --sheet-url=... or SHEET_URL=...')
@@ -174,6 +202,7 @@ async function main() {
   await checkPricingCopy()
   await checkHealth()
   await checkTelegramGuard()
+  await checkDailyAutopilotGuard()
   await checkSheet()
 
   const failures = results.filter((result) => !result.ok)
