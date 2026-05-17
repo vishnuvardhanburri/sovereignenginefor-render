@@ -86,6 +86,17 @@ const SAFE_BUSINESS_PREFIXES = new Set([
   'team',
 ])
 
+const VALIDATION_REQUIRED_PREFIXES = new Set([
+  'business',
+  'contact',
+  'hello',
+  'hi',
+  'info',
+  'mail',
+  'marketing',
+  'team',
+])
+
 const SAFE_SOURCE_TYPES = new Set([
   'google_sheet_import',
   'open_lead_graph',
@@ -208,6 +219,10 @@ export function scoreProspectForResearchApproval(
   const verificationStatus = String(contact.verification_status ?? 'pending')
   if (['invalid', 'do_not_mail'].includes(verificationStatus)) {
     blockers.push(`verification_${verificationStatus}`)
+  }
+
+  if (VALIDATION_REQUIRED_PREFIXES.has(prefix) && verificationStatus !== 'valid') {
+    blockers.push('generic_inbox_requires_email_validation')
   }
 
   if (source && !SAFE_SOURCE_TYPES.has(source) && !asBool(customFields.lead_scout) && !asBool(customFields.sheet_import)) {

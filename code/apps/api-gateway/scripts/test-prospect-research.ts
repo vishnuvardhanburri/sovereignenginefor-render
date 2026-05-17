@@ -99,4 +99,45 @@ const personLike = scoreProspectForResearchApproval({
 assert.equal(personLike.approved, false)
 assert.ok(personLike.blockers.includes('person_like_email_requires_manual_review'))
 
+const unverifiedGenericInbox = scoreProspectForResearchApproval({
+  id: 6,
+  email: 'hello@realagency.com',
+  email_domain: 'realagency.com',
+  company: 'Real Agency',
+  company_domain: 'realagency.com',
+  source: 'google_sheet_import',
+  status: 'active',
+  verification_status: 'pending',
+  custom_fields: {
+    sheet_import: true,
+    auto_approval_eligible: true,
+    public_evidence_url: 'https://realagency.com/contact',
+    reason_to_contact: 'Agency with public growth and demand generation signals.',
+  },
+})
+
+assert.equal(unverifiedGenericInbox.approved, false)
+assert.ok(
+  unverifiedGenericInbox.blockers.includes('generic_inbox_requires_email_validation')
+)
+
+const verifiedGenericInbox = scoreProspectForResearchApproval({
+  id: 7,
+  email: 'hello@realagency.com',
+  email_domain: 'realagency.com',
+  company: 'Real Agency',
+  company_domain: 'realagency.com',
+  source: 'google_sheet_import',
+  status: 'active',
+  verification_status: 'valid',
+  custom_fields: {
+    sheet_import: true,
+    auto_approval_eligible: true,
+    public_evidence_url: 'https://realagency.com/contact',
+    reason_to_contact: 'Agency with public growth and demand generation signals.',
+  },
+})
+
+assert.equal(verifiedGenericInbox.approved, true)
+
 console.log('prospect research tests passed')
