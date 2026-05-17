@@ -3,6 +3,7 @@ import type { SystemApprovalWindow } from './contact-approval-window'
 export type DailyOutboundPlan = {
   enabled: boolean
   dryRun: boolean
+  mode: DailyOutboundMode
   clientId: number
   sheetUrl: string
   sheetLimit: number
@@ -15,6 +16,7 @@ export type DailyOutboundPlan = {
 }
 
 type EnvLike = Record<string, string | undefined>
+type DailyOutboundMode = 'conservative' | 'growth'
 
 type PlanInput = {
   approvalWindow: SystemApprovalWindow
@@ -26,6 +28,7 @@ type PlanInput = {
     sheetLimit?: string | null
     approveLimit?: string | null
     sendLimit?: string | null
+    mode?: string | null
   }
 }
 
@@ -34,7 +37,8 @@ const DEFAULT_SHEET_LIMIT = 150
 const DEFAULT_SEND_LIMIT = 1
 const MAX_SHEET_LIMIT = 500
 const MAX_APPROVE_LIMIT = 25
-const MAX_SEND_LIMIT = 5
+const CONSERVATIVE_MAX_SEND_LIMIT = 5
+const GROWTH_MAX_SEND_LIMIT = 50
 
 export function resolveDailyBoolean(value: string | undefined | null, fallback: boolean): boolean {
   const normalized = String(value ?? '').trim().toLowerCase()
@@ -63,20 +67,58 @@ export function resolveDailySheetUrl(input: {
   ).trim()
 }
 
+function resolveDailyMode(input: { requested?: string | null; env: EnvLike }): DailyOutboundMode {
+  const value = String(input.requested ?? input.env.DAILY_OUTBOUND_MODE ?? '')
+    .trim()
+    .toLowerCase()
+  return value === 'growth' ? 'growth' : 'conservative'
+}
+
 function resolveSendLimit(input: {
   requested: string | undefined | null
   env: EnvLike
   approvalWindow: SystemApprovalWindow
   guardrails: string[]
+  mode: DailyOutboundMode
 }): number {
   const envLimit = input.env.DAILY_OUTBOUND_SEND_LIMIT
-  const envMax = clampInteger(input.env.DAILY_OUTBOUND_MAX_SEND_LIMIT, MAX_SEND_LIMIT, 1, MAX_SEND_LIMIT)
+  const maxSendLimit =
+    input.mode === 'growth' ? GROWTH_MAX_SEND_LIMIT : CONSERVATIVE_MAX_SEND_LIMIT
+  const envMax = clampInteger(
+    input.env.DAILY_OUTBOUND_MAX_SEND_LIMIT,
+    maxSendLimit,
+    1,
+    maxSendLimit
+  )
   const requested = input.requested ?? envLimit
   const baseLimit = clampInteger(requested, DEFAULT_SEND_LIMIT, 1, envMax)
 
   if (input.approvalWindow.remainingCapacity <= 0) {
     input.guardrails.push('No remaining domain capacity; queueing is blocked')
     return 0
+  }
+
+  if (input.mode === 'growth') {
+    input.guardrails.push(
+      'Growth mode is enabled; volume still follows reputation health, validation, and domain capacity'
+    )
+
+    if (input.approvalWindow.averageHealthScore <= 60) {
+      input.guardrails.push('Growth mode low reputation health caps daily queueing at 5 sends')
+      return Math.min(baseLimit, 5, input.approvalWindow.remainingCapacity)
+    }
+
+    if (input.approvalWindow.averageHealthScore <= 75) {
+      input.guardrails.push('Growth mode moderate reputation health caps daily queueing at 15 sends')
+      return Math.min(baseLimit, 15, input.approvalWindow.remainingCapacity)
+    }
+
+    if (input.approvalWindow.averageHealthScore <= 90) {
+      input.guardrails.push('Growth mode healthy-watchful reputation caps daily queueing at 30 sends')
+      return Math.min(baseLimit, 30, input.approvalWindow.remainingCapacity)
+    }
+
+    return Math.min(baseLimit, input.approvalWindow.remainingCapacity)
   }
 
   if (input.approvalWindow.averageHealthScore <= 60) {
@@ -100,6 +142,7 @@ function resolveSendLimit(input: {
 export function buildDailyOutboundPlan(input: PlanInput): DailyOutboundPlan {
   const enabled = resolveDailyBoolean(input.env.DAILY_OUTBOUND_ENABLED, true)
   const dryRun = resolveDailyBoolean(input.query.dryRun, false)
+  const mode = resolveDailyMode({ requested: input.query.mode, env: input.env })
   const clientId = clampInteger(
     input.query.clientId ?? input.env.DEFAULT_CLIENT_ID,
     DEFAULT_CLIENT_ID,
@@ -137,12 +180,14 @@ export function buildDailyOutboundPlan(input: PlanInput): DailyOutboundPlan {
     env: input.env,
     approvalWindow: input.approvalWindow,
     guardrails,
+    mode,
   })
 
   if (!enabled) {
     return {
       enabled: false,
       dryRun,
+      mode,
       clientId,
       sheetUrl,
       sheetLimit,
@@ -158,6 +203,7 @@ export function buildDailyOutboundPlan(input: PlanInput): DailyOutboundPlan {
   return {
     enabled,
     dryRun,
+    mode,
     clientId,
     sheetUrl,
     sheetLimit,

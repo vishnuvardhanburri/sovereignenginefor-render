@@ -510,6 +510,7 @@ export async function GET(request: NextRequest) {
         sheetLimit: params.get('sheetLimit'),
         approveLimit: params.get('approveLimit'),
         sendLimit: params.get('sendLimit'),
+        mode: params.get('mode'),
       },
     })
     const stages: StageResult[] = []

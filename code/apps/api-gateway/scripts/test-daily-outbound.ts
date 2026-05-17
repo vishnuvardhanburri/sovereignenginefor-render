@@ -87,6 +87,56 @@ const lowHealthPlan = buildDailyOutboundPlan({
 assert.equal(lowHealthPlan.sendLimit, 1)
 assert.ok(lowHealthPlan.guardrails.includes('Low reputation health caps daily queueing at 1 send'))
 
+const growthHealthyPlan = buildDailyOutboundPlan({
+  approvalWindow: healthyWindow,
+  env: {
+    DAILY_OUTBOUND_MODE: 'growth',
+    DAILY_OUTBOUND_SEND_LIMIT: '50',
+    DAILY_OUTBOUND_APPROVE_LIMIT: '50',
+  },
+  query: {},
+})
+
+assert.equal(growthHealthyPlan.mode, 'growth')
+assert.equal(growthHealthyPlan.sendLimit, 50)
+assert.equal(growthHealthyPlan.approveLimit, 20)
+assert.ok(
+  growthHealthyPlan.guardrails.includes(
+    'Growth mode is enabled; volume still follows reputation health, validation, and domain capacity'
+  )
+)
+
+const growthQueryPlan = buildDailyOutboundPlan({
+  approvalWindow: healthyWindow,
+  env: {
+    DAILY_OUTBOUND_SEND_LIMIT: '5',
+  },
+  query: {
+    mode: 'growth',
+    sendLimit: '50',
+  },
+})
+
+assert.equal(growthQueryPlan.mode, 'growth')
+assert.equal(growthQueryPlan.sendLimit, 50)
+
+const growthLowHealthPlan = buildDailyOutboundPlan({
+  approvalWindow: lowHealthWindow,
+  env: {
+    DAILY_OUTBOUND_MODE: 'growth',
+    DAILY_OUTBOUND_SEND_LIMIT: '50',
+  },
+  query: {},
+})
+
+assert.equal(growthLowHealthPlan.mode, 'growth')
+assert.equal(growthLowHealthPlan.sendLimit, 5)
+assert.ok(
+  growthLowHealthPlan.guardrails.includes(
+    'Growth mode low reputation health caps daily queueing at 5 sends'
+  )
+)
+
 const dryRunPlan = buildDailyOutboundPlan({
   approvalWindow: healthyWindow,
   env: {
