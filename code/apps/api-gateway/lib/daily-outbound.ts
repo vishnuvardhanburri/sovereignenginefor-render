@@ -92,9 +92,31 @@ function resolveSendLimit(input: {
   )
   const requested = input.requested ?? envLimit
   const baseLimit = clampInteger(requested, DEFAULT_SEND_LIMIT, 1, envMax)
+  const senderRemainingCapacity = Math.max(
+    0,
+    Math.trunc(
+      input.approvalWindow.senderRemainingCapacity ?? input.approvalWindow.remainingCapacity
+    )
+  )
+  const eligibleSenderIdentities =
+    input.approvalWindow.eligibleSenderIdentities ??
+    (senderRemainingCapacity > 0 ? 1 : 0)
+  const effectiveCapacity = Math.min(input.approvalWindow.remainingCapacity, senderRemainingCapacity)
 
   if (input.approvalWindow.remainingCapacity <= 0) {
     input.guardrails.push('No remaining domain capacity; queueing is blocked')
+    return 0
+  }
+
+  if (eligibleSenderIdentities <= 0 || senderRemainingCapacity <= 0) {
+    input.guardrails.push(
+      'No healthy sender identity is available; queueing is blocked until domain health recovers'
+    )
+    return 0
+  }
+
+  if (input.approvalWindow.averageHealthScore <= 30) {
+    input.guardrails.push('Severe reputation health risk pauses daily queueing for recovery')
     return 0
   }
 
@@ -105,38 +127,38 @@ function resolveSendLimit(input: {
 
     if (input.approvalWindow.averageHealthScore <= 60) {
       input.guardrails.push('Growth mode low reputation health caps daily queueing at 5 sends')
-      return Math.min(baseLimit, 5, input.approvalWindow.remainingCapacity)
+      return Math.min(baseLimit, 5, effectiveCapacity)
     }
 
     if (input.approvalWindow.averageHealthScore <= 75) {
       input.guardrails.push('Growth mode moderate reputation health caps daily queueing at 15 sends')
-      return Math.min(baseLimit, 15, input.approvalWindow.remainingCapacity)
+      return Math.min(baseLimit, 15, effectiveCapacity)
     }
 
     if (input.approvalWindow.averageHealthScore <= 90) {
       input.guardrails.push('Growth mode healthy-watchful reputation caps daily queueing at 30 sends')
-      return Math.min(baseLimit, 30, input.approvalWindow.remainingCapacity)
+      return Math.min(baseLimit, 30, effectiveCapacity)
     }
 
-    return Math.min(baseLimit, input.approvalWindow.remainingCapacity)
+    return Math.min(baseLimit, effectiveCapacity)
   }
 
   if (input.approvalWindow.averageHealthScore <= 60) {
     input.guardrails.push('Low reputation health caps daily queueing at 1 send')
-    return Math.min(baseLimit, 1)
+    return Math.min(baseLimit, 1, effectiveCapacity)
   }
 
   if (input.approvalWindow.averageHealthScore <= 75) {
     input.guardrails.push('Moderate reputation health caps daily queueing at 2 sends')
-    return Math.min(baseLimit, 2)
+    return Math.min(baseLimit, 2, effectiveCapacity)
   }
 
   if (input.approvalWindow.averageHealthScore <= 90) {
     input.guardrails.push('Healthy-but-watchful reputation caps daily queueing at 3 sends')
-    return Math.min(baseLimit, 3)
+    return Math.min(baseLimit, 3, effectiveCapacity)
   }
 
-  return Math.min(baseLimit, input.approvalWindow.remainingCapacity)
+  return Math.min(baseLimit, effectiveCapacity)
 }
 
 export function buildDailyOutboundPlan(input: PlanInput): DailyOutboundPlan {

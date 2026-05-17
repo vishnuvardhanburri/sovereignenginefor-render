@@ -20,6 +20,15 @@ const lowHealthWindow = {
   averageHealthScore: 50,
 }
 
+const noHealthySenderWindow = {
+  ...healthyWindow,
+  limit: 5,
+  remainingCapacity: 91,
+  averageHealthScore: 50,
+  eligibleSenderIdentities: 0,
+  senderRemainingCapacity: 0,
+}
+
 assert.equal(resolveDailyBoolean(undefined, true), true)
 assert.equal(resolveDailyBoolean('false', true), false)
 assert.equal(resolveDailyBoolean('0', true), false)
@@ -134,6 +143,23 @@ assert.equal(growthLowHealthPlan.sendLimit, 5)
 assert.ok(
   growthLowHealthPlan.guardrails.includes(
     'Growth mode low reputation health caps daily queueing at 5 sends'
+  )
+)
+
+const noHealthySenderPlan = buildDailyOutboundPlan({
+  approvalWindow: noHealthySenderWindow,
+  env: {
+    DAILY_OUTBOUND_MODE: 'growth',
+    DAILY_OUTBOUND_SEND_LIMIT: '50',
+  },
+  query: {},
+})
+
+assert.equal(noHealthySenderPlan.sendLimit, 0)
+assert.equal(noHealthySenderPlan.runQueue, false)
+assert.ok(
+  noHealthySenderPlan.guardrails.includes(
+    'No healthy sender identity is available; queueing is blocked until domain health recovers'
   )
 )
 
