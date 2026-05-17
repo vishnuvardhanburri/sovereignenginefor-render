@@ -121,6 +121,7 @@ export function buildDailyOutboundPlan(input: PlanInput): DailyOutboundPlan {
     'Bounced, unsubscribed, suppressed, and unsafe inboxes stay blocked',
     'Generic inboxes require validation before auto-approval',
     'Daily queueing is capped by reputation health and domain capacity',
+    'If Google Sheet intake fails, the system falls back to existing approved contacts',
   ]
   const approveLimit = Math.min(
     clampInteger(

@@ -53,6 +53,11 @@ assert.equal(noSheetPlan.runResearchApproval, true)
 assert.equal(noSheetPlan.runQueue, true)
 assert.equal(noSheetPlan.sendLimit, 1)
 assert.equal(noSheetPlan.approveLimit, 20)
+assert.ok(
+  noSheetPlan.guardrails.includes(
+    'If Google Sheet intake fails, the system falls back to existing approved contacts'
+  )
+)
 
 const highRequestedPlan = buildDailyOutboundPlan({
   approvalWindow: healthyWindow,
