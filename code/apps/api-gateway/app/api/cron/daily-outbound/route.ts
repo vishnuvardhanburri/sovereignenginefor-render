@@ -80,6 +80,12 @@ function getNumericField(data: unknown, key: string): number {
   return Number.isFinite(parsed) ? parsed : 0
 }
 
+function clampLimit(value: unknown, fallback: number, max: number): number {
+  const parsed = Number(value)
+  if (!Number.isFinite(parsed)) return fallback
+  return Math.max(0, Math.min(Math.trunc(parsed), max))
+}
+
 function asString(value: unknown): string {
   return typeof value === 'string' ? value.trim() : ''
 }
@@ -308,18 +314,26 @@ async function runResearchApproval(input: {
   clientId: number
   dryRun: boolean
   approveLimit: number
+  evidenceFetchLimit?: number
+  providerValidationLimit?: number
 }): Promise<StageResult> {
   try {
     const threshold = clampThreshold(process.env.DAILY_OUTBOUND_APPROVAL_THRESHOLD)
     const pool = await getResearchPool(input.clientId)
-    const evidenceFetchLimit = Math.max(
-      0,
-      Math.min(Number(process.env.DAILY_OUTBOUND_EVIDENCE_FETCH_LIMIT ?? 40) || 40, 100)
+    const evidenceFetchLimit = clampLimit(
+      input.evidenceFetchLimit ??
+        (input.dryRun ? 0 : process.env.DAILY_OUTBOUND_EVIDENCE_FETCH_LIMIT),
+      input.dryRun ? 0 : 5,
+      input.dryRun ? 5 : 20
     )
-    const providerValidationLimit = Math.max(
-      0,
-      Math.min(Number(process.env.DAILY_OUTBOUND_PROVIDER_VALIDATION_LIMIT ?? 40) || 40, 100)
+    const providerValidationLimit = clampLimit(
+      input.providerValidationLimit ??
+        (input.dryRun ? 0 : process.env.DAILY_OUTBOUND_PROVIDER_VALIDATION_LIMIT),
+      input.dryRun ? 0 : 5,
+      input.dryRun ? 5 : 20
     )
+    const networkDeadlineMs = input.dryRun ? 8_000 : 45_000
+    const networkDeadlineAt = Date.now() + networkDeadlineMs
     let evidenceFetches = 0
     let evidenceMatches = 0
     let providerValidationChecks = 0
@@ -330,15 +344,20 @@ async function runResearchApproval(input: {
 
     for (const contact of pool) {
       let candidate: ProspectResearchContact = contact
+      const hasNetworkBudget = () => Date.now() < networkDeadlineAt
 
-      if (prospectNeedsExactPublicEmailEvidence(contact) && evidenceFetches < evidenceFetchLimit) {
+      if (
+        hasNetworkBudget() &&
+        prospectNeedsExactPublicEmailEvidence(contact) &&
+        evidenceFetches < evidenceFetchLimit
+      ) {
         evidenceFetches += 1
         const result = await enrichProspectWithPublicEmailEvidence(contact)
         if (result.matched) evidenceMatches += 1
         candidate = result.contact
       }
 
-      if (providerValidationChecks < providerValidationLimit) {
+      if (hasNetworkBudget() && providerValidationChecks < providerValidationLimit) {
         const validation = await enrichProspectWithProviderValidation(candidate)
         if (validation.checked) {
           providerValidationChecks += 1
@@ -823,6 +842,12 @@ export async function GET(request: NextRequest) {
           clientId: plan.clientId,
           dryRun: plan.dryRun,
           approveLimit: plan.approveLimit,
+          evidenceFetchLimit: params.has('evidenceFetchLimit')
+            ? clampLimit(params.get('evidenceFetchLimit'), 0, 20)
+            : undefined,
+          providerValidationLimit: params.has('providerValidationLimit')
+            ? clampLimit(params.get('providerValidationLimit'), 0, 20)
+            : undefined,
         })
       )
     }
