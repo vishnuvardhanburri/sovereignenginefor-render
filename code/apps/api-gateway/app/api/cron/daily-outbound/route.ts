@@ -101,6 +101,12 @@ function pickRotatingValue(value: string | undefined, fallback: string): string 
   return items[day % items.length] || fallback
 }
 
+function leadScoutOffset(limit: number): number {
+  const rotationMinutes = clampLimit(process.env.LEAD_SCOUT_ROTATION_MINUTES, 60, 1_440)
+  const windowMs = Math.max(rotationMinutes, 15) * 60_000
+  return Math.floor(Date.now() / windowMs) * limit
+}
+
 function compactStage(stage: StageResult): StageResult {
   if (!stage.data) return stage
   const data = stage.data
@@ -137,7 +143,6 @@ async function runLeadScoutStage(input: {
   region?: string | null
 }): Promise<StageResult> {
   try {
-    const day = Math.floor(Date.now() / 86_400_000)
     const result = scoutOpenLeads({
       industry:
         input.industry ||
@@ -145,7 +150,7 @@ async function runLeadScoutStage(input: {
       persona: input.persona || process.env.LEAD_SCOUT_PERSONA || 'partnerships',
       region: input.region || process.env.LEAD_SCOUT_REGION || 'global',
       limit: input.limit,
-      offset: day * input.limit,
+      offset: leadScoutOffset(input.limit),
     })
     const verifiedLeads = await verifyOpenLeadEvidence(result.leads)
     const importableLeads = verifiedLeads.filter((lead) => lead.autoApprovalEligible)

@@ -20,6 +20,12 @@ function numberFromEnv(name: string, fallback: number): number {
   return Number.isFinite(value) ? value : fallback
 }
 
+function leadScoutOffset(limit: number): number {
+  const rotationMinutes = Math.min(Math.max(numberFromEnv('LEAD_SCOUT_ROTATION_MINUTES', 60), 15), 1440)
+  const windowMs = rotationMinutes * 60_000
+  return Math.floor(Date.now() / windowMs) * limit
+}
+
 function pickIndustry(): string {
   const industries = String(process.env.LEAD_SCOUT_INDUSTRIES || process.env.LEAD_SCOUT_INDUSTRY || 'saas')
     .split(',')
@@ -51,9 +57,8 @@ export async function GET(request: NextRequest) {
       searchParams: request.nextUrl.searchParams,
       headers: request.headers,
     })
-    const day = Math.floor(Date.now() / 86_400_000)
     const limit = Math.min(Math.max(numberFromEnv('LEAD_SCOUT_DAILY_LIMIT', 3), 1), 3)
-    const offset = day * limit
+    const offset = leadScoutOffset(limit)
 
     const result = scoutOpenLeads({
       industry: request.nextUrl.searchParams.get('industry') || pickIndustry(),
