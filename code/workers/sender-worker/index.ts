@@ -10,6 +10,7 @@ import { ingestEvent } from '@sovereign/tracking-engine'
 import { updateDomainStats, getDomainScore } from '@sovereign/reputation-engine'
 import { sendSmtp } from '@sovereign/smtp-client'
 import { ContentMutationService, type ContentMutationResult } from '@sovereign/content-mutation'
+import { recipientApprovalBlockers, type RecipientGuardrailContact } from './recipient-guardrails'
 import {
   computeAdaptiveThroughput,
   loadDomainSignals,
@@ -1068,6 +1069,26 @@ async function lookupValidation(email: string): Promise<{ verdict: ValidationVer
   return { verdict: row.verdict, score: Number(row.score ?? 0), catchAll }
 }
 
+async function loadRecipientGuardrailBlockers(job: SendJob): Promise<string[]> {
+  if (!job.contactId) return []
+
+  const res = await db<RecipientGuardrailContact>(
+    `SELECT
+       email,
+       status,
+       verification_status,
+       bounced_at::text AS bounced_at,
+       unsubscribed_at::text AS unsubscribed_at,
+       custom_fields
+     FROM contacts
+     WHERE client_id = $1 AND id = $2
+     LIMIT 1`,
+    [job.clientId, job.contactId]
+  )
+
+  return recipientApprovalBlockers(res.rows[0] ?? null, job.toEmail)
+}
+
 async function handleTracking(event: TrackingIngestEvent) {
   await ingestEvent({ db }, event)
   if (MOCK_SMTP_FASTLANE) return
@@ -1391,6 +1412,57 @@ async function runSend(job: SendJob, bull?: Pick<Job<SendJob>, 'id' | 'attemptsM
         to: maskEmail(job.toEmail),
         idemKey,
       })
+    }
+
+    const recipientGuardrailBlockers = MOCK_SMTP_FASTLANE ? [] : await loadRecipientGuardrailBlockers(job)
+    if (recipientGuardrailBlockers.length > 0) {
+      const normalizedTo = String(job.toEmail || '').trim().toLowerCase()
+      const reason = `pre_send_guardrail:${recipientGuardrailBlockers.join(',')}`
+      console.warn('[sender-worker] pre-send guardrail blocked recipient', {
+        bullJobId,
+        queueJobId: job.queueJobId,
+        to: maskEmail(normalizedTo),
+        blockers: recipientGuardrailBlockers,
+      })
+
+      await handleTracking({
+        type: 'FAILED',
+        clientId: job.clientId,
+        campaignId: job.campaignId ?? null,
+        contactId: job.contactId ?? null,
+        queueJobId: job.queueJobId ?? null,
+        metadata: {
+          event_code: 'EMAIL_BLOCKED',
+          reason: 'pre_send_guardrail',
+          guardrail_blockers: recipientGuardrailBlockers,
+          to_email: normalizedTo,
+          subject: outboundSubject,
+          body_text: truncateText(outboundText, 20_000),
+          body_html: truncateText(outboundHtml, 40_000),
+          idempotency_key: idemKey,
+        },
+      })
+
+      if (job.queueJobId) {
+        await db(
+          `UPDATE queue_jobs
+           SET status = 'skipped',
+               last_error = $3,
+               completed_at = COALESCE(completed_at, CURRENT_TIMESTAMP),
+               updated_at = CURRENT_TIMESTAMP
+           WHERE client_id = $1 AND id = $2`,
+          [job.clientId, job.queueJobId, reason]
+        ).catch(() => {})
+      }
+
+      await redis.set(doneKey, '1', 'EX', 60 * 60 * 24 * 7)
+      await redis.set(legacyDoneKey, '1', 'EX', 60 * 60 * 24 * 7)
+      await redis.del(inflightKey)
+      await redis.del(failedKey)
+      await recordMetric(job.clientId, 'pre_send_guardrail_blocked', 1, {
+        blockers: recipientGuardrailBlockers,
+      })
+      return
     }
 
     const useCanary = ADAPTIVE_CANARY ? sampleCanary(idemKey) : true

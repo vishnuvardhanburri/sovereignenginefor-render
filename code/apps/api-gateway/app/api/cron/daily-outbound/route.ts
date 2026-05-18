@@ -9,6 +9,7 @@ import { buildDailyOutboundPlan } from '@/lib/daily-outbound'
 import { buildGoogleSheetCsvUrl, prepareSheetContacts } from '@/lib/sheet-import'
 import {
   approvedContactQueueBlockers,
+  enrichProspectWithProviderValidation,
   enrichProspectWithPublicEmailEvidence,
   prospectNeedsExactPublicEmailEvidence,
   scoreProspectForResearchApproval,
@@ -106,6 +107,9 @@ function compactStage(stage: StageResult): StageResult {
       scanned: getNumericField(data, 'scanned'),
       evidenceFetches: getNumericField(data, 'evidenceFetches'),
       evidenceMatches: getNumericField(data, 'evidenceMatches'),
+      providerValidationChecks: getNumericField(data, 'providerValidationChecks'),
+      providerValidationValid: getNumericField(data, 'providerValidationValid'),
+      providerValidationInvalid: getNumericField(data, 'providerValidationInvalid'),
       approved: getNumericField(data, 'approved'),
       queued: getNumericField(data, 'queued'),
       blockedUnverified: getNumericField(data, 'blockedUnverified'),
@@ -312,19 +316,62 @@ async function runResearchApproval(input: {
       0,
       Math.min(Number(process.env.DAILY_OUTBOUND_EVIDENCE_FETCH_LIMIT ?? 40) || 40, 100)
     )
+    const providerValidationLimit = Math.max(
+      0,
+      Math.min(Number(process.env.DAILY_OUTBOUND_PROVIDER_VALIDATION_LIMIT ?? 40) || 40, 100)
+    )
     let evidenceFetches = 0
     let evidenceMatches = 0
+    let providerValidationChecks = 0
+    let providerValidationValid = 0
+    let providerValidationInvalid = 0
     const enrichedPool: ProspectResearchContact[] = []
+    const providerValidationUpdates: ProspectResearchContact[] = []
 
     for (const contact of pool) {
+      let candidate: ProspectResearchContact = contact
+
       if (prospectNeedsExactPublicEmailEvidence(contact) && evidenceFetches < evidenceFetchLimit) {
         evidenceFetches += 1
         const result = await enrichProspectWithPublicEmailEvidence(contact)
         if (result.matched) evidenceMatches += 1
-        enrichedPool.push(result.contact)
-      } else {
-        enrichedPool.push(contact)
+        candidate = result.contact
       }
+
+      if (providerValidationChecks < providerValidationLimit) {
+        const validation = await enrichProspectWithProviderValidation(candidate)
+        if (validation.checked) {
+          providerValidationChecks += 1
+          if (validation.verdict === 'valid') providerValidationValid += 1
+          if (validation.verdict === 'invalid') providerValidationInvalid += 1
+          candidate = validation.contact
+          providerValidationUpdates.push(candidate)
+        }
+      }
+
+      enrichedPool.push(candidate)
+    }
+
+    if (!input.dryRun && providerValidationUpdates.length > 0) {
+      await query(
+        `UPDATE contacts
+         SET verification_status = COALESCE(NULLIF(updates.verification_status, ''), contacts.verification_status),
+             custom_fields = COALESCE(contacts.custom_fields, '{}'::jsonb) || updates.custom_fields,
+             updated_at = CURRENT_TIMESTAMP
+         FROM jsonb_to_recordset($2::jsonb) AS updates(id bigint, verification_status text, custom_fields jsonb)
+         WHERE contacts.client_id = $1
+           AND contacts.id = updates.id`,
+        [
+          input.clientId,
+          JSON.stringify(
+            providerValidationUpdates.map((contact) => ({
+              id: Number(contact.id),
+              verification_status: asString(contact.verification_status),
+              custom_fields: contact.custom_fields ?? {},
+            }))
+          ),
+        ]
+      )
     }
 
     const contactById = new Map(enrichedPool.map((contact) => [Number(contact.id), contact]))
@@ -350,6 +397,9 @@ async function runResearchApproval(input: {
           scanned: decisions.length,
           evidenceFetches,
           evidenceMatches,
+          providerValidationChecks,
+          providerValidationValid,
+          providerValidationInvalid,
           approvalReady: approvedCandidates.length,
           approved: 0,
           candidates: approvedCandidates,
@@ -369,6 +419,9 @@ async function runResearchApproval(input: {
           scanned: decisions.length,
           evidenceFetches,
           evidenceMatches,
+          providerValidationChecks,
+          providerValidationValid,
+          providerValidationInvalid,
           skipped: 'no_research_verified_prospects',
           blocked,
         },
@@ -389,10 +442,11 @@ async function runResearchApproval(input: {
            'research_evidence_url', scores.evidence_url,
            'email_evidence', COALESCE(NULLIF(scores.email_evidence, ''), contacts.custom_fields->>'email_evidence')
          ),
+         verification_status = COALESCE(NULLIF(scores.verification_status, ''), contacts.verification_status),
          updated_at = CURRENT_TIMESTAMP
        FROM (
          SELECT *
-         FROM jsonb_to_recordset($3::jsonb) AS x(id bigint, score int, reasons jsonb, evidence_url text, email_evidence text)
+         FROM jsonb_to_recordset($3::jsonb) AS x(id bigint, score int, reasons jsonb, evidence_url text, email_evidence text, verification_status text)
        ) AS scores
        WHERE contacts.client_id = $1
          AND contacts.id = ANY($2::bigint[])
@@ -411,6 +465,7 @@ async function runResearchApproval(input: {
             reasons: candidate.reasons,
             evidence_url: candidate.evidenceUrl,
             email_evidence: asString(contactById.get(candidate.id)?.custom_fields?.email_evidence),
+            verification_status: asString(contactById.get(candidate.id)?.verification_status),
           }))
         ),
       ]
@@ -432,6 +487,9 @@ async function runResearchApproval(input: {
         scanned: decisions.length,
         evidenceFetches,
         evidenceMatches,
+        providerValidationChecks,
+        providerValidationValid,
+        providerValidationInvalid,
         contacts: result.rows,
         blocked,
       },

@@ -269,11 +269,11 @@ export async function buildProductionReadinessReport(input: {
     check(
       'env.validator',
       'Email validation provider',
-      hasEnv('ZEROBOUNCE_API_KEY') ? 'pass' : 'warn',
-      hasEnv('ZEROBOUNCE_API_KEY')
+      hasEnv('ZEROBOUNCE_API_KEY') || hasEnv('HUNTER_API_KEY') ? 'pass' : 'warn',
+      hasEnv('ZEROBOUNCE_API_KEY') || hasEnv('HUNTER_API_KEY')
         ? 'Validation API key is configured.'
         : 'Validation API key is not configured; imports can still run in demo mode.',
-      { action: 'Add ZEROBOUNCE_API_KEY or equivalent validator for production hygiene.' }
+      { action: 'Add ZEROBOUNCE_API_KEY or HUNTER_API_KEY for production hygiene.' }
     ),
   ]
 

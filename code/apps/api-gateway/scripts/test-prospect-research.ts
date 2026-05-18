@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import {
   approvedContactQueueBlockers,
+  enrichProspectWithProviderValidation,
   enrichProspectWithPublicEmailEvidence,
   pageContainsExactEmail,
   scoreProspectForResearchApproval,
@@ -162,6 +163,45 @@ const verifiedGenericInbox = scoreProspectForResearchApproval({
 
 assert.equal(verifiedGenericInbox.approved, true)
 
+const exactEvidenceGenericInbox = scoreProspectForResearchApproval({
+  id: 71,
+  email: 'hello@realagency.com',
+  email_domain: 'realagency.com',
+  company: 'Real Agency',
+  company_domain: 'realagency.com',
+  source: 'google_sheet_import',
+  status: 'active',
+  verification_status: 'pending',
+  custom_fields: {
+    sheet_import: true,
+    auto_approval_eligible: true,
+    email_evidence: 'public_mailto_match',
+    public_evidence_url: 'https://realagency.com/contact',
+    reason_to_contact: 'Agency with public growth and demand generation signals.',
+  },
+})
+
+assert.equal(exactEvidenceGenericInbox.approved, true)
+assert.deepEqual(
+  approvedContactQueueBlockers({
+    id: 71,
+    email: 'hello@realagency.com',
+    email_domain: 'realagency.com',
+    company: 'Real Agency',
+    company_domain: 'realagency.com',
+    source: 'google_sheet_import',
+    status: 'active',
+    verification_status: 'pending',
+    custom_fields: exactEvidenceGenericInbox.evidenceUrl
+      ? {
+          email_evidence: 'public_mailto_match',
+          public_evidence_url: exactEvidenceGenericInbox.evidenceUrl,
+        }
+      : { email_evidence: 'public_mailto_match' },
+  }),
+  []
+)
+
 const guessedPartnershipsInbox = scoreProspectForResearchApproval({
   id: 8,
   email: 'partnerships@realagency.com',
@@ -244,6 +284,74 @@ const exactEvidenceScore = scoreProspectForResearchApproval(
 )
 assert.equal(exactEvidenceScore.approved, true)
 assert.deepEqual(approvedContactQueueBlockers(exactEvidenceResult.contact), [])
+
+const providerValidatedGeneric = await enrichProspectWithProviderValidation(
+  {
+    id: 101,
+    email: 'hello@realagency.com',
+    email_domain: 'realagency.com',
+    company: 'Real Agency',
+    company_domain: 'realagency.com',
+    source: 'google_sheet_import',
+    status: 'active',
+    verification_status: 'pending',
+    custom_fields: {
+      sheet_import: true,
+      auto_approval_eligible: true,
+      public_evidence_url: 'https://realagency.com/contact',
+      reason_to_contact: 'Agency with public growth and demand generation signals.',
+    },
+  },
+  {
+    verifyEmail: async () => ({
+      provider: 'hunter',
+      verdict: 'valid',
+      score: 0.91,
+      catchAll: false,
+      raw: null,
+    }),
+    now: () => new Date('2026-05-18T00:00:00.000Z'),
+  }
+)
+
+assert.equal(providerValidatedGeneric.checked, true)
+assert.equal(providerValidatedGeneric.contact.verification_status, 'valid')
+assert.equal(providerValidatedGeneric.contact.custom_fields?.email_evidence, 'provider_validated')
+assert.equal(scoreProspectForResearchApproval(providerValidatedGeneric.contact).approved, true)
+assert.deepEqual(approvedContactQueueBlockers(providerValidatedGeneric.contact), [])
+
+const providerInvalidGeneric = await enrichProspectWithProviderValidation(
+  {
+    id: 102,
+    email: 'hello@badagency.com',
+    email_domain: 'badagency.com',
+    company: 'Bad Agency',
+    company_domain: 'badagency.com',
+    source: 'google_sheet_import',
+    status: 'active',
+    verification_status: 'pending',
+    custom_fields: {
+      sheet_import: true,
+      auto_approval_eligible: true,
+      public_evidence_url: 'https://badagency.com/contact',
+      reason_to_contact: 'Agency with public growth and demand generation signals.',
+    },
+  },
+  {
+    verifyEmail: async () => ({
+      provider: 'hunter',
+      verdict: 'invalid',
+      score: 0.04,
+      catchAll: false,
+      raw: null,
+    }),
+  }
+)
+
+assert.equal(providerInvalidGeneric.contact.verification_status, 'invalid')
+assert.ok(
+  approvedContactQueueBlockers(providerInvalidGeneric.contact).includes('verification_invalid')
+)
 
 const missingExactEvidenceResult = await enrichProspectWithPublicEmailEvidence(
   {

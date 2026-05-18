@@ -90,9 +90,10 @@ export const appEnv = {
   resendWebhookSecret: () => process.env.RESEND_WEBHOOK_SECRET || '',
   telegramBotToken: () => process.env.TELEGRAM_BOT_TOKEN || '',
   openRouterApiKey: () => process.env.OPENROUTER_API_KEY || '',
-  openRouterModel: () => process.env.OPENROUTER_MODEL || 'openai/gpt-4o-mini',
-  // Required for production safety (email verification); scripts/env-check enforces this.
-  zeroBounceApiKey: () => required('ZEROBOUNCE_API_KEY'),
+  openRouterModel: () => process.env.OPENROUTER_MODEL || 'meta-llama/llama-3.1-8b-instruct:free',
+  // Optional validators. Production gates require at least one live validator.
+  zeroBounceApiKey: () => process.env.ZEROBOUNCE_API_KEY || '',
+  hunterApiKey: () => process.env.HUNTER_API_KEY || '',
   clearbitApiKey: () => process.env.CLEARBIT_API_KEY || '',
   apolloApiKey: () => process.env.APOLLO_API_KEY || '',
   hubspotAccessToken: () => process.env.HUBSPOT_ACCESS_TOKEN || '',

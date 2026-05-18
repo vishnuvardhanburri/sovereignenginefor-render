@@ -79,8 +79,17 @@ const issues = []
     'AUTH_SECRET',
     'CRON_SECRET',
     'SECURITY_KILL_SWITCH_TOKEN',
-    'ZEROBOUNCE_API_KEY',
   ])
+
+  if (!String(env.ZEROBOUNCE_API_KEY || '').trim() && !String(env.HUNTER_API_KEY || '').trim()) {
+    pushIssue(
+      issues,
+      'blocker',
+      'validation_provider',
+      'Missing validation provider key.',
+      'Set ZEROBOUNCE_API_KEY or HUNTER_API_KEY before approving real outbound contacts.'
+    )
+  }
 
   if (realSend) {
     checkRequired(env, issues, ['SMTP_HOST'], 'blocker')
@@ -120,8 +129,8 @@ const issues = []
     pushIssue(issues, 'blocker', 'DATABASE_URL', 'DATABASE_URL appears to use the default password.', 'Use a strong database password or managed Postgres secret.')
   }
 
-  if (realSend && /mock|example|your_/i.test(`${env.SMTP_HOST || ''} ${env.SMTP_USER || ''} ${env.ZEROBOUNCE_API_KEY || ''}`)) {
-    pushIssue(issues, 'blocker', 'provider_keys', 'SMTP or validation provider values still look like placeholders.', 'Fill live ESP/SMTP and ZeroBounce credentials.')
+  if (realSend && /mock|example|your_/i.test(`${env.SMTP_HOST || ''} ${env.SMTP_USER || ''} ${env.ZEROBOUNCE_API_KEY || ''} ${env.HUNTER_API_KEY || ''}`)) {
+    pushIssue(issues, 'blocker', 'provider_keys', 'SMTP or validation provider values still look like placeholders.', 'Fill live ESP/SMTP and ZeroBounce or Hunter credentials.')
   }
 
   if (env.REQUIRE_INTERNAL_TLS === 'true') {

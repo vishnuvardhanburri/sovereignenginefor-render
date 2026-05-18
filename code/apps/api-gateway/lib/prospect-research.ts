@@ -1,3 +1,5 @@
+import { verifyEmailWithHunter, type HunterVerificationResult } from '@/lib/integrations/hunter'
+
 export type ProspectResearchContact = {
   id: string | number
   email: string
@@ -34,6 +36,13 @@ export type PublicEmailEvidenceResult = {
   contact: ProspectResearchContact
   checked: boolean
   matched: boolean
+  reason?: string
+}
+
+export type ProviderValidationResult = {
+  contact: ProspectResearchContact
+  checked: boolean
+  verdict?: HunterVerificationResult['verdict']
   reason?: string
 }
 
@@ -270,7 +279,11 @@ export function approvedContactQueueBlockers(
   ) {
     blockers.push('lead_scout_without_public_evidence')
   }
-  if (VALIDATION_REQUIRED_PREFIXES.has(prefix) && verificationStatus !== 'valid') {
+  if (
+    VALIDATION_REQUIRED_PREFIXES.has(prefix) &&
+    verificationStatus !== 'valid' &&
+    !hasExactPublicEmailEvidence(customFields.email_evidence)
+  ) {
     blockers.push('generic_inbox_requires_email_validation')
   }
   if (prospectNeedsExactPublicEmailEvidence(contact)) {
@@ -361,6 +374,80 @@ export async function enrichProspectWithPublicEmailEvidence(
   }
 }
 
+export async function enrichProspectWithProviderValidation(
+  contact: ProspectResearchContact,
+  options?: {
+    verifyEmail?: (email: string) => Promise<HunterVerificationResult>
+    now?: () => Date
+  }
+): Promise<ProviderValidationResult> {
+  const email = contact.email.trim().toLowerCase()
+  const [prefix = ''] = email.split('@')
+  const verificationStatus = String(contact.verification_status ?? 'pending').toLowerCase()
+  const customFields = contact.custom_fields ?? {}
+  const needsValidation =
+    VALIDATION_REQUIRED_PREFIXES.has(prefix) ||
+    (RISKY_GUESSED_ROLE_PREFIXES.has(prefix) && !hasExactPublicEmailEvidence(customFields.email_evidence))
+
+  if (!needsValidation) {
+    return { contact, checked: false, reason: 'provider_validation_not_required' }
+  }
+
+  if (verificationStatus === 'valid' || hasExactPublicEmailEvidence(customFields.email_evidence)) {
+    return { contact, checked: false, reason: 'already_validated' }
+  }
+
+  const result = options?.verifyEmail
+    ? await options.verifyEmail(email)
+    : await verifyEmailWithHunter(email)
+  const checkedAt = (options?.now?.() ?? new Date()).toISOString()
+  const validationFields = {
+    ...customFields,
+    email_validation_provider: result.provider,
+    email_validation_score: result.score,
+    email_validation_checked_at: checkedAt,
+    email_validation_verdict: result.verdict,
+    email_validation_error: result.error ?? null,
+  }
+
+  if (result.verdict === 'valid' && result.score >= 0.75) {
+    return {
+      contact: {
+        ...contact,
+        verification_status: 'valid',
+        custom_fields: {
+          ...validationFields,
+          email_evidence: 'provider_validated',
+        },
+      },
+      checked: true,
+      verdict: result.verdict,
+    }
+  }
+
+  if (result.verdict === 'invalid') {
+    return {
+      contact: {
+        ...contact,
+        verification_status: 'invalid',
+        custom_fields: validationFields,
+      },
+      checked: true,
+      verdict: result.verdict,
+    }
+  }
+
+  return {
+    contact: {
+      ...contact,
+      verification_status: result.verdict === 'risky' ? 'unknown' : contact.verification_status,
+      custom_fields: validationFields,
+    },
+    checked: true,
+    verdict: result.verdict,
+  }
+}
+
 export function scoreProspectForResearchApproval(
   contact: ProspectResearchContact,
   options?: { threshold?: number }
@@ -410,7 +497,11 @@ export function scoreProspectForResearchApproval(
     blockers.push(`verification_${verificationStatus}`)
   }
 
-  if (VALIDATION_REQUIRED_PREFIXES.has(prefix) && verificationStatus !== 'valid') {
+  if (
+    VALIDATION_REQUIRED_PREFIXES.has(prefix) &&
+    verificationStatus !== 'valid' &&
+    !hasExactPublicEmailEvidence(customFields.email_evidence)
+  ) {
     blockers.push('generic_inbox_requires_email_validation')
   }
 

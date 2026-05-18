@@ -34,6 +34,7 @@ export async function GET(request: NextRequest) {
         redis: Boolean(process.env.REDIS_URL),
         postgres: Boolean(process.env.DATABASE_URL),
         zerobounce: Boolean(appEnv.zeroBounceApiKey()),
+        hunter: Boolean(appEnv.hunterApiKey()),
         telegram: Boolean(appEnv.telegramBotToken()),
       },
       domains,
