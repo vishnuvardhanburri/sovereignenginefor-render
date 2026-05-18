@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
       headers: request.headers,
     })
     const day = Math.floor(Date.now() / 86_400_000)
-    const limit = Math.min(Math.max(numberFromEnv('LEAD_SCOUT_DAILY_LIMIT', 5), 1), 10)
+    const limit = Math.min(Math.max(numberFromEnv('LEAD_SCOUT_DAILY_LIMIT', 3), 1), 3)
     const offset = day * limit
 
     const result = scoutOpenLeads({

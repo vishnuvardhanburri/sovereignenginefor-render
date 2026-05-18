@@ -79,7 +79,7 @@ const autonomousScoutPlan = buildDailyOutboundPlan({
 })
 
 assert.equal(autonomousScoutPlan.runLeadScout, true)
-assert.equal(autonomousScoutPlan.leadScoutLimit, 10)
+assert.equal(autonomousScoutPlan.leadScoutLimit, 3)
 assert.ok(
   autonomousScoutPlan.guardrails.includes(
     'Autonomous lead scout imports only exact public-contact evidence when enabled'
