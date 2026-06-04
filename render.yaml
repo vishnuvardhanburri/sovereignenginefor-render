@@ -146,10 +146,16 @@ services:
         value: "true"
       - key: DAILY_OUTBOUND_SKIP_LEAD_EVIDENCE_VERIFICATION
         value: "true"
+      - key: LEAD_SCOUT_DAILY_LIMIT
+        value: "40"
       - key: PUBLIC_SEARCH_SOURCE_ENABLED
         value: "true"
       - key: DAILY_OUTBOUND_RUN_PUBLIC_SEARCH
         value: "true"
+      - key: PUBLIC_SEARCH_DAILY_LIMIT
+        value: "25"
+      - key: PUBLIC_SEARCH_TIMEOUT_MS
+        value: "12000"
       - key: LEAD_SCOUT_INDUSTRIES
         value: saas,agency,cybersecurity,ai,devtools
       - key: LEAD_SCOUT_PERSONA
@@ -161,7 +167,7 @@ services:
       - key: DAILY_OUTBOUND_RUN_MAPS
         value: "true"
       - key: GOOGLE_MAPS_DAILY_LIMIT
-        value: "25"
+        value: "10"
       - key: GOOGLE_MAPS_SOURCE_ENABLED
         value: "true"
       - key: APIFY_API_TOKEN
@@ -427,9 +433,9 @@ services:
       - key: DAILY_OUTBOUND_MODE
         value: growth
       - key: DAILY_OUTBOUND_SEND_LIMIT
-        value: "800"
+        value: "80"
       - key: DAILY_OUTBOUND_APPROVE_LIMIT
-        value: "800"
+        value: "500"
       - key: DAILY_OUTBOUND_RECOVERY_MODE
         value: "true"
       - key: DAILY_OUTBOUND_PROVIDER_VALIDATION_LIMIT
@@ -442,10 +448,16 @@ services:
         value: "true"
       - key: DAILY_OUTBOUND_SKIP_LEAD_EVIDENCE_VERIFICATION
         value: "true"
+      - key: LEAD_SCOUT_DAILY_LIMIT
+        value: "40"
       - key: PUBLIC_SEARCH_SOURCE_ENABLED
         value: "true"
       - key: DAILY_OUTBOUND_RUN_PUBLIC_SEARCH
         value: "true"
+      - key: PUBLIC_SEARCH_DAILY_LIMIT
+        value: "25"
+      - key: PUBLIC_SEARCH_TIMEOUT_MS
+        value: "12000"
       - key: LEAD_SCOUT_INDUSTRIES
         value: saas,agency,cybersecurity,ai,devtools
       - key: LEAD_SCOUT_PERSONA
@@ -454,6 +466,8 @@ services:
         value: global
       - key: DAILY_OUTBOUND_RUN_MAPS
         value: "true"
+      - key: GOOGLE_MAPS_DAILY_LIMIT
+        value: "10"
       - key: APIFY_GOOGLE_MAPS_ACTOR_ID
         value: compass/crawler-google-places
       - key: APIFY_GOOGLE_MAPS_LOCATION

@@ -66,6 +66,9 @@ function buildCronUrl() {
     isEnabled(process.env.PUBLIC_SEARCH_SOURCE_ENABLED)
   ) {
     url.searchParams.set('publicSearch', 'true')
+    if (process.env.PUBLIC_SEARCH_DAILY_LIMIT) {
+      url.searchParams.set('publicSearchLimit', process.env.PUBLIC_SEARCH_DAILY_LIMIT)
+    }
   }
 
   if (isEnabled(process.env.DAILY_OUTBOUND_RUN_HUNTER) || isEnabled(process.env.HUNTER_DOMAIN_SEARCH_ENABLED)) {
@@ -81,6 +84,9 @@ function buildCronUrl() {
   }
   if (process.env.DAILY_OUTBOUND_TARGET_DAILY_VOLUME) {
     url.searchParams.set('targetDailyVolume', process.env.DAILY_OUTBOUND_TARGET_DAILY_VOLUME)
+  }
+  if (process.env.GOOGLE_MAPS_DAILY_LIMIT) {
+    url.searchParams.set('mapsLimit', process.env.GOOGLE_MAPS_DAILY_LIMIT)
   }
 
   // Apify Google Maps parameters
