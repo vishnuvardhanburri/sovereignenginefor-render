@@ -11,9 +11,13 @@ type ReplayEvent = {
   title: string
   message: string
   severity: 'info' | 'warning' | 'critical'
-  source: 'reputation' | 'delivery' | 'audit'
+  source: 'reputation' | 'delivery' | 'audit' | 'operator'
   createdAt: string
   metadata?: Record<string, unknown>
+}
+
+function textValue(value: unknown): string {
+  return typeof value === 'string' ? value.trim() : ''
 }
 
 function severityFrom(value?: string | null): ReplayEvent['severity'] {
@@ -63,7 +67,7 @@ export async function GET(request: NextRequest) {
     return Number.isFinite(requested) && requested > 0 ? requested : 1
   })
 
-  const [reputationRows, deliveryRows, auditRows] = await Promise.all([
+  const [reputationRows, deliveryRows, auditRows, operationalRows] = await Promise.all([
     query<any>(
       `SELECT re.id, re.event_type, re.severity, re.message, re.provider, re.created_at, d.domain
        FROM reputation_events re
@@ -86,6 +90,14 @@ export async function GET(request: NextRequest) {
        FROM audit_logs
        WHERE client_id = $1 OR client_id IS NULL
        ORDER BY timestamp_utc DESC
+       LIMIT $2`,
+      [clientId, limit]
+    ).catch(() => ({ rows: [] })),
+    query<any>(
+      `SELECT id, event_type, aggregate_type, aggregate_id, payload, metadata, created_at
+       FROM operational_events
+       WHERE client_id = $1
+       ORDER BY created_at DESC
        LIMIT $2`,
       [clientId, limit]
     ).catch(() => ({ rows: [] })),
@@ -124,7 +136,36 @@ export async function GET(request: NextRequest) {
     metadata: row.details ?? {},
   }))
 
-  const events = [...reputation, ...delivery, ...audit]
+  const operational: ReplayEvent[] = operationalRows.rows.map((row: any) => {
+    const payload = (row.payload ?? {}) as Record<string, unknown>
+    const company = textValue(payload.company)
+    const commercialPath =
+      textValue(payload.commercialPathLabel) || textValue(payload.commercialPath)
+    const timeline = textValue(payload.timeline).replace(/_/g, ' ')
+    const title =
+      row.event_type === 'qualification_submitted'
+        ? 'Qualification submitted'
+        : `Operator: ${String(row.event_type).replace(/_/g, ' ')}`
+    const message =
+      row.event_type === 'qualification_submitted'
+        ? `${company || 'Prospect'} requested ${commercialPath || 'a walkthrough'}${
+            timeline ? ` on ${timeline}` : ''
+          }.`
+        : `${row.aggregate_type}/${row.aggregate_id} was recorded in operational events.`
+
+    return {
+      id: `operator-${row.id}`,
+      type: String(row.event_type),
+      title,
+      message,
+      severity: 'info',
+      source: 'operator',
+      createdAt: new Date(row.created_at).toISOString(),
+      metadata: { payload, metadata: row.metadata ?? {} },
+    }
+  })
+
+  const events = [...reputation, ...delivery, ...audit, ...operational]
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     .slice(0, limit)
 
@@ -139,6 +180,7 @@ export async function GET(request: NextRequest) {
       reputation: timeline.filter((item) => item.source === 'reputation').length,
       delivery: timeline.filter((item) => item.source === 'delivery').length,
       audit: timeline.filter((item) => item.source === 'audit').length,
+      operator: timeline.filter((item) => item.source === 'operator').length,
       usingSampleData: events.length === 0,
     },
     events: timeline,

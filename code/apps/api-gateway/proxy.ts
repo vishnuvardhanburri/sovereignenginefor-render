@@ -3,7 +3,15 @@ import { NextResponse, type NextRequest } from 'next/server'
 // Next.js 16 deprecates the `middleware.ts` convention in favor of `proxy.ts`.
 // This file keeps the same behavior: protect dashboard routes via cookie presence.
 
-const PUBLIC_PATHS = new Set(['/login', '/api/auth/login', '/api/auth/me', '/api/auth/logout', '/api/webhooks/resend'])
+const PUBLIC_PATHS = new Set([
+  '/login',
+  '/book',
+  '/api/auth/login',
+  '/api/auth/me',
+  '/api/auth/logout',
+  '/api/qualification',
+  '/api/webhooks/resend',
+])
 const SESSION_COOKIE = 'xo_session'
 
 export function proxy(request: NextRequest) {

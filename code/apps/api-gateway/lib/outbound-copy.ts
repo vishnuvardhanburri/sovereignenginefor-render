@@ -25,7 +25,8 @@ export const SOVEREIGN_STACK_DIRECT_SUBJECT =
 export const SOVEREIGN_STACK_AGENCY_SUBJECT =
   'white-label communication infrastructure'
 
-export const SOVEREIGN_DEFAULT_BOOKING_URL = 'https://www.vishnuvardhanburri.in/book'
+export const SOVEREIGN_DEFAULT_BOOKING_URL =
+  'https://sovereignenginefor-render-d80m.onrender.com/book'
 export const SOVEREIGN_CLIENT_GENERATION_TARGET = {
   dailyQualifiedConversationsMin: 1,
   dailyQualifiedConversationsMax: 2,
@@ -37,7 +38,7 @@ export const SOVEREIGN_CLIENT_GENERATION_TARGET = {
 function allowedBookingDomains(): string[] {
   const raw =
     process.env.SOVEREIGN_ALLOWED_BOOKING_DOMAINS ||
-    'vishnuvardhanburri.in,www.vishnuvardhanburri.in'
+    'sovereignenginefor-render-d80m.onrender.com,vishnuvardhanburri.in,www.vishnuvardhanburri.in'
   return raw
     .split(',')
     .map((domain) => domain.trim().toLowerCase())

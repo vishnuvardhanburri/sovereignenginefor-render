@@ -91,12 +91,17 @@ If you run outbound internally or serve clients around growth, RevOps, lead gene
 
 ## System Action
 
+Public qualification page: `/book`
+
+Calendar slot after qualification: `https://cal.com/vishnuvardhanburri/30min`
+
 The system should not try to close payment automatically. Its job is to:
 
 - Find qualified buyers.
 - Send infrastructure-first outreach.
-- Push the buyer to book a walkthrough.
-- Collect pre-call details before the call.
+- Push the buyer to book a walkthrough through the in-app qualification page.
+- Collect pre-call details before the call and save them to the operator activity stream.
+- Send the prospect to the 30-minute Cal.com slot after the details are captured.
 - Stop follow-ups when the buyer replies.
 - Notify the operator so Vishnu can close manually.
 
