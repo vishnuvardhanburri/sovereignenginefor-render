@@ -50,8 +50,19 @@ function buildCronUrl() {
     }
   }
 
-  if (isEnabled(process.env.DAILY_OUTBOUND_RUN_MAPS) || isEnabled(process.env.GOOGLE_MAPS_SOURCE_ENABLE)) {
+  if (
+    isEnabled(process.env.DAILY_OUTBOUND_RUN_MAPS) ||
+    isEnabled(process.env.GOOGLE_MAPS_SOURCE_ENABLED) ||
+    isEnabled(process.env.GOOGLE_MAPS_SOURCE_ENABLE)
+  ) {
     url.searchParams.set('mapsImport', 'true')
+  }
+
+  if (
+    isEnabled(process.env.DAILY_OUTBOUND_RUN_PUBLIC_SEARCH) ||
+    isEnabled(process.env.PUBLIC_SEARCH_SOURCE_ENABLED)
+  ) {
+    url.searchParams.set('publicSearch', 'true')
   }
 
   if (isEnabled(process.env.DAILY_OUTBOUND_RUN_HUNTER) || isEnabled(process.env.HUNTER_DOMAIN_SEARCH_ENABLED)) {

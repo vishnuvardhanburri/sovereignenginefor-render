@@ -142,6 +142,12 @@ services:
       # ── Lead scout ────────────────────────────────────────────────────────────
       - key: LEAD_SCOUT_ENABLED
         value: "true"
+      - key: DAILY_OUTBOUND_RUN_LEAD_SCOUT
+        value: "true"
+      - key: PUBLIC_SEARCH_SOURCE_ENABLED
+        value: "true"
+      - key: DAILY_OUTBOUND_RUN_PUBLIC_SEARCH
+        value: "true"
       - key: LEAD_SCOUT_INDUSTRIES
         value: saas,agency,cybersecurity,ai,devtools
       - key: LEAD_SCOUT_PERSONA
@@ -388,7 +394,7 @@ services:
     runtime: docker
     region: singapore
     plan: starter
-    schedule: "0 3 * * *"
+    schedule: "*/30 * * * *"
     dockerContext: ./code
     dockerfilePath: ./code/Dockerfile
     dockerCommand: sh -lc "node scripts/sync-env.mjs && node scripts/cloud-outbound-cron.mjs"
@@ -414,7 +420,7 @@ services:
         sync: false   # vishnu-cron-2026-safe-production-outbound-secret-key-32-chars
       # Target the API service
       - key: OUTBOUND_CRON_API_URL
-        value: https://sovereign-engine-api.onrender.com
+        value: https://sovereignenginefor-render-d80m.onrender.com
       # Pass-through all outbound parameters
       - key: DAILY_OUTBOUND_MODE
         value: growth
@@ -429,6 +435,12 @@ services:
       - key: DAILY_OUTBOUND_RUN_HUNTER
         value: "true"
       - key: LEAD_SCOUT_ENABLED
+        value: "true"
+      - key: DAILY_OUTBOUND_RUN_LEAD_SCOUT
+        value: "true"
+      - key: PUBLIC_SEARCH_SOURCE_ENABLED
+        value: "true"
+      - key: DAILY_OUTBOUND_RUN_PUBLIC_SEARCH
         value: "true"
       - key: LEAD_SCOUT_INDUSTRIES
         value: saas,agency,cybersecurity,ai,devtools

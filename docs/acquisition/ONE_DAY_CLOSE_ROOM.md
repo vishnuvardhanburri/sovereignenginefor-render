@@ -1,6 +1,6 @@
 # One-Day Close Room
 
-Objective: close one paid buyer conversation within 24 hours for Xavira Control Stack.
+Objective: drive toward £500,000 in urgent pipeline by prioritizing buyers who can close white-label licenses, acquisition conversations, or multiple deployment rights quickly.
 
 Commercial source of truth:
 
@@ -14,9 +14,19 @@ Do not optimize for replies. Optimize for qualified money movement.
 
 Priority order:
 
-1. Agencies, RevOps firms, deliverability consultants, and AI automation operators that can monetize white-label rights.
-2. SaaS or cybersecurity teams already running outbound internally.
-3. Strategic buyers who ask about acquisition, source code, or commercial rights.
+1. Agencies, RevOps firms, deliverability consultants, and AI automation operators that can monetize the £160,000 white-label license.
+2. Strategic buyers who ask about acquisition, source code, or commercial rights at £200K+.
+3. SaaS or cybersecurity teams already running outbound internally at £40,000.
+
+## £500K Fast Math
+
+Fastest credible paths:
+
+- 3 white-label commercial licenses = £480,000 plus first maintenance month = £489,000.
+- 2 white-label commercial licenses + 1 acquisition/license conversation at £200K = £520,000.
+- 1 white-label commercial license + 1 strategic acquisition/license at £320K + maintenance = £483,000, then close one £40,000 internal license to pass £500,000.
+
+Therefore the daily motion should prioritize white-label and strategic buyers first. Internal £40,000 licenses are useful, but they are not the main path to £500,000.
 
 ## Closeable Offers
 
@@ -137,9 +147,8 @@ Based on what you saw, is this an internal £40,000 license conversation or a £
 
 ## Today Metrics
 
-- 50 high-fit buyer messages
-- 15 direct founder/operator DMs
-- 5 walkthrough slots offered
-- 2 serious commercial conversations
-- 1 invoice, license, or diligence deposit requested
-
+- 100 high-fit buyer messages
+- 40 direct founder/operator DMs
+- 10 white-label walkthrough slots offered
+- 4 serious commercial conversations
+- 2 invoices, licenses, acquisition LOIs, or diligence deposits requested
