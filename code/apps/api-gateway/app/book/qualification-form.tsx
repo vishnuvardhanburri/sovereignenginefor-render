@@ -61,11 +61,19 @@ const timelineOptions = [
 
 const calendarFallbackUrl =
   process.env.NEXT_PUBLIC_SOVEREIGN_CALENDAR_URL || 'https://cal.com/vishnuvardhanburri/30min'
+const paymentFallbackUrl = process.env.NEXT_PUBLIC_INFINITY_PAYMENT_URL || ''
+
+const paymentReadinessOptions = [
+  { value: 'pay_today', label: 'Ready to pay today' },
+  { value: 'invoice_today', label: 'Needs invoice today' },
+  { value: 'payment_link_today', label: 'Needs Infinity payment link today' },
+  { value: 'procurement_review', label: 'Needs procurement/review' },
+]
 
 type SubmitState =
   | { status: 'idle'; message?: string }
   | { status: 'submitting'; message?: string }
-  | { status: 'success'; message: string; calendarUrl: string }
+  | { status: 'success'; message: string; calendarUrl: string; paymentUrl: string }
   | { status: 'error'; message: string }
 
 export function QualificationForm() {
@@ -90,6 +98,15 @@ export function QualificationForm() {
       commercialPath: String(formData.get('commercialPath') ?? ''),
       preferredCallWindow: String(formData.get('preferredCallWindow') ?? ''),
       notes: String(formData.get('notes') ?? ''),
+      legalBuyerName: String(formData.get('legalBuyerName') ?? ''),
+      billingEmail: String(formData.get('billingEmail') ?? ''),
+      billingCountry: String(formData.get('billingCountry') ?? ''),
+      billingAddress: String(formData.get('billingAddress') ?? ''),
+      taxId: String(formData.get('taxId') ?? ''),
+      purchaseOrder: String(formData.get('purchaseOrder') ?? ''),
+      authorizedSigner: String(formData.get('authorizedSigner') ?? ''),
+      paymentReadiness: String(formData.get('paymentReadiness') ?? ''),
+      paymentNotes: String(formData.get('paymentNotes') ?? ''),
       source: String(formData.get('source') ?? 'book_page'),
       contactId: String(formData.get('contactId') ?? ''),
       campaignId: String(formData.get('campaignId') ?? ''),
@@ -111,6 +128,7 @@ export function QualificationForm() {
         status: 'success',
         message: result?.message || 'Qualification received. The operator has the call packet.',
         calendarUrl: result?.calendarUrl || calendarFallbackUrl,
+        paymentUrl: result?.paymentUrl || paymentFallbackUrl,
       })
       form.reset()
     } catch (error) {
@@ -303,6 +321,97 @@ export function QualificationForm() {
         />
       </div>
 
+      <div className="mt-6 rounded-lg border border-blue-400/20 bg-blue-500/[0.06] p-4">
+        <div className="flex flex-col gap-1">
+          <h3 className="text-sm font-semibold text-white">Infinity payment details</h3>
+          <p className="text-sm leading-6 text-zinc-400">
+            These details go to the operator email so the invoice or payment link can be sent
+            without another back-and-forth.
+          </p>
+        </div>
+
+        <div className="mt-4 grid gap-4 md:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="legalBuyerName">Legal buyer name</Label>
+            <Input
+              id="legalBuyerName"
+              name="legalBuyerName"
+              required
+              placeholder="Company/legal entity buying the license"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="billingEmail">Billing email</Label>
+            <Input
+              id="billingEmail"
+              name="billingEmail"
+              type="email"
+              required
+              placeholder="finance@company.com"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="billingCountry">Billing country</Label>
+            <Input id="billingCountry" name="billingCountry" required />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="authorizedSigner">Authorized signer</Label>
+            <Input
+              id="authorizedSigner"
+              name="authorizedSigner"
+              required
+              placeholder="Person approved to sign/pay"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="taxId">Tax/VAT/GST ID</Label>
+            <Input id="taxId" name="taxId" placeholder="Optional if not applicable" />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="purchaseOrder">PO/reference</Label>
+            <Input id="purchaseOrder" name="purchaseOrder" placeholder="Optional" />
+          </div>
+        </div>
+
+        <div className="mt-4 space-y-2">
+          <Label htmlFor="billingAddress">Billing address</Label>
+          <Textarea
+            id="billingAddress"
+            name="billingAddress"
+            required
+            rows={3}
+            placeholder="Registered billing address for invoice/payment records."
+          />
+        </div>
+
+        <div className="mt-4 grid gap-4 md:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="paymentReadiness">Payment readiness</Label>
+            <select
+              id="paymentReadiness"
+              name="paymentReadiness"
+              required
+              defaultValue="payment_link_today"
+              className="h-9 w-full rounded-md border border-input bg-zinc-900/60 px-3 text-sm text-white shadow-xs outline-none transition focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+            >
+              {paymentReadinessOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="paymentNotes">Payment notes</Label>
+            <Input
+              id="paymentNotes"
+              name="paymentNotes"
+              placeholder="Currency, procurement rule, payer contact, etc."
+            />
+          </div>
+        </div>
+      </div>
+
       <label className="mt-6 flex items-start gap-3 text-sm leading-6 text-zinc-300">
         <input
           type="checkbox"
@@ -338,6 +447,17 @@ export function QualificationForm() {
             Pick 30-minute slot
             <ExternalLink className="size-4" />
           </a>
+          {state.paymentUrl && (
+            <a
+              href={state.paymentUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-3 ml-0 inline-flex h-9 items-center gap-2 rounded-md bg-blue-200 px-3 text-sm font-semibold text-blue-950 transition hover:bg-blue-100 sm:ml-2"
+            >
+              Open Infinity payment
+              <ExternalLink className="size-4" />
+            </a>
+          )}
         </div>
       )}
 

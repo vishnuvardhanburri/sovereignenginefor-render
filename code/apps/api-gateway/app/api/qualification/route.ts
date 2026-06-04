@@ -12,6 +12,8 @@ const SOVEREIGN_CALENDAR_URL =
   process.env.SOVEREIGN_CALENDAR_URL ||
   process.env.NEXT_PUBLIC_SOVEREIGN_CALENDAR_URL ||
   'https://cal.com/vishnuvardhanburri/30min'
+const INFINITY_PAYMENT_URL =
+  process.env.INFINITY_PAYMENT_URL || process.env.NEXT_PUBLIC_INFINITY_PAYMENT_URL || ''
 
 const option = (values: readonly [string, ...string[]]) => z.enum(values)
 
@@ -35,6 +37,20 @@ const qualificationSchema = z.object({
   ]),
   preferredCallWindow: z.string().trim().min(2).max(160),
   notes: z.string().trim().max(1200).optional().default(''),
+  legalBuyerName: z.string().trim().min(2).max(180),
+  billingEmail: z.string().trim().email().max(180),
+  billingCountry: z.string().trim().min(2).max(120),
+  billingAddress: z.string().trim().min(8).max(700),
+  taxId: z.string().trim().max(120).optional().default(''),
+  purchaseOrder: z.string().trim().max(120).optional().default(''),
+  authorizedSigner: z.string().trim().min(2).max(160),
+  paymentReadiness: option([
+    'pay_today',
+    'invoice_today',
+    'payment_link_today',
+    'procurement_review',
+  ]),
+  paymentNotes: z.string().trim().max(700).optional().default(''),
   source: z.string().trim().max(120).optional().default('book_page'),
   contactId: z.string().trim().max(80).optional().default(''),
   campaignId: z.string().trim().max(80).optional().default(''),
@@ -56,6 +72,13 @@ const timelineLabels: Record<QualificationInput['timeline'], string> = {
   this_month: 'This month',
   this_quarter: 'This quarter',
   exploring: 'Exploring',
+}
+
+const paymentReadinessLabels: Record<QualificationInput['paymentReadiness'], string> = {
+  pay_today: 'Ready to pay today',
+  invoice_today: 'Needs invoice today',
+  payment_link_today: 'Needs Infinity payment link today',
+  procurement_review: 'Needs procurement/review',
 }
 
 function requestIpHash(request: NextRequest): string | null {
@@ -133,7 +156,19 @@ function qualificationMessage(input: QualificationInput): string {
     input.painPoints.length ? `Pain points: ${input.painPoints.join(', ')}` : null,
     `Setup: ${input.currentSetup}`,
     input.notes ? `Notes: ${input.notes}` : null,
+    '',
+    'Payment / invoice details',
+    `Legal buyer: ${input.legalBuyerName}`,
+    `Billing email: ${input.billingEmail}`,
+    `Billing country: ${input.billingCountry}`,
+    `Billing address: ${input.billingAddress}`,
+    input.taxId ? `Tax/VAT/GST ID: ${input.taxId}` : null,
+    input.purchaseOrder ? `PO/reference: ${input.purchaseOrder}` : null,
+    `Authorized signer: ${input.authorizedSigner}`,
+    `Payment readiness: ${paymentReadinessLabels[input.paymentReadiness]}`,
+    input.paymentNotes ? `Payment notes: ${input.paymentNotes}` : null,
     `Calendar: ${SOVEREIGN_CALENDAR_URL}`,
+    INFINITY_PAYMENT_URL ? `Infinity payment: ${INFINITY_PAYMENT_URL}` : null,
   ]
     .filter(Boolean)
     .join('\n')
@@ -155,7 +190,17 @@ function qualificationEmailHtml(input: QualificationInput): string {
     ['Pain points', input.painPoints.join(', ')],
     ['Current setup', input.currentSetup],
     ['Deal notes', input.notes],
+    ['Legal buyer', input.legalBuyerName],
+    ['Billing email', input.billingEmail],
+    ['Billing country', input.billingCountry],
+    ['Billing address', input.billingAddress],
+    ['Tax/VAT/GST ID', input.taxId],
+    ['PO/reference', input.purchaseOrder],
+    ['Authorized signer', input.authorizedSigner],
+    ['Payment readiness', paymentReadinessLabels[input.paymentReadiness]],
+    ['Payment notes', input.paymentNotes],
     ['Calendar', SOVEREIGN_CALENDAR_URL],
+    ['Infinity payment', INFINITY_PAYMENT_URL],
   ].filter(([, value]) => String(value ?? '').trim())
 
   const bodyRows = rows
@@ -174,13 +219,18 @@ function qualificationEmailHtml(input: QualificationInput): string {
         <div style="padding:20px 22px;background:#0f172a;color:#ffffff;">
           <div style="font-size:12px;letter-spacing:0.08em;text-transform:uppercase;color:#93c5fd;">Sovereign Engine</div>
           <h1 style="margin:8px 0 0 0;font-size:22px;line-height:1.25;">New qualification packet</h1>
-          <p style="margin:8px 0 0 0;color:#cbd5e1;font-size:14px;">Review the details, then use the Cal.com slot for the walkthrough.</p>
+          <p style="margin:8px 0 0 0;color:#cbd5e1;font-size:14px;">Review the details, then use the Cal.com slot and Infinity payment details to close.</p>
         </div>
         <table style="width:100%;border-collapse:collapse;">
           ${bodyRows}
         </table>
         <div style="padding:18px 22px;">
           <a href="${escapeHtml(SOVEREIGN_CALENDAR_URL)}" style="display:inline-block;background:#111827;color:#ffffff;text-decoration:none;border-radius:8px;padding:11px 14px;font-weight:700;font-size:14px;">Open 30-minute calendar</a>
+          ${
+            INFINITY_PAYMENT_URL
+              ? `<a href="${escapeHtml(INFINITY_PAYMENT_URL)}" style="display:inline-block;margin-left:8px;background:#2563eb;color:#ffffff;text-decoration:none;border-radius:8px;padding:11px 14px;font-weight:700;font-size:14px;">Open Infinity payment</a>`
+              : ''
+          }
         </div>
       </div>
     </div>
@@ -290,6 +340,17 @@ export async function POST(request: NextRequest) {
         commercialPathLabel: commercialPathLabels[input.commercialPath],
         preferredCallWindow: input.preferredCallWindow,
         notes: input.notes,
+        legalBuyerName: input.legalBuyerName,
+        billingEmail: input.billingEmail,
+        billingCountry: input.billingCountry,
+        billingAddress: input.billingAddress,
+        taxId: input.taxId,
+        purchaseOrder: input.purchaseOrder,
+        authorizedSigner: input.authorizedSigner,
+        paymentReadiness: input.paymentReadiness,
+        paymentReadinessLabel: paymentReadinessLabels[input.paymentReadiness],
+        paymentNotes: input.paymentNotes,
+        infinityPaymentUrl: INFINITY_PAYMENT_URL,
         source: input.source,
         contactId: input.contactId,
         campaignId: input.campaignId,
@@ -307,6 +368,7 @@ export async function POST(request: NextRequest) {
       ok: true,
       id: event.id,
       calendarUrl: SOVEREIGN_CALENDAR_URL,
+      paymentUrl: INFINITY_PAYMENT_URL,
       message: 'Qualification received. The operator has the call packet.',
     })
   } catch (error) {

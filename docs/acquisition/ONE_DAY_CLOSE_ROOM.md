@@ -95,12 +95,17 @@ Public qualification page: `/book`
 
 Calendar slot after qualification: `https://cal.com/vishnuvardhanburri/30min`
 
+Payment route: Infinity. If `INFINITY_PAYMENT_URL` is configured, the page returns it after
+qualification. Even without the link, the page collects all payment-ready invoice details and
+emails them to the operator.
+
 The system should not try to close payment automatically. Its job is to:
 
 - Find qualified buyers.
 - Send infrastructure-first outreach.
 - Push the buyer to book a walkthrough through the in-app qualification page.
 - Collect pre-call details before the call and save them to the operator activity stream.
+- Collect payment details required for Infinity invoice/payment-link close.
 - Send the prospect to the 30-minute Cal.com slot after the details are captured.
 - Stop follow-ups when the buyer replies.
 - Notify the operator so Vishnu can close manually.
@@ -111,6 +116,12 @@ Required pre-call details:
 - Current setup: domains, mailboxes, providers, and approximate monthly outbound volume.
 - Timeline and decision owner.
 - Commercial path: £40,000 internal, £160,000 white-label, or £200K+ strategic/acquisition.
+- Legal buyer name.
+- Billing email, country, and address.
+- Tax/VAT/GST ID if applicable.
+- PO/reference if applicable.
+- Authorized signer.
+- Payment readiness: ready to pay, needs invoice, needs Infinity payment link, or procurement review.
 
 ## Reply Handling
 
