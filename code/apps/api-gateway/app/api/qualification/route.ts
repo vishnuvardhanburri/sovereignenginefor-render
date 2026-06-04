@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { appEnv } from '@/lib/env'
+import { sendViaSmtp } from '@/lib/integrations/billionmail'
 import { appendOperationalEvent, stableHash } from '@/lib/operational-events'
 import { sendTelegramMessage } from '@/lib/telegram'
 
@@ -72,6 +73,49 @@ function cleanWebsite(value: string): string {
   return `https://${trimmed}`
 }
 
+function firstConfiguredEmailList(...values: Array<string | undefined>): string {
+  for (const value of values) {
+    const cleaned = String(value ?? '').trim()
+    if (!cleaned) continue
+    const emails = cleaned
+      .split(',')
+      .map((item) => item.trim())
+      .filter((item) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(item))
+    if (emails.length) return emails.join(', ')
+  }
+  return ''
+}
+
+function operatorNotificationRecipients(): string {
+  return firstConfiguredEmailList(
+    process.env.QUALIFICATION_NOTIFY_EMAIL,
+    process.env.DEAL_NOTIFY_EMAIL,
+    process.env.OPERATOR_NOTIFY_EMAIL,
+    process.env.OUTBOUND_CRON_RECIPIENTS,
+    process.env.RESEND_FROM_EMAIL,
+    process.env.SMTP_FROM_EMAIL,
+    process.env.BOOTSTRAP_ADMIN_EMAIL
+  )
+}
+
+function operatorNotificationFrom(): string {
+  return (
+    process.env.QUALIFICATION_FROM_EMAIL ||
+    process.env.RESEND_FROM_EMAIL ||
+    process.env.SMTP_FROM_EMAIL ||
+    appEnv.smtpFromEmail()
+  )
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
 function qualificationMessage(input: QualificationInput): string {
   return [
     'Sovereign Engine qualification submitted',
@@ -95,7 +139,55 @@ function qualificationMessage(input: QualificationInput): string {
     .join('\n')
 }
 
-async function notifyOperator(input: QualificationInput): Promise<void> {
+function qualificationEmailHtml(input: QualificationInput): string {
+  const rows = [
+    ['Name', input.fullName],
+    ['Email', input.workEmail],
+    ['Company', input.company],
+    ['Role', input.role],
+    ['Website', input.website],
+    ['Commercial path', commercialPathLabels[input.commercialPath]],
+    ['Timeline', timelineLabels[input.timeline]],
+    ['Decision owner', input.decisionOwner],
+    ['Preferred call', input.preferredCallWindow],
+    ['Monthly outbound', input.monthlyOutboundVolume],
+    ['Use case', input.useCase.replace(/_/g, ' ')],
+    ['Pain points', input.painPoints.join(', ')],
+    ['Current setup', input.currentSetup],
+    ['Deal notes', input.notes],
+    ['Calendar', SOVEREIGN_CALENDAR_URL],
+  ].filter(([, value]) => String(value ?? '').trim())
+
+  const bodyRows = rows
+    .map(
+      ([label, value]) => `
+        <tr>
+          <td style="padding:10px 12px;border-bottom:1px solid #e5e7eb;color:#6b7280;font-size:13px;vertical-align:top;width:180px;">${escapeHtml(label)}</td>
+          <td style="padding:10px 12px;border-bottom:1px solid #e5e7eb;color:#111827;font-size:14px;line-height:1.6;white-space:pre-wrap;">${escapeHtml(String(value))}</td>
+        </tr>`
+    )
+    .join('')
+
+  return `
+    <div style="font-family:Inter,Arial,sans-serif;background:#f8fafc;padding:24px;color:#111827;">
+      <div style="max-width:760px;margin:0 auto;background:#ffffff;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
+        <div style="padding:20px 22px;background:#0f172a;color:#ffffff;">
+          <div style="font-size:12px;letter-spacing:0.08em;text-transform:uppercase;color:#93c5fd;">Sovereign Engine</div>
+          <h1 style="margin:8px 0 0 0;font-size:22px;line-height:1.25;">New qualification packet</h1>
+          <p style="margin:8px 0 0 0;color:#cbd5e1;font-size:14px;">Review the details, then use the Cal.com slot for the walkthrough.</p>
+        </div>
+        <table style="width:100%;border-collapse:collapse;">
+          ${bodyRows}
+        </table>
+        <div style="padding:18px 22px;">
+          <a href="${escapeHtml(SOVEREIGN_CALENDAR_URL)}" style="display:inline-block;background:#111827;color:#ffffff;text-decoration:none;border-radius:8px;padding:11px 14px;font-weight:700;font-size:14px;">Open 30-minute calendar</a>
+        </div>
+      </div>
+    </div>
+  `
+}
+
+async function notifyOperatorTelegram(input: QualificationInput): Promise<void> {
   const botToken = appEnv.telegramBotToken()
   const chatId = process.env.TELEGRAM_CHAT_ID || ''
   if (!botToken || !chatId) return
@@ -109,6 +201,35 @@ async function notifyOperator(input: QualificationInput): Promise<void> {
     })
   } catch (error) {
     console.error('[qualification] telegram notification failed', error)
+  }
+}
+
+async function notifyOperatorEmail(input: QualificationInput): Promise<void> {
+  const toEmail = operatorNotificationRecipients()
+  if (!toEmail) {
+    console.warn('[qualification] no operator email recipient configured')
+    return
+  }
+
+  try {
+    const subject = `New qualified walkthrough: ${input.company} (${commercialPathLabels[input.commercialPath]})`
+    const result = await sendViaSmtp({
+      fromEmail: operatorNotificationFrom(),
+      toEmail,
+      subject,
+      text: qualificationMessage(input),
+      html: qualificationEmailHtml(input),
+      headers: {
+        'X-Sovereign-Event': 'qualification_submitted',
+        'X-Sovereign-Source': input.source || 'book_page',
+      },
+    })
+
+    if (!result.success) {
+      console.error('[qualification] operator email failed', result.error)
+    }
+  } catch (error) {
+    console.error('[qualification] operator email failed', error)
   }
 }
 
@@ -180,7 +301,7 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    void notifyOperator(input)
+    await Promise.allSettled([notifyOperatorTelegram(input), notifyOperatorEmail(input)])
 
     return NextResponse.json({
       ok: true,
