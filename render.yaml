@@ -146,6 +146,20 @@ services:
         value: "true"
       - key: WEB_EMBED_OUTBOUND_CYCLE_WORKER
         value: "false"
+      - key: WEB_EMBED_FREE_MAIL_PUMP
+        value: "true"
+      - key: FREE_MAIL_PUMP_INTERVAL_MS
+        value: "900000"
+      - key: FREE_MAIL_PUMP_DISCOVERY_INTERVAL_MS
+        value: "3600000"
+      - key: FREE_MAIL_PUMP_SEND_LIMIT
+        value: "1"
+      - key: FREE_MAIL_PUMP_APPROVE_LIMIT
+        value: "5"
+      - key: FREE_MAIL_PUMP_LEAD_SCOUT_LIMIT
+        value: "3"
+      - key: FREE_MAIL_PUMP_PUBLIC_SEARCH_LIMIT
+        value: "3"
       - key: WEB_EMBED_AUTONOMOUS_OPS_WORKER
         value: "false"
       - key: WEB_EMBED_INBOUND_WORKER

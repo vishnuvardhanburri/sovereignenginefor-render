@@ -20,6 +20,13 @@ SENDER_WORKER_CONCURRENCY=1
 LEGACY_LOOP_BATCH_SIZE=1
 
 WEB_EMBED_OUTBOUND_CYCLE_WORKER=false
+WEB_EMBED_FREE_MAIL_PUMP=true
+FREE_MAIL_PUMP_INTERVAL_MS=900000
+FREE_MAIL_PUMP_DISCOVERY_INTERVAL_MS=3600000
+FREE_MAIL_PUMP_SEND_LIMIT=1
+FREE_MAIL_PUMP_APPROVE_LIMIT=5
+FREE_MAIL_PUMP_LEAD_SCOUT_LIMIT=3
+FREE_MAIL_PUMP_PUBLIC_SEARCH_LIMIT=3
 WEB_EMBED_AUTONOMOUS_OPS_WORKER=false
 WEB_EMBED_INBOUND_WORKER=false
 WEB_EMBED_REPUTATION_WORKER=false
@@ -35,7 +42,9 @@ DAILY_OUTBOUND_SMALL_MAX_MAPS_LIMIT=5
 ## Operating Model
 
 Use the live app for qualification and closing. Let the sender lane process queued mail slowly.
-For lead discovery, run compact cycles more often instead of one heavy run.
+The free mail pump runs compact local cycles: queue one safe send every interval and run tiny
+lead discovery roughly hourly. This keeps mail moving without keeping the heavier outbound cycle
+worker resident in memory.
 
 Do not run 800 sends as one web request on the free instance. Keep the commercial target at
 800/day, but let free-tier execution advance in small chunks so the service stays alive.

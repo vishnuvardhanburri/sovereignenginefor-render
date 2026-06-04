@@ -2,7 +2,7 @@ import nodemailer from 'nodemailer'
 import { appEnv } from '@/lib/env'
 import type { SendMessageRequest, SendMessageResult } from '@/lib/agents/execution/sender-agent'
 
-let transporter: ReturnType<typeof nodemailer.createTransport> | null = null
+const transporters = new Map<string, ReturnType<typeof nodemailer.createTransport>>()
 
 type Provider = 'smtp' | 'resend' | 'brevo'
 type ApiProvider = Exclude<Provider, 'smtp'>
@@ -25,6 +25,10 @@ function parseAddress(value: string): { email: string; name?: string } {
     email: match[2]?.trim() || value.trim(),
     ...(name ? { name } : {}),
   }
+}
+
+function cleanEmail(value: unknown): string {
+  return parseAddress(String(value ?? '')).email.trim().toLowerCase()
 }
 
 function domainSlug(email: string): string {
@@ -132,6 +136,24 @@ function configuredApiProviders(fromEmail: string): ApiProvider[] {
   })
 }
 
+function smtpAccountFor(fromEmail: string): { user: string; pass: string } | null {
+  const email = cleanEmail(fromEmail)
+  const accounts = appEnv.smtpAccounts()
+  const matched = accounts.find((account) => cleanEmail(account.user) === email)
+  if (matched) return matched
+
+  const user = appEnv.smtpUser()
+  const pass = appEnv.smtpPass()
+  if (user && pass) return { user, pass }
+
+  return accounts[0] ?? null
+}
+
+function hasSmtpCredentials(fromEmail: string): boolean {
+  const account = smtpAccountFor(fromEmail)
+  return Boolean(account?.user && account?.pass)
+}
+
 function chooseWeightedProvider(input: {
   request: SendMessageRequest
   to: string[]
@@ -193,6 +215,32 @@ function selectedProvider(request: SendMessageRequest, to: string[]): Provider {
   if (apiProviders.length === 1) return apiProviders[0]!
   if (apiProviders.length > 1) return chooseWeightedProvider({ request, to, providers: apiProviders })
   return 'smtp'
+}
+
+function providerFailureNeedsFallback(provider: Provider, error: unknown): boolean {
+  if (provider !== 'brevo' && provider !== 'resend') return false
+  const msg = String((error as any)?.message ?? error ?? '').toLowerCase()
+  return (
+    msg.includes('401') ||
+    msg.includes('403') ||
+    msg.includes('422') ||
+    msg.includes('unauthorized') ||
+    msg.includes('invalid api key') ||
+    msg.includes('unrecognised ip address') ||
+    msg.includes('authorised_ips') ||
+    msg.includes('not verified') ||
+    msg.includes('domain') ||
+    msg.includes('sender') ||
+    msg.includes('from')
+  )
+}
+
+function fallbackProviders(provider: Provider, fromEmail: string): Provider[] {
+  if (provider !== 'brevo' && provider !== 'resend') return []
+
+  const fallbacks: Provider[] = configuredApiProviders(fromEmail).filter((item) => item !== provider)
+  if (hasSmtpCredentials(fromEmail)) fallbacks.push('smtp')
+  return fallbacks
 }
 
 async function readProviderError(response: Response): Promise<string> {
@@ -272,9 +320,10 @@ async function sendViaBrevo(input: {
   return { success: true, provider: 'brevo', providerMessageId: data.messageId || data.messageIds?.[0] }
 }
 
-function getTransporter() {
-  if (transporter) {
-    return transporter
+function getTransporter(fromEmail: string) {
+  const account = smtpAccountFor(fromEmail)
+  if (!account?.user || !account.pass) {
+    throw new Error('SMTP credentials missing. Configure SMTP_USER/SMTP_PASS or SMTP_ACCOUNTS.')
   }
 
   const smtpHost = appEnv.smtpHost()
@@ -282,16 +331,21 @@ function getTransporter() {
     throw new Error('Brevo SMTP is disabled. Configure RESEND_API_KEY or a non-Brevo SMTP host.')
   }
 
-  transporter = nodemailer.createTransport({
+  const key = [smtpHost, appEnv.smtpPort(), appEnv.smtpSecure(), account.user].join('|')
+  const cached = transporters.get(key)
+  if (cached) return cached
+
+  const transporter = nodemailer.createTransport({
     host: smtpHost,
     port: appEnv.smtpPort(),
     secure: appEnv.smtpSecure(),
     auth: {
-      user: appEnv.smtpUser(),
-      pass: appEnv.smtpPass(),
+      user: account.user,
+      pass: account.pass,
     },
   })
 
+  transporters.set(key, transporter)
   return transporter
 }
 
@@ -331,44 +385,69 @@ export async function sendViaSmtp(
       'X-Sovereign-Provider-Mode': provider === 'smtp' ? 'smtp' : 'central-weighted',
     }
 
-    if (provider === 'resend') {
-      return await sendViaResend({ request, to, cc, subject, headers })
-    }
+    const sendWithProvider = async (candidate: Provider): Promise<SendMessageResult> => {
+      const candidateHeaders = {
+        ...headers,
+        'X-Sovereign-Send-Provider': candidate,
+        'X-Sovereign-Provider-Mode': candidate === 'smtp' ? 'smtp' : 'central-weighted',
+      }
 
-    if (provider === 'brevo') {
-      return await sendViaBrevo({ request, to, cc, subject, headers })
-    }
+      if (candidate === 'resend') {
+        return await sendViaResend({ request, to, cc, subject, headers: candidateHeaders })
+      }
 
-    const transporter = getTransporter()
-    const toHeader = to.join(', ')
-    const ccHeader = cc.join(', ')
-    const result = (await transporter.sendMail({
-      from: request.fromEmail,
-      to: toHeader,
-      cc: ccHeader || undefined,
-      subject,
-      text: request.text,
-      html: request.html,
-      headers,
-      envelope: {
+      if (candidate === 'brevo') {
+        return await sendViaBrevo({ request, to, cc, subject, headers: candidateHeaders })
+      }
+
+      const transporter = getTransporter(request.fromEmail)
+      const toHeader = to.join(', ')
+      const ccHeader = cc.join(', ')
+      const smtpAccount = smtpAccountFor(request.fromEmail)
+      const envelopeFrom = smtpAccount?.user || parseAddress(request.fromEmail).email
+      const result = (await transporter.sendMail({
         from: request.fromEmail,
         to: toHeader,
         cc: ccHeader || undefined,
-      },
-    })) as { messageId?: string; rejected?: string[] }
+        subject,
+        text: request.text,
+        html: request.html,
+        headers: candidateHeaders,
+        envelope: {
+          from: envelopeFrom,
+          to: toHeader,
+          cc: ccHeader || undefined,
+        },
+      })) as { messageId?: string; rejected?: string[] }
 
-    if (Array.isArray(result.rejected) && result.rejected.length > 0) {
+      if (Array.isArray(result.rejected) && result.rejected.length > 0) {
+        return {
+          success: false,
+          provider: 'smtp',
+          error: `smtp rejected recipients: ${result.rejected.join(', ')}`,
+        }
+      }
+
       return {
-        success: false,
-        error: `smtp rejected recipients: ${result.rejected.join(', ')}`,
+        success: true,
+        provider: 'smtp',
+        providerMessageId: result.messageId,
       }
     }
 
-    return {
-      success: true,
-      provider: 'smtp',
-      providerMessageId: result.messageId,
+    const first = await sendWithProvider(provider)
+    if (first.success || !providerFailureNeedsFallback(provider, first.error)) {
+      return first
     }
+
+    for (const fallback of fallbackProviders(provider, request.fromEmail)) {
+      const next = await sendWithProvider(fallback)
+      if (next.success || !providerFailureNeedsFallback(fallback, next.error)) {
+        return next
+      }
+    }
+
+    return first
   } catch (error) {
     return {
       success: false,

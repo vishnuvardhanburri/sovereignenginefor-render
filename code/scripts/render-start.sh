@@ -144,6 +144,26 @@ else
   echo "[render-start] embedded outbound-cycle-worker disabled"
 fi
 
+free_mail_pump_default=false
+if [ "$free_tier_safe" = "true" ]; then
+  free_mail_pump_default=true
+fi
+if enabled_flag "${WEB_EMBED_FREE_MAIL_PUMP:-$free_mail_pump_default}"; then
+  echo "[render-start] starting embedded free-mail-pump"
+  start_background "free-mail-pump" env \
+    FREE_MAIL_PUMP_ENABLED=true \
+    FREE_MAIL_PUMP_INTERVAL_MS="${FREE_MAIL_PUMP_INTERVAL_MS:-900000}" \
+    FREE_MAIL_PUMP_DISCOVERY_INTERVAL_MS="${FREE_MAIL_PUMP_DISCOVERY_INTERVAL_MS:-3600000}" \
+    FREE_MAIL_PUMP_SEND_LIMIT="${FREE_MAIL_PUMP_SEND_LIMIT:-1}" \
+    FREE_MAIL_PUMP_APPROVE_LIMIT="${FREE_MAIL_PUMP_APPROVE_LIMIT:-5}" \
+    FREE_MAIL_PUMP_LEAD_SCOUT_LIMIT="${FREE_MAIL_PUMP_LEAD_SCOUT_LIMIT:-3}" \
+    FREE_MAIL_PUMP_PUBLIC_SEARCH_LIMIT="${FREE_MAIL_PUMP_PUBLIC_SEARCH_LIMIT:-3}" \
+    NODE_OPTIONS="${FREE_MAIL_PUMP_NODE_OPTIONS:---max-old-space-size=64}" \
+    pnpm --dir apps/api-gateway exec tsx scripts/free-mail-pump.ts
+else
+  echo "[render-start] embedded free-mail-pump disabled"
+fi
+
 auto_ops_default=false
 if [ "$memory_profile" != "small" ] && [ "$memory_profile" != "free" ]; then
   auto_ops_default=true
