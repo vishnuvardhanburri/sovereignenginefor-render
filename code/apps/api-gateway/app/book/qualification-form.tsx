@@ -67,13 +67,31 @@ const paymentReadinessOptions = [
   { value: 'pay_today', label: 'Ready to pay today' },
   { value: 'invoice_today', label: 'Needs invoice today' },
   { value: 'payment_link_today', label: 'Needs Infinity payment link today' },
+  { value: 'bank_transfer_today', label: 'Ready for GBP bank transfer today' },
   { value: 'procurement_review', label: 'Needs procurement/review' },
 ]
+
+type BankTransferDetails = {
+  currency: string
+  accountName: string
+  bankName: string
+  accountNumber: string
+  sortCode: string
+  accountType: string
+  beneficiaryAddress: string
+  paymentReference: string
+}
 
 type SubmitState =
   | { status: 'idle'; message?: string }
   | { status: 'submitting'; message?: string }
-  | { status: 'success'; message: string; calendarUrl: string; paymentUrl: string }
+  | {
+      status: 'success'
+      message: string
+      calendarUrl: string
+      paymentUrl: string
+      bankTransfer: BankTransferDetails | null
+    }
   | { status: 'error'; message: string }
 
 export function QualificationForm() {
@@ -129,6 +147,7 @@ export function QualificationForm() {
         message: result?.message || 'Qualification received. The operator has the call packet.',
         calendarUrl: result?.calendarUrl || calendarFallbackUrl,
         paymentUrl: result?.paymentUrl || paymentFallbackUrl,
+        bankTransfer: result?.bankTransfer || null,
       })
       form.reset()
     } catch (error) {
@@ -325,8 +344,8 @@ export function QualificationForm() {
         <div className="flex flex-col gap-1">
           <h3 className="text-sm font-semibold text-white">Infinity payment details</h3>
           <p className="text-sm leading-6 text-zinc-400">
-            These details go to the operator email so the invoice or payment link can be sent
-            without another back-and-forth.
+            These details go to the operator email so the Infinity client, invoice, payment link,
+            or bank transfer can be handled without another back-and-forth.
           </p>
         </div>
 
@@ -457,6 +476,48 @@ export function QualificationForm() {
               Open Infinity payment
               <ExternalLink className="size-4" />
             </a>
+          )}
+          {state.bankTransfer && (
+            <div className="mt-4 rounded-lg border border-white/10 bg-black/20 p-3">
+              <div className="text-sm font-semibold text-white">GBP bank transfer details</div>
+              <dl className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
+                <div>
+                  <dt className="text-zinc-400">Bank name</dt>
+                  <dd className="font-medium text-emerald-50">{state.bankTransfer.bankName}</dd>
+                </div>
+                <div>
+                  <dt className="text-zinc-400">Account name</dt>
+                  <dd className="font-medium text-emerald-50">
+                    {state.bankTransfer.accountName}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-zinc-400">Account number</dt>
+                  <dd className="font-medium text-emerald-50">
+                    {state.bankTransfer.accountNumber}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-zinc-400">Sort code</dt>
+                  <dd className="font-medium text-emerald-50">{state.bankTransfer.sortCode}</dd>
+                </div>
+                <div>
+                  <dt className="text-zinc-400">Currency</dt>
+                  <dd className="font-medium text-emerald-50">{state.bankTransfer.currency}</dd>
+                </div>
+                <div>
+                  <dt className="text-zinc-400">Reference</dt>
+                  <dd className="font-medium text-emerald-50">
+                    {state.bankTransfer.paymentReference}
+                  </dd>
+                </div>
+              </dl>
+              {state.bankTransfer.beneficiaryAddress && (
+                <p className="mt-3 text-sm leading-6 text-emerald-50">
+                  {state.bankTransfer.beneficiaryAddress}
+                </p>
+              )}
+            </div>
           )}
         </div>
       )}

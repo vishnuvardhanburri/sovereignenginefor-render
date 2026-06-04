@@ -99,6 +99,18 @@ Payment route: Infinity. If `INFINITY_PAYMENT_URL` is configured, the page retur
 qualification. Even without the link, the page collects all payment-ready invoice details and
 emails them to the operator.
 
+Infinity operator clients page: `https://dashboard.infinityapp.in/app/clients`
+
+Optional Render env vars for GBP bank-transfer details:
+
+- `INFINITY_GBP_BANK_NAME`
+- `INFINITY_GBP_ACCOUNT_NAME`
+- `INFINITY_GBP_ACCOUNT_NUMBER`
+- `INFINITY_GBP_SORT_CODE`
+- `INFINITY_GBP_ACCOUNT_TYPE`
+- `INFINITY_GBP_BENEFICIARY_ADDRESS`
+- `INFINITY_GBP_PAYMENT_REFERENCE`
+
 The system should not try to close payment automatically. Its job is to:
 
 - Find qualified buyers.

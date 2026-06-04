@@ -14,6 +14,8 @@ const SOVEREIGN_CALENDAR_URL =
   'https://cal.com/vishnuvardhanburri/30min'
 const INFINITY_PAYMENT_URL =
   process.env.INFINITY_PAYMENT_URL || process.env.NEXT_PUBLIC_INFINITY_PAYMENT_URL || ''
+const INFINITY_CLIENTS_URL =
+  process.env.INFINITY_CLIENTS_URL || 'https://dashboard.infinityapp.in/app/clients'
 
 const option = (values: readonly [string, ...string[]]) => z.enum(values)
 
@@ -48,6 +50,7 @@ const qualificationSchema = z.object({
     'pay_today',
     'invoice_today',
     'payment_link_today',
+    'bank_transfer_today',
     'procurement_review',
   ]),
   paymentNotes: z.string().trim().max(700).optional().default(''),
@@ -78,7 +81,19 @@ const paymentReadinessLabels: Record<QualificationInput['paymentReadiness'], str
   pay_today: 'Ready to pay today',
   invoice_today: 'Needs invoice today',
   payment_link_today: 'Needs Infinity payment link today',
+  bank_transfer_today: 'Ready for GBP bank transfer today',
   procurement_review: 'Needs procurement/review',
+}
+
+type BankTransferDetails = {
+  currency: string
+  accountName: string
+  bankName: string
+  accountNumber: string
+  sortCode: string
+  accountType: string
+  beneficiaryAddress: string
+  paymentReference: string
 }
 
 function requestIpHash(request: NextRequest): string | null {
@@ -130,6 +145,31 @@ function operatorNotificationFrom(): string {
   )
 }
 
+function infinityBankTransferDetails(): BankTransferDetails | null {
+  const accountName = String(process.env.INFINITY_GBP_ACCOUNT_NAME ?? '').trim()
+  const bankName = String(process.env.INFINITY_GBP_BANK_NAME ?? '').trim()
+  const accountNumber = String(process.env.INFINITY_GBP_ACCOUNT_NUMBER ?? '').trim()
+  const sortCode = String(process.env.INFINITY_GBP_SORT_CODE ?? '').trim()
+  const accountType = String(process.env.INFINITY_GBP_ACCOUNT_TYPE ?? 'Business Checking').trim()
+  const beneficiaryAddress = String(process.env.INFINITY_GBP_BENEFICIARY_ADDRESS ?? '').trim()
+  const paymentReference = String(
+    process.env.INFINITY_GBP_PAYMENT_REFERENCE ?? 'Use invoice number or buyer company name'
+  ).trim()
+
+  if (!accountName || !bankName || !accountNumber || !sortCode) return null
+
+  return {
+    currency: 'GBP',
+    accountName,
+    bankName,
+    accountNumber,
+    sortCode,
+    accountType,
+    beneficiaryAddress,
+    paymentReference,
+  }
+}
+
 function escapeHtml(value: string): string {
   return value
     .replace(/&/g, '&amp;')
@@ -140,6 +180,7 @@ function escapeHtml(value: string): string {
 }
 
 function qualificationMessage(input: QualificationInput): string {
+  const bankTransfer = infinityBankTransferDetails()
   return [
     'Sovereign Engine qualification submitted',
     `Name: ${input.fullName}`,
@@ -169,12 +210,26 @@ function qualificationMessage(input: QualificationInput): string {
     input.paymentNotes ? `Payment notes: ${input.paymentNotes}` : null,
     `Calendar: ${SOVEREIGN_CALENDAR_URL}`,
     INFINITY_PAYMENT_URL ? `Infinity payment: ${INFINITY_PAYMENT_URL}` : null,
+    INFINITY_CLIENTS_URL ? `Infinity clients dashboard: ${INFINITY_CLIENTS_URL}` : null,
+    bankTransfer ? '' : null,
+    bankTransfer ? 'Infinity GBP bank transfer details' : null,
+    bankTransfer ? `Currency: ${bankTransfer.currency}` : null,
+    bankTransfer ? `Bank name: ${bankTransfer.bankName}` : null,
+    bankTransfer ? `Account name: ${bankTransfer.accountName}` : null,
+    bankTransfer ? `Account number: ${bankTransfer.accountNumber}` : null,
+    bankTransfer ? `Sort code: ${bankTransfer.sortCode}` : null,
+    bankTransfer?.accountType ? `Account type: ${bankTransfer.accountType}` : null,
+    bankTransfer?.beneficiaryAddress
+      ? `Beneficiary address: ${bankTransfer.beneficiaryAddress}`
+      : null,
+    bankTransfer ? `Payment reference: ${bankTransfer.paymentReference}` : null,
   ]
     .filter(Boolean)
     .join('\n')
 }
 
 function qualificationEmailHtml(input: QualificationInput): string {
+  const bankTransfer = infinityBankTransferDetails()
   const rows = [
     ['Name', input.fullName],
     ['Email', input.workEmail],
@@ -201,6 +256,15 @@ function qualificationEmailHtml(input: QualificationInput): string {
     ['Payment notes', input.paymentNotes],
     ['Calendar', SOVEREIGN_CALENDAR_URL],
     ['Infinity payment', INFINITY_PAYMENT_URL],
+    ['Infinity clients dashboard', INFINITY_CLIENTS_URL],
+    ['GBP currency', bankTransfer?.currency ?? ''],
+    ['GBP bank name', bankTransfer?.bankName ?? ''],
+    ['GBP account name', bankTransfer?.accountName ?? ''],
+    ['GBP account number', bankTransfer?.accountNumber ?? ''],
+    ['GBP sort code', bankTransfer?.sortCode ?? ''],
+    ['GBP account type', bankTransfer?.accountType ?? ''],
+    ['GBP beneficiary address', bankTransfer?.beneficiaryAddress ?? ''],
+    ['GBP payment reference', bankTransfer?.paymentReference ?? ''],
   ].filter(([, value]) => String(value ?? '').trim())
 
   const bodyRows = rows
@@ -231,6 +295,7 @@ function qualificationEmailHtml(input: QualificationInput): string {
               ? `<a href="${escapeHtml(INFINITY_PAYMENT_URL)}" style="display:inline-block;margin-left:8px;background:#2563eb;color:#ffffff;text-decoration:none;border-radius:8px;padding:11px 14px;font-weight:700;font-size:14px;">Open Infinity payment</a>`
               : ''
           }
+          <a href="${escapeHtml(INFINITY_CLIENTS_URL)}" style="display:inline-block;margin-left:8px;background:#0f766e;color:#ffffff;text-decoration:none;border-radius:8px;padding:11px 14px;font-weight:700;font-size:14px;">Open Infinity client</a>
         </div>
       </div>
     </div>
@@ -317,6 +382,7 @@ export async function POST(request: NextRequest) {
     }
 
     const clientId = appEnv.defaultClientId()
+    const bankTransfer = infinityBankTransferDetails()
     const event = await appendOperationalEvent({
       clientId,
       eventType: 'qualification_submitted',
@@ -351,6 +417,8 @@ export async function POST(request: NextRequest) {
         paymentReadinessLabel: paymentReadinessLabels[input.paymentReadiness],
         paymentNotes: input.paymentNotes,
         infinityPaymentUrl: INFINITY_PAYMENT_URL,
+        infinityClientsUrl: INFINITY_CLIENTS_URL,
+        bankTransfer,
         source: input.source,
         contactId: input.contactId,
         campaignId: input.campaignId,
@@ -369,6 +437,7 @@ export async function POST(request: NextRequest) {
       id: event.id,
       calendarUrl: SOVEREIGN_CALENDAR_URL,
       paymentUrl: INFINITY_PAYMENT_URL,
+      bankTransfer,
       message: 'Qualification received. The operator has the call packet.',
     })
   } catch (error) {

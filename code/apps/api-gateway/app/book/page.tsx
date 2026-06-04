@@ -13,6 +13,7 @@ const callPacket = [
   'Domains, mailboxes, providers, and outbound volume',
   'Timeline, decision owner, and required proof',
   'Billing entity, tax details, signer, and Infinity payment readiness',
+  'Infinity client setup data for the operator',
   '30-minute Cal.com slot after details are submitted',
 ]
 
