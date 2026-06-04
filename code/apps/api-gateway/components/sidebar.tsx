@@ -23,6 +23,7 @@ import {
   Upload,
   PackageCheck,
   ClipboardList,
+  Linkedin,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { createPrefetchUtils } from '@/lib/prefetch'
@@ -46,6 +47,7 @@ const navItems: NavItem[] = [
   { href: '/raas', label: 'RaaS Console', icon: Shield },
   { href: '/demo-import', label: 'Demo Import', icon: Upload },
   { href: '/contacts', label: 'Prospects', icon: Users, prefetch: 'prefetchContacts' },
+  { href: '/linkedin', label: 'LinkedIn DM Desk', icon: Linkedin },
   { href: '/sequences', label: 'Message Sequences', icon: ListOrdered, prefetch: 'prefetchSequences' },
   { href: '/analytics', label: 'Performance', icon: LineChart, prefetch: 'prefetchAnalytics' },
   { href: '/inbox', label: 'Conversations', icon: MessageCircle, prefetch: 'prefetchInbox' },
