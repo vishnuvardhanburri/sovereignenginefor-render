@@ -144,6 +144,8 @@ services:
         value: "true"
       - key: DAILY_OUTBOUND_RUN_LEAD_SCOUT
         value: "true"
+      - key: DAILY_OUTBOUND_SKIP_LEAD_EVIDENCE_VERIFICATION
+        value: "true"
       - key: PUBLIC_SEARCH_SOURCE_ENABLED
         value: "true"
       - key: DAILY_OUTBOUND_RUN_PUBLIC_SEARCH
@@ -437,6 +439,8 @@ services:
       - key: LEAD_SCOUT_ENABLED
         value: "true"
       - key: DAILY_OUTBOUND_RUN_LEAD_SCOUT
+        value: "true"
+      - key: DAILY_OUTBOUND_SKIP_LEAD_EVIDENCE_VERIFICATION
         value: "true"
       - key: PUBLIC_SEARCH_SOURCE_ENABLED
         value: "true"

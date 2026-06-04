@@ -101,6 +101,7 @@ type DiscoveryStageInput = {
   evidenceDeadlineMs?: string | null
   evidenceMaxPagesPerLead?: string | null
   evidenceRequestTimeoutMs?: string | null
+  skipEvidenceVerification?: boolean
 }
 
 const DIRECT_DISCOVERY_INDUSTRIES = ['ai', 'cybersecurity', 'devtools', 'saas']
@@ -129,6 +130,10 @@ function envBool(value: string | undefined, fallback: boolean): boolean {
 
 function requireExactPublicEmailEvidence(): boolean {
   return envBool(process.env.DAILY_OUTBOUND_REQUIRE_EXACT_PUBLIC_EMAIL_EVIDENCE, false)
+}
+
+function skipLeadEvidenceVerification(raw?: string | null): boolean {
+  return envBool(raw || process.env.DAILY_OUTBOUND_SKIP_LEAD_EVIDENCE_VERIFICATION, false)
 }
 
 function isSmallMemoryRuntime(): boolean {
@@ -603,16 +608,20 @@ async function runLeadScoutStage(input: DiscoveryStageInput): Promise<StageResul
       limit: input.limit,
       offset: leadScoutOffset(input.limit),
     })
-    const verifiedLeads = await verifyOpenLeadEvidenceTimeboxed(result.leads, {
-      ...resolveLeadScoutEvidenceOptions({
-        deadlineMs: input.evidenceDeadlineMs,
-        maxPagesPerLead: input.evidenceMaxPagesPerLead,
-        requestTimeoutMs: input.evidenceRequestTimeoutMs,
-      }),
-    })
+    const skippedEvidenceVerification = Boolean(input.skipEvidenceVerification)
+    const verifiedLeads = skippedEvidenceVerification
+      ? result.leads
+      : await verifyOpenLeadEvidenceTimeboxed(result.leads, {
+          ...resolveLeadScoutEvidenceOptions({
+            deadlineMs: input.evidenceDeadlineMs,
+            maxPagesPerLead: input.evidenceMaxPagesPerLead,
+            requestTimeoutMs: input.evidenceRequestTimeoutMs,
+          }),
+        })
     const importableLeads = requireExactPublicEmailEvidence()
       ? verifiedLeads.filter((lead) => lead.autoApprovalEligible)
       : verifiedLeads
+    const evidenceBacked = verifiedLeads.filter((lead) => lead.autoApprovalEligible).length
     const contacts = input.dryRun
       ? []
       : await importContacts(input.clientId, {
@@ -627,7 +636,7 @@ async function runLeadScoutStage(input: DiscoveryStageInput): Promise<StageResul
         type: 'lead_scout',
         imported: contacts.length,
         scanned: result.leads.length,
-        evidenceBacked: importableLeads.length,
+        evidenceBacked,
         blockedUnverified: requireExactPublicEmailEvidence() ? verifiedLeads.length - importableLeads.length : 0,
         industry: result.industry,
         persona: result.persona,
@@ -642,8 +651,9 @@ async function runLeadScoutStage(input: DiscoveryStageInput): Promise<StageResul
         dryRun: input.dryRun,
         imported: contacts.length,
         scanned: result.leads.length,
-        evidenceBacked: importableLeads.length,
+        evidenceBacked,
         blockedUnverified: requireExactPublicEmailEvidence() ? verifiedLeads.length - importableLeads.length : 0,
+        skippedEvidenceVerification,
         industry: result.industry,
         persona: result.persona,
         region: result.region,
@@ -698,16 +708,20 @@ async function runPublicSearchStage(input: DiscoveryStageInput & { queries?: str
       timeoutMs: numberFromValue(process.env.PUBLIC_SEARCH_TIMEOUT_MS, 55_000),
       queries: input.queries,
     })
-    const verifiedLeads = await verifyOpenLeadEvidenceTimeboxed(result.leads, {
-      ...resolveLeadScoutEvidenceOptions({
-        deadlineMs: input.evidenceDeadlineMs,
-        maxPagesPerLead: input.evidenceMaxPagesPerLead,
-        requestTimeoutMs: input.evidenceRequestTimeoutMs,
-      }),
-    })
+    const skippedEvidenceVerification = Boolean(input.skipEvidenceVerification)
+    const verifiedLeads = skippedEvidenceVerification
+      ? result.leads
+      : await verifyOpenLeadEvidenceTimeboxed(result.leads, {
+          ...resolveLeadScoutEvidenceOptions({
+            deadlineMs: input.evidenceDeadlineMs,
+            maxPagesPerLead: input.evidenceMaxPagesPerLead,
+            requestTimeoutMs: input.evidenceRequestTimeoutMs,
+          }),
+        })
     const importableLeads = requireExactPublicEmailEvidence()
       ? verifiedLeads.filter((lead) => lead.autoApprovalEligible)
       : verifiedLeads
+    const evidenceBacked = verifiedLeads.filter((lead) => lead.autoApprovalEligible).length
     const contacts = input.dryRun
       ? []
       : await importContacts(input.clientId, {
@@ -722,7 +736,7 @@ async function runPublicSearchStage(input: DiscoveryStageInput & { queries?: str
         type: 'lead_scout',
         imported: contacts.length,
         scanned: result.scannedResults,
-        evidenceBacked: importableLeads.length,
+        evidenceBacked,
         blockedUnverified: requireExactPublicEmailEvidence() ? verifiedLeads.length - importableLeads.length : 0,
         industry: result.industry,
         persona: result.persona,
@@ -740,8 +754,9 @@ async function runPublicSearchStage(input: DiscoveryStageInput & { queries?: str
         scanned: result.scannedResults,
         prepared: result.leads.length,
         rejected: result.rejected,
-        evidenceBacked: importableLeads.length,
+        evidenceBacked,
         blockedUnverified: requireExactPublicEmailEvidence() ? verifiedLeads.length - importableLeads.length : 0,
+        skippedEvidenceVerification,
         queriesRun: result.queriesRun,
         errorsCount: result.errors.length,
         errorCounts: result.errors.reduce<Record<string, number>>((acc, error) => {
@@ -2390,6 +2405,9 @@ export async function GET(request: NextRequest) {
       2_500,
       3_000
     )
+    const skipEvidenceVerification = skipLeadEvidenceVerification(
+      params.get('skipLeadEvidence') || params.get('skipEvidence')
+    )
     const runHunterSearch = envBool(
       params.get('hunterSearch') || process.env.DAILY_OUTBOUND_RUN_HUNTER,
       false
@@ -2534,6 +2552,7 @@ export async function GET(request: NextRequest) {
           evidenceDeadlineMs,
           evidenceMaxPagesPerLead: evidenceMaxPages,
           evidenceRequestTimeoutMs,
+          skipEvidenceVerification,
         })
       )
     } else if (!queuedBeforeResearch) {
@@ -2557,6 +2576,7 @@ export async function GET(request: NextRequest) {
           evidenceDeadlineMs,
           evidenceMaxPagesPerLead: evidenceMaxPages,
           evidenceRequestTimeoutMs,
+          skipEvidenceVerification,
         })
       )
     } else if (!queuedBeforeResearch) {

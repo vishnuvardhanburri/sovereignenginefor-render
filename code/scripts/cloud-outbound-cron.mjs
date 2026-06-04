@@ -45,6 +45,9 @@ function buildCronUrl() {
   // Lead sources
   if (isEnabled(process.env.LEAD_SCOUT_ENABLED)) {
     url.searchParams.set('leadScout', 'true')
+    if (isEnabled(process.env.DAILY_OUTBOUND_SKIP_LEAD_EVIDENCE_VERIFICATION)) {
+      url.searchParams.set('skipLeadEvidence', 'true')
+    }
     if (process.env.LEAD_SCOUT_DAILY_LIMIT) {
       url.searchParams.set('leadScoutLimit', process.env.LEAD_SCOUT_DAILY_LIMIT)
     }
