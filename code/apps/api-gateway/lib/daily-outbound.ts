@@ -102,7 +102,7 @@ function clampInteger(value: unknown, fallback: number, min: number, max: number
 
 function isSmallMemoryRuntime(env: EnvLike): boolean {
   const profile = String(env.WEB_MEMORY_PROFILE ?? '').trim().toLowerCase()
-  if (profile) return profile === 'small'
+  if (profile) return profile === 'small' || profile === 'free'
   return resolveDailyBoolean(env.RENDER, false)
 }
 
@@ -116,22 +116,28 @@ function memoryBudget(input: { env: EnvLike }) {
     }
   }
 
+  const profile = String(input.env.WEB_MEMORY_PROFILE ?? '').trim().toLowerCase()
+  const isFreeProfile = profile === 'free' || resolveDailyBoolean(input.env.WEB_FREE_TIER_SAFE_MODE, false)
+  const defaultMapsMax = isFreeProfile ? 5 : SMALL_MEMORY_MAX_MAPS_LIMIT
+  const defaultPublicSearchMax = isFreeProfile ? 10 : SMALL_MEMORY_MAX_PUBLIC_SEARCH_LIMIT
+  const defaultLeadScoutMax = isFreeProfile ? 15 : SMALL_MEMORY_MAX_LEAD_SCOUT_LIMIT
+
   return {
     mapsMax: clampInteger(
       input.env.DAILY_OUTBOUND_SMALL_MAX_MAPS_LIMIT,
-      SMALL_MEMORY_MAX_MAPS_LIMIT,
+      defaultMapsMax,
       0,
       MAX_MAPS_LIMIT
     ),
     publicSearchMax: clampInteger(
       input.env.DAILY_OUTBOUND_SMALL_MAX_PUBLIC_SEARCH_LIMIT,
-      SMALL_MEMORY_MAX_PUBLIC_SEARCH_LIMIT,
+      defaultPublicSearchMax,
       0,
       MAX_PUBLIC_SEARCH_LIMIT
     ),
     leadScoutMax: clampInteger(
       input.env.DAILY_OUTBOUND_SMALL_MAX_LEAD_SCOUT_LIMIT,
-      SMALL_MEMORY_MAX_LEAD_SCOUT_LIMIT,
+      defaultLeadScoutMax,
       1,
       MAX_LEAD_SCOUT_LIMIT
     ),
@@ -552,7 +558,7 @@ export function buildDailyOutboundPlan(input: PlanInput): DailyOutboundPlan {
   }
   if (budget.constrained) {
     guardrails.push(
-      'Small-memory deployment batches discovery work so research cannot crash the sender process'
+      'Small/free-memory deployment batches discovery work so research cannot crash the web process'
     )
   }
   const approveLimit = resolveApproveLimit({

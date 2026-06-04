@@ -50,16 +50,33 @@ start_background() {
 }
 
 echo "[render-start] booting Sovereign Engine"
-echo "[render-start] flags WEB_EMBED_SENDER_WORKER=${WEB_EMBED_SENDER_WORKER:-unset} WEB_EMBED_REPUTATION_WORKER=${WEB_EMBED_REPUTATION_WORKER:-unset} WEB_EMBED_OUTBOUND_CYCLE_WORKER=${WEB_EMBED_OUTBOUND_CYCLE_WORKER:-true} WEB_EMBED_AUTONOMOUS_OPS_WORKER=${WEB_EMBED_AUTONOMOUS_OPS_WORKER:-auto} MOCK_SMTP=${MOCK_SMTP:-unset} EMAIL_PROVIDER=${EMAIL_PROVIDER:-smtp}"
+echo "[render-start] flags WEB_EMBED_SENDER_WORKER=${WEB_EMBED_SENDER_WORKER:-unset} WEB_EMBED_REPUTATION_WORKER=${WEB_EMBED_REPUTATION_WORKER:-unset} WEB_EMBED_OUTBOUND_CYCLE_WORKER=${WEB_EMBED_OUTBOUND_CYCLE_WORKER:-auto} WEB_EMBED_AUTONOMOUS_OPS_WORKER=${WEB_EMBED_AUTONOMOUS_OPS_WORKER:-auto} MOCK_SMTP=${MOCK_SMTP:-unset} EMAIL_PROVIDER=${EMAIL_PROVIDER:-smtp}"
 echo "[render-start] secrets DATABASE_URL=$(mask_presence "${DATABASE_URL:-}") REDIS_URL=$(mask_presence "${REDIS_URL:-}") SMTP_HOST=$(mask_presence "${SMTP_HOST:-}") SMTP_ACCOUNTS=$(mask_presence "${SMTP_ACCOUNTS:-}")"
 memory_profile="$(printf '%s' "${WEB_MEMORY_PROFILE:-small}" | tr '[:upper:]' '[:lower:]' | tr -d '"'\'' ')"
 if [ -z "$memory_profile" ]; then
   memory_profile="small"
 fi
 export WEB_MEMORY_PROFILE="$memory_profile"
+free_tier_safe_default=false
+case "$memory_profile" in
+  free|small) free_tier_safe_default=true ;;
+esac
+free_tier_safe="$free_tier_safe_default"
+if enabled_flag "${WEB_FREE_TIER_SAFE_MODE:-}"; then
+  free_tier_safe=true
+elif [ -n "${WEB_FREE_TIER_SAFE_MODE:-}" ]; then
+  free_tier_safe=false
+fi
+if [ "$free_tier_safe" = "true" ]; then
+  export NODE_OPTIONS="${NODE_OPTIONS:---max-old-space-size=256}"
+  export PG_POOL_MAX="${PG_POOL_MAX:-2}"
+  export DAILY_OUTBOUND_SMALL_MAX_MAPS_LIMIT="${DAILY_OUTBOUND_SMALL_MAX_MAPS_LIMIT:-5}"
+  export DAILY_OUTBOUND_SMALL_MAX_PUBLIC_SEARCH_LIMIT="${DAILY_OUTBOUND_SMALL_MAX_PUBLIC_SEARCH_LIMIT:-10}"
+  export DAILY_OUTBOUND_SMALL_MAX_LEAD_SCOUT_LIMIT="${DAILY_OUTBOUND_SMALL_MAX_LEAD_SCOUT_LIMIT:-15}"
+fi
 effective_imap_host="${IMAP_HOST:-${SMTP_HOST:-}}"
 effective_imap_accounts="${IMAP_ACCOUNTS:-${SMTP_ACCOUNTS:-}}"
-echo "[render-start] memory_profile=${memory_profile}"
+echo "[render-start] memory_profile=${memory_profile} free_tier_safe=${free_tier_safe} NODE_OPTIONS=${NODE_OPTIONS:-unset} PG_POOL_MAX=${PG_POOL_MAX:-unset}"
 echo "[render-start] inbound env WEB_EMBED_INBOUND_WORKER=${WEB_EMBED_INBOUND_WORKER:-false} IMAP_HOST=$(mask_presence "${IMAP_HOST:-}") IMAP_ACCOUNTS=$(mask_presence "${IMAP_ACCOUNTS:-}") SMTP_FALLBACK_ACCOUNTS=$(mask_presence "${SMTP_ACCOUNTS:-}") EFFECTIVE_IMAP_HOST=$(mask_presence "$effective_imap_host") EFFECTIVE_IMAP_ACCOUNTS=$(mask_presence "$effective_imap_accounts") IMAP_PORT=${IMAP_PORT:-993} IMAP_SECURE=${IMAP_SECURE:-true}"
 
 node scripts/sync-env.mjs
@@ -85,7 +102,7 @@ if enabled_flag "${WEB_EMBED_SENDER_WORKER:-}"; then
   sender_concurrency_default=1
   sender_concurrency_max_default=1
   worker_pg_pool_default=1
-  if [ "$memory_profile" != "small" ]; then
+  if [ "$memory_profile" != "small" ] && [ "$memory_profile" != "free" ]; then
     sender_concurrency_default=4
     sender_concurrency_max_default=4
     worker_pg_pool_default=2
@@ -102,7 +119,7 @@ if enabled_flag "${WEB_EMBED_SENDER_WORKER:-}"; then
       WORKER_ID="$sender_worker_id" \
       SENDER_WORKER_CONCURRENCY="$sender_concurrency" \
       PG_POOL_MAX="$worker_pg_pool_max" \
-      NODE_OPTIONS="${SENDER_WORKER_NODE_OPTIONS:---max-old-space-size=96}" \
+      NODE_OPTIONS="${SENDER_WORKER_NODE_OPTIONS:---max-old-space-size=64}" \
       pnpm -C workers/sender-worker start
     i=$((i + 1))
   done
@@ -110,19 +127,25 @@ else
   echo "[render-start] embedded sender-worker disabled"
 fi
 
-if enabled_flag "${WEB_EMBED_OUTBOUND_CYCLE_WORKER:-true}"; then
+outbound_cycle_default=true
+if [ "$free_tier_safe" = "true" ]; then
+  outbound_cycle_default=false
+fi
+if [ "$free_tier_safe" = "true" ] && enabled_flag "${WEB_EMBED_OUTBOUND_CYCLE_WORKER:-}" && ! enabled_flag "${WEB_EMBED_OUTBOUND_CYCLE_WORKER_FORCE:-false}"; then
+  echo "[render-start] embedded outbound-cycle-worker skipped by free-tier safe mode (set WEB_EMBED_OUTBOUND_CYCLE_WORKER_FORCE=true to override)"
+elif enabled_flag "${WEB_EMBED_OUTBOUND_CYCLE_WORKER:-$outbound_cycle_default}"; then
   echo "[render-start] starting embedded outbound-cycle-worker"
   start_background "outbound-cycle-worker" env \
     OUTBOUND_CYCLE_TIMEOUT_MS="${OUTBOUND_CYCLE_TIMEOUT_MS:-45000}" \
     OUTBOUND_CYCLE_WORKER_CONCURRENCY="${OUTBOUND_CYCLE_WORKER_CONCURRENCY:-1}" \
-    NODE_OPTIONS="${OUTBOUND_CYCLE_NODE_OPTIONS:---max-old-space-size=96}" \
+    NODE_OPTIONS="${OUTBOUND_CYCLE_NODE_OPTIONS:---max-old-space-size=64}" \
     pnpm --dir apps/api-gateway exec tsx scripts/outbound-cycle-worker.ts
 else
   echo "[render-start] embedded outbound-cycle-worker disabled"
 fi
 
 auto_ops_default=false
-if [ "$memory_profile" != "small" ]; then
+if [ "$memory_profile" != "small" ] && [ "$memory_profile" != "free" ]; then
   auto_ops_default=true
 fi
 if enabled_flag "${WEB_EMBED_AUTONOMOUS_OPS_WORKER:-$auto_ops_default}"; then

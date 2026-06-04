@@ -138,7 +138,7 @@ function skipLeadEvidenceVerification(raw?: string | null): boolean {
 
 function isSmallMemoryRuntime(): boolean {
   const profile = String(process.env.WEB_MEMORY_PROFILE ?? '').trim().toLowerCase()
-  if (profile) return profile === 'small'
+  if (profile) return profile === 'small' || profile === 'free'
   return envBool(process.env.RENDER, false)
 }
 

@@ -34,6 +34,12 @@ services:
         value: sovereign-engine-api.onrender.com
       - key: NODE_ENV
         value: production
+      - key: WEB_MEMORY_PROFILE
+        value: free
+      - key: WEB_FREE_TIER_SAFE_MODE
+        value: "true"
+      - key: NODE_OPTIONS
+        value: "--max-old-space-size=256"
       - key: LOG_FORMAT
         value: json
       - key: MOCK_SMTP
@@ -133,11 +139,17 @@ services:
       - key: GLOBAL_SHAPER_BURST
         value: "5"
       - key: SENDER_WORKER_CONCURRENCY
-        value: "3"
+        value: "1"
       - key: LEGACY_LOOP_BATCH_SIZE
-        value: "3"
+        value: "1"
       - key: WEB_EMBED_SENDER_WORKER
         value: "true"
+      - key: WEB_EMBED_OUTBOUND_CYCLE_WORKER
+        value: "false"
+      - key: WEB_EMBED_AUTONOMOUS_OPS_WORKER
+        value: "false"
+      - key: WEB_EMBED_INBOUND_WORKER
+        value: "false"
 
       # ── Lead scout ────────────────────────────────────────────────────────────
       - key: LEAD_SCOUT_ENABLED
@@ -147,13 +159,17 @@ services:
       - key: DAILY_OUTBOUND_SKIP_LEAD_EVIDENCE_VERIFICATION
         value: "true"
       - key: LEAD_SCOUT_DAILY_LIMIT
-        value: "40"
+        value: "15"
+      - key: DAILY_OUTBOUND_SMALL_MAX_LEAD_SCOUT_LIMIT
+        value: "15"
       - key: PUBLIC_SEARCH_SOURCE_ENABLED
         value: "true"
       - key: DAILY_OUTBOUND_RUN_PUBLIC_SEARCH
         value: "true"
       - key: PUBLIC_SEARCH_DAILY_LIMIT
-        value: "25"
+        value: "10"
+      - key: DAILY_OUTBOUND_SMALL_MAX_PUBLIC_SEARCH_LIMIT
+        value: "10"
       - key: PUBLIC_SEARCH_TIMEOUT_MS
         value: "12000"
       - key: LEAD_SCOUT_INDUSTRIES
@@ -167,7 +183,9 @@ services:
       - key: DAILY_OUTBOUND_RUN_MAPS
         value: "true"
       - key: GOOGLE_MAPS_DAILY_LIMIT
-        value: "10"
+        value: "5"
+      - key: DAILY_OUTBOUND_SMALL_MAX_MAPS_LIMIT
+        value: "5"
       - key: GOOGLE_MAPS_SOURCE_ENABLED
         value: "true"
       - key: APIFY_API_TOKEN
