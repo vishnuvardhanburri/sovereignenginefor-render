@@ -23,7 +23,17 @@ const NEGATIVE = ['unsubscribe', 'remove me', 'not interested', 'no thanks', 'st
 const BOUNCE = ['undelivered', 'delivery status notification', 'mail delivery failed', 'recipient address rejected', 'does not exist']
 const AUTO_REPLY = ['out of office', 'automatic reply', 'auto-reply', 'vacation', 'away from office']
 const PARTNERSHIP = ['partner', 'partnership', 'reseller', 'white label', 'white-label', 'agency']
-const LICENSING = ['license', 'licensing', 'commercial rights', 'deployment rights', '$25', '$75', '$100', 'pricing']
+const LICENSING = [
+  'license',
+  'licensing',
+  'commercial rights',
+  'deployment rights',
+  '£40',
+  '£160',
+  '40k',
+  '160k',
+  'pricing',
+]
 
 function includesAny(text: string, terms: string[]): string[] {
   return terms.filter((term) => text.includes(term))
@@ -73,7 +83,7 @@ export function classifyReplyDeterministically(input: {
       classification: 'licensing_interest',
       sentiment: 'positive',
       opportunityScore: 92,
-      recommendedAction: 'route_to_founder_and_prepare_license_scope',
+      recommendedAction: 'route_to_founder_book_call_and_collect_license_scope_details',
       evidence: licensing,
     }
   }
@@ -84,7 +94,7 @@ export function classifyReplyDeterministically(input: {
       classification: 'partnership_intent',
       sentiment: 'positive',
       opportunityScore: 84,
-      recommendedAction: 'route_to_founder_and_offer_white_label_walkthrough',
+      recommendedAction: 'route_to_founder_book_call_and_collect_white_label_details',
       evidence: partnership,
     }
   }
@@ -95,7 +105,7 @@ export function classifyReplyDeterministically(input: {
       classification: positive.includes('meeting') || positive.includes('call') || positive.includes('book') ? 'meeting_intent' : 'interested',
       sentiment: 'positive',
       opportunityScore: 72,
-      recommendedAction: 'reply_with_short_context_and_booking_link',
+      recommendedAction: 'reply_with_booking_link_and_collect_pre_call_details',
       evidence: positive,
     }
   }

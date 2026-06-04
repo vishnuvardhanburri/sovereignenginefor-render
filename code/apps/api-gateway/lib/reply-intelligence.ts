@@ -5,6 +5,7 @@
  */
 
 import { query } from '@/lib/db'
+import { sovereignBookingUrl } from '@/lib/outbound-copy'
 
 export interface ReplyAnalysis {
   replyId: string
@@ -359,8 +360,13 @@ class ReplyIntelligenceEngine {
         return {
           type: 'send_reply',
           priority: 'high',
-          reason: 'Contact showed interest - engage immediately',
-          suggestedReply: 'Thank you for your interest! I\'d love to schedule a call to discuss this further.'
+          reason: 'Contact showed interest - book walkthrough and collect pre-call details',
+          suggestedReply: `Thanks for the interest. Best next step is a short walkthrough: ${sovereignBookingUrl()}
+
+Before the call, please send:
+- use case: internal operations or client-facing/white-label
+- current setup: domains/mailboxes/providers and approximate monthly outbound volume
+- timeline and decision owner`
         }
 
       case 'not_interested':
@@ -389,8 +395,13 @@ class ReplyIntelligenceEngine {
         return {
           type: 'send_reply',
           priority: 'high',
-          reason: 'Contact asked question - provide helpful response',
-          suggestedReply: 'Thank you for your question. I\'d be happy to provide more details.'
+          reason: 'Contact asked question - answer on call and collect qualification details',
+          suggestedReply: `Happy to cover that. The fastest path is a short walkthrough: ${sovereignBookingUrl()}
+
+Before the call, please send:
+- use case: internal operations or client-facing/white-label
+- current setup: domains/mailboxes/providers and approximate monthly outbound volume
+- timeline and decision owner`
         }
 
       case 'out_of_office':

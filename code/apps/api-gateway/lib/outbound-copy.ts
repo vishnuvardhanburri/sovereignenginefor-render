@@ -73,7 +73,14 @@ export function sovereignBookingUrl(): string {
 export const SOVEREIGN_BOOKING_URL = SOVEREIGN_DEFAULT_BOOKING_URL
 
 export function sovereignBookingCtaText(): string {
-  return `If useful, book a short walkthrough here: ${sovereignBookingUrl()}`
+  return [
+    `If useful, book a short walkthrough here: ${sovereignBookingUrl()}`,
+    '',
+    'Before the call, please share:',
+    '* Use case: internal operations or client-facing/white-label',
+    '* Current setup: domains/mailboxes/providers and approximate monthly outbound volume',
+    '* Timeline and decision owner',
+  ].join('\n')
 }
 
 export function withSovereignBookingCta(body: string): string {
@@ -948,7 +955,7 @@ export function renderSovereignHtmlEmail(text: string): string {
     .map((block) => {
       if (block.includes(SOVEREIGN_BOOKING_URL) || block.includes(bookingUrl)) {
         const safeBookingUrl = escapeHtml(bookingUrl)
-        return `<p style="margin:20px 0 18px 0;"><a href="${safeBookingUrl}" style="display:inline-block;background:#111827;color:#ffffff;text-decoration:none;border-radius:8px;padding:10px 14px;font-weight:700;font-size:14px;">View walkthrough page</a></p><p style="margin:0 0 16px 0;color:#6b7280;font-size:12px;">Or open: <a href="${safeBookingUrl}" style="color:#2563eb;">${safeBookingUrl}</a></p>`
+        return `<p style="margin:20px 0 18px 0;"><a href="${safeBookingUrl}" style="display:inline-block;background:#111827;color:#ffffff;text-decoration:none;border-radius:8px;padding:10px 14px;font-weight:700;font-size:14px;">Book walkthrough</a></p><p style="margin:0 0 16px 0;color:#6b7280;font-size:12px;">Or open: <a href="${safeBookingUrl}" style="color:#2563eb;">${safeBookingUrl}</a></p>`
       }
 
       return renderTextBlock(block)

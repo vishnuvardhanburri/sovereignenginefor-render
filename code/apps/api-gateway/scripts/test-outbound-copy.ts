@@ -318,10 +318,22 @@ async function main() {
     physicalAddress: 'Xavira Tech Labs, India',
     useOpenRouter: false,
   })
-  assert(rendered.html.includes('View walkthrough page'), 'built copy should include soft HTML CTA')
+  assert(rendered.html.includes('Book walkthrough'), 'built copy should include booking CTA')
   assert(
     /brief conversation|short walkthrough|walkthrough page/.test(rendered.text),
     'built copy should use a low-friction conversation ask'
+  )
+  assert(
+    rendered.text.includes('Use case: internal operations or client-facing/white-label'),
+    'built copy should collect pre-call use case'
+  )
+  assert(
+    rendered.text.includes('Current setup: domains/mailboxes/providers'),
+    'built copy should collect current setup details'
+  )
+  assert(
+    rendered.text.includes('Timeline and decision owner'),
+    'built copy should collect timeline and decision owner'
   )
 
   console.log('outbound copy tests passed')

@@ -89,6 +89,24 @@ I am looking for one serious buyer conversation today.
 If you run outbound internally or serve clients around growth, RevOps, lead generation, deliverability, or AI automation, would a 10-minute walkthrough today be useful?
 ```
 
+## System Action
+
+The system should not try to close payment automatically. Its job is to:
+
+- Find qualified buyers.
+- Send infrastructure-first outreach.
+- Push the buyer to book a walkthrough.
+- Collect pre-call details before the call.
+- Stop follow-ups when the buyer replies.
+- Notify the operator so Vishnu can close manually.
+
+Required pre-call details:
+
+- Use case: internal operations or client-facing/white-label.
+- Current setup: domains, mailboxes, providers, and approximate monthly outbound volume.
+- Timeline and decision owner.
+- Commercial path: £40,000 internal, £160,000 white-label, or £200K+ strategic/acquisition.
+
 ## Reply Handling
 
 Interested:
