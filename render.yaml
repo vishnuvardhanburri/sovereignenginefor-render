@@ -14,7 +14,7 @@ services:
     plan: starter
     dockerContext: ./code
     dockerfilePath: ./code/Dockerfile
-    dockerCommand: sh -lc "node scripts/sync-env.mjs && pnpm db:init && if [ -n \"$BOOTSTRAP_ADMIN_EMAIL\" ] && [ -n \"$BOOTSTRAP_ADMIN_PASSWORD\" ]; then pnpm user:create \"$BOOTSTRAP_ADMIN_EMAIL\" \"$BOOTSTRAP_ADMIN_PASSWORD\"; fi && pnpm --dir apps/api-gateway exec tsx scripts/bootstrap-sending-domain.ts && pnpm -C apps/api-gateway start -H 0.0.0.0 -p ${PORT:-3000}"
+    dockerCommand: sh scripts/render-start.sh
     healthCheckPath: /api/health
     autoDeployTrigger: commit
     maxShutdownDelaySeconds: 120
@@ -57,11 +57,11 @@ services:
       - key: BOOTSTRAP_SENDING_EMAILS
         value: hello@vishnulabs.com,hello@vishnuvardhanburri.in
       - key: BOOTSTRAP_MARK_DNS_VALID
-        value: "false"
+        value: "true"
       - key: BOOTSTRAP_DOMAIN_DAILY_LIMIT
-        value: "50"
+        value: "200"
       - key: BOOTSTRAP_IDENTITY_DAILY_LIMIT
-        value: "25"
+        value: "200"
       - key: BOOTSTRAP_ADMIN_EMAIL
         sync: false   # demo@sovereign.local
       - key: BOOTSTRAP_ADMIN_PASSWORD
@@ -112,8 +112,6 @@ services:
         value: "800"
       - key: DAILY_OUTBOUND_APPROVE_LIMIT
         value: "800"
-      - key: DAILY_OUTBOUND_TARGET_DAILY_VOLUME
-        value: "800"
       - key: DAILY_OUTBOUND_PROVIDER_VALIDATION_LIMIT
         value: "1000"
       - key: DAILY_OUTBOUND_RECOVERY_MODE
@@ -144,8 +142,6 @@ services:
       # ── Lead scout ────────────────────────────────────────────────────────────
       - key: LEAD_SCOUT_ENABLED
         value: "true"
-      - key: LEAD_SCOUT_DAILY_LIMIT
-        value: "3"
       - key: LEAD_SCOUT_INDUSTRIES
         value: saas,agency,cybersecurity,ai,devtools
       - key: LEAD_SCOUT_PERSONA
@@ -203,6 +199,8 @@ services:
 
       # ── Security ──────────────────────────────────────────────────────────────
       - key: JWT_SECRET
+        generateValue: true
+      - key: AUTH_SECRET
         generateValue: true
       - key: MASTER_ENCRYPTION_KEY
         generateValue: true
@@ -424,8 +422,6 @@ services:
         value: "800"
       - key: DAILY_OUTBOUND_APPROVE_LIMIT
         value: "800"
-      - key: DAILY_OUTBOUND_TARGET_DAILY_VOLUME
-        value: "800"
       - key: DAILY_OUTBOUND_RECOVERY_MODE
         value: "true"
       - key: DAILY_OUTBOUND_PROVIDER_VALIDATION_LIMIT
@@ -434,8 +430,6 @@ services:
         value: "true"
       - key: LEAD_SCOUT_ENABLED
         value: "true"
-      - key: LEAD_SCOUT_DAILY_LIMIT
-        value: "3"
       - key: LEAD_SCOUT_INDUSTRIES
         value: saas,agency,cybersecurity,ai,devtools
       - key: LEAD_SCOUT_PERSONA

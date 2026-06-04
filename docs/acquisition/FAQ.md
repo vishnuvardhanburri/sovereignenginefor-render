@@ -30,9 +30,9 @@ Real: Docker stack, Next.js app, Postgres schema, Redis/BullMQ queueing, worker 
 
 Real sending is intentionally locked until operator-owned inputs are connected. This prevents accidental traffic, protects credentials, and keeps the system aligned with provider policy and compliance expectations. Required inputs include verified domains, SPF/DKIM/DMARC DNS, SMTP/ESP credentials, production secrets, suppression policy, unsubscribe handling, and lawful contact sourcing.
 
-## Why could this be worth a $125K acquisition ask?
+## Why could this be worth a £200K+ acquisition ask?
 
-The value is in saved build time, working infrastructure, technical breadth, acquisition packaging, and a clear market narrative: protecting outbound revenue before domain reputation damage becomes expensive. The product is priced as premium infrastructure with Starter at $1,499/mo, Growth at $4,999/mo, and Enterprise from $12,000/mo.
+The value is in saved build time, working infrastructure, technical breadth, acquisition packaging, and a clear market narrative: protecting communication operations before domain reputation damage becomes expensive. The product is priced as premium infrastructure with a £40,000 internal enterprise license, £160,000 white-label commercial license, and £3,000/month operations and maintenance.
 
 ## What is included?
 

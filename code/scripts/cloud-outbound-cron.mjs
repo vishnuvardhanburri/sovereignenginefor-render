@@ -45,9 +45,9 @@ function buildCronUrl() {
   // Lead sources
   if (isEnabled(process.env.LEAD_SCOUT_ENABLED)) {
     url.searchParams.set('leadScout', 'true')
-    const scoutLimit = process.env.LEAD_SCOUT_DAILY_LIMIT || '3'
-    // Scout limit in cron is capped at 3 per call; daily-outbound plan enforces the real cap
-    url.searchParams.set('leadScoutLimit', String(Math.min(Number(scoutLimit) || 3, 3)))
+    if (process.env.LEAD_SCOUT_DAILY_LIMIT) {
+      url.searchParams.set('leadScoutLimit', process.env.LEAD_SCOUT_DAILY_LIMIT)
+    }
   }
 
   if (isEnabled(process.env.DAILY_OUTBOUND_RUN_MAPS) || isEnabled(process.env.GOOGLE_MAPS_SOURCE_ENABLE)) {

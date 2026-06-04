@@ -1,6 +1,6 @@
-# Fast £25K Enterprise License Sprint
+# Fast £40K Enterprise License Sprint
 
-Goal: create the fastest ethical path to a £25,000 GBP internal enterprise license outcome using Sovereign Engine and Sovereign Shield.
+Goal: create the fastest ethical path to a £40,000 GBP internal enterprise license outcome using Sovereign Engine and Sovereign Shield.
 
 This is not a bulk-volume plan. It is a high-intent buyer sprint focused on serious agency owners, outbound infrastructure operators, cybersecurity founders, AI automation founders, and strategic software buyers.
 
@@ -8,7 +8,7 @@ This is not a bulk-volume plan. It is a high-intent buyer sprint focused on seri
 
 Use one of these three offers. Do not lead with all three at once.
 
-### Offer A: £25,000 Internal Enterprise License
+### Offer A: £40,000 Internal Enterprise License
 
 Best for agencies and infrastructure companies.
 
@@ -26,9 +26,9 @@ Includes:
 
 Price:
 
-- £25,000 GBP one-time
+- £40,000 GBP one-time
 
-### Offer B: £25,000 Managed Deployment Sprint
+### Offer B: £40,000 Managed Deployment Sprint
 
 Best for outbound agencies and SaaS teams.
 
@@ -47,7 +47,7 @@ Includes:
 
 Price:
 
-- £25,000 GBP setup
+- £40,000 GBP setup
 - Optional monthly support after delivery
 
 ### Offer C: Strategic Diligence Deposit
@@ -69,7 +69,7 @@ Includes:
 Price:
 
 - Deposit amount negotiated separately from product licensing
-- Product commercial baseline: £25,000 internal license or £100,000 white-label commercial license
+- Product commercial baseline: £40,000 internal license or £160,000 white-label commercial license
 
 ## Buyer Targets
 
@@ -103,7 +103,7 @@ Success target:
 
 - 8-12 replies
 - 3-5 serious calls
-- 1 signed $25K license, pilot, or deposit
+- 1 signed £40K license, pilot, or deposit
 
 ## Qualification Rules
 
@@ -143,8 +143,8 @@ I built Sovereign Engine + Sovereign Shield: a private outbound revenue infrastr
 It is not positioned as another email tool. It is an internal infrastructure system for teams that care about deliverability, monitoring, safe scaling, and operator control.
 
 We are opening conversations for either:
-- a $25K private source-code license
-- a $25K managed deployment sprint
+- a £40K private source-code license
+- a £40K managed deployment sprint
 - full acquisition discussion
 
 Would it make sense to show you the 5-minute local proof walkthrough?
@@ -170,7 +170,7 @@ I built Sovereign Engine, a private outbound infrastructure control plane: reput
 For agencies, the angle is simple:
 instead of only using third-party tools, you can own a private control layer for deliverability-aware operations and client reporting.
 
-We are offering a limited $25K source-code license or managed deployment sprint.
+We are offering a limited £40K source-code license or managed deployment sprint.
 
 Open to a 10-minute walkthrough?
 ```
@@ -199,7 +199,7 @@ The useful part is the combined story:
 - acquisition-ready data room
 - local demo proof
 
-We are exploring a $25K source-code license or a strategic acquisition conversation.
+We are exploring a £40K source-code license or a strategic acquisition conversation.
 
 Should I send the 5-minute demo?
 ```
@@ -226,7 +226,7 @@ If it is not relevant, no worries. If you work with outbound or growth infrastru
 ```text
 Closing the loop.
 
-We are looking for one fast $25K license / deployment buyer before opening broader acquisition discussions.
+We are looking for one fast £40K license / deployment buyer before opening broader acquisition discussions.
 
 If your team wants a private outbound infrastructure asset instead of only renting tools, I can share the proof walkthrough and repo structure.
 ```
@@ -257,7 +257,7 @@ pnpm -C code launch:ready --quick
 
 6. Close:
 
-> The fastest engagement is a $25K private license or deployment sprint. If the platform fits your roadmap, we can also discuss full acquisition.
+> The fastest engagement is a £40K private license or deployment sprint. If the platform fits your roadmap, we can also discuss full acquisition.
 
 ## Objection Handling
 
@@ -273,11 +273,11 @@ Answer:
 
 > We are not claiming revenue. The value is infrastructure, source code, proof system, and deployment speed. This is priced as an asset/license opportunity, not a revenue multiple.
 
-### "Why $25K?"
+### "Why £40K?"
 
 Answer:
 
-> Rebuilding the dashboard, queue layer, health oracle, docs, Docker setup, proof system, and QA evidence would cost more in engineering time. $25K is the fast-license price for one serious buyer.
+> Rebuilding the dashboard, queue layer, health oracle, docs, Docker setup, proof system, and QA evidence would cost more in engineering time. £40K is the fast-license price for one serious buyer.
 
 ### "Can it send high volume?"
 
@@ -357,12 +357,12 @@ Day 2:
 
 - Follow up.
 - Book calls.
-- Ask directly for the $25K license/deployment sprint.
+- Ask directly for the £40K license/deployment sprint.
 
 ## Closing Ask
 
 Use this line on every serious call:
 
 ```text
-If this fits, the simplest next step is the $25K private license or deployment sprint. I can send the agreement and data room today.
+If this fits, the simplest next step is the £40K private license or deployment sprint. I can send the agreement and data room today.
 ```

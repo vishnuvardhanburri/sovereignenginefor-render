@@ -92,7 +92,7 @@ export function Sidebar() {
             </div>
             <div>
               <h1 className="font-bold text-lg">Sovereign Engine</h1>
-              <p className="text-xs text-sidebar-foreground/80">Lead Generation Infrastructure</p>
+              <p className="text-xs text-sidebar-foreground/80">Communication Operations Infrastructure</p>
             </div>
           </div>
 

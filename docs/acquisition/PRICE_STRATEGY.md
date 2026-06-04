@@ -7,8 +7,8 @@ All product licensing is denominated in GBP and standardized around the Xavira C
 Final commercial model:
 
 ```text
-Internal Enterprise License: £25,000 GBP
-White-Label Commercial License: £100,000 GBP
+Internal Enterprise License: £40,000 GBP
+White-Label Commercial License: £160,000 GBP
 Operations & Maintenance: £3,000 GBP/month
 ```
 
@@ -36,7 +36,7 @@ The buyer is paying for:
 - Rebuild cost: senior engineering time across Next.js, Postgres, Redis/BullMQ, workers, dashboards, deployment, and docs
 - Speed: buyer can validate in minutes with `pnpm launch:ready`
 - Category: outbound revenue protection infrastructure
-- Monetization path: £25,000 internal license, £100,000 white-label commercial license, £3,000/month operations and maintenance
+- Monetization path: £40,000 internal license, £160,000 white-label commercial license, £3,000/month operations and maintenance
 - Distribution fit: most valuable to a buyer with existing outbound SaaS, agency, or RevOps customers
 
 ## Floor Guidance

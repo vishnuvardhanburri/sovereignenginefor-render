@@ -66,7 +66,7 @@ export default function CampaignsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-3xl font-bold">Outbound Campaigns</h1>
-          <p className="text-muted-foreground">Create and manage lead generation campaigns</p>
+          <p className="text-muted-foreground">Create and manage communication operations campaigns</p>
         </div>
         <CreateCampaignModal />
       </div>

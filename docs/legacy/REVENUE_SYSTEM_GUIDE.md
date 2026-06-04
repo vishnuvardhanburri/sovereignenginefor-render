@@ -1,4 +1,4 @@
-# Sovereign Engine: $100K Outbound Revenue System
+# Sovereign Engine: Legacy Outbound Revenue System
 
 **Version 2.0** — Production-Grade Email Automation & Pipeline Generation
 

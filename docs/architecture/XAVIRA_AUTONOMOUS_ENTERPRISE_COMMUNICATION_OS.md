@@ -444,8 +444,8 @@ licensing_probability =
 
 | Lane | Criteria | Recommended Offer |
 |---|---|---|
-| `white_label_priority` | high agency fit and licensing probability | £100,000 GBP white-label commercial license |
-| `enterprise_internal` | high enterprise value and governance fit | £25,000 GBP internal enterprise license |
+| `white_label_priority` | high agency fit and licensing probability | £160,000 GBP white-label commercial license |
+| `enterprise_internal` | high enterprise value and governance fit | £40,000 GBP internal enterprise license |
 | `audit_first` | high pain, medium readiness | infrastructure review |
 | `enrich_more` | high company fit, weak evidence | more research |
 | `hold` | risk high or evidence weak | do not send |
@@ -1033,7 +1033,7 @@ Xavira Control Stack gives enterprises a governed communication operating system
 
 ### Pricing Justification
 
-#### £25,000 GBP Internal Enterprise License
+#### £40,000 GBP Internal Enterprise License
 
 Justified by:
 
@@ -1046,7 +1046,7 @@ Justified by:
 - deployment support
 - internal usage rights
 
-#### £100,000 GBP White-Label Commercial License
+#### £160,000 GBP White-Label Commercial License
 
 Justified by:
 

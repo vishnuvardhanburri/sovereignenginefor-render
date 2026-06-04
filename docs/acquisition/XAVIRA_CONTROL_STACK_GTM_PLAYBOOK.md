@@ -34,8 +34,8 @@ Xavira Control Stack gives buyers a private control layer above their outbound a
 
 ### Commercial positioning
 
-- £25,000 GBP internal enterprise license for companies using the system inside their own operation.
-- £100,000 GBP white-label commercial license for agencies, RevOps firms, MSSPs, consultancies, and infrastructure companies that want client deployment rights.
+- £40,000 GBP internal enterprise license for companies using the system inside their own operation.
+- £160,000 GBP white-label commercial license for agencies, RevOps firms, MSSPs, consultancies, and infrastructure companies that want client deployment rights.
 - £3,000 GBP/month operations and maintenance for updates, support, monitoring, deployment guidance, and operational escalation.
 
 ## 2. Subject Line System
@@ -492,7 +492,7 @@ Essentially, partners can operate their own outbound infrastructure platform usi
 
 "The commercial math is the reason this makes sense for agencies: package the stack as a premium client deployment, recover the license across roughly 3-4 serious client rollouts, then keep deploying on the same infrastructure base."
 
-### £25,000 GBP internal license explanation
+### £40,000 GBP internal license explanation
 
 "The Internal Enterprise License is designed for organizations using the platform internally.
 
@@ -507,7 +507,7 @@ That includes:
 
 The license does not include reseller or white-label rights."
 
-### £100,000 GBP white-label commercial license explanation
+### £160,000 GBP white-label commercial license explanation
 
 "The White-Label Commercial License includes:
 
@@ -561,7 +561,7 @@ Qualified buyers have at least two of these:
 
 Do not apologize for price.
 
-"The pricing is based on infrastructure ownership, not email volume. The internal license is £25,000 GBP because the buyer gets the stack, dashboards, deployment rights for internal use, and operational control. The commercial white-label license is £100,000 GBP because it creates resale rights, branding control, client deployment rights, and a new premium offer. Operations and maintenance is £3,000 GBP/month."
+"The pricing is based on infrastructure ownership, not email volume. The internal license is £40,000 GBP because the buyer gets the stack, dashboards, deployment rights for internal use, and operational control. The commercial white-label license is £160,000 GBP because it creates resale rights, branding control, client deployment rights, and a new premium offer. Operations and maintenance is £3,000 GBP/month."
 
 ### Objection handling
 
@@ -653,11 +653,11 @@ Avoid:
 
 ## 8. Pricing Explanation System
 
-### £25,000 GBP internal license
+### £40,000 GBP internal license
 
 The internal license is for a company that wants to own the stack inside its own operation. It includes Sovereign Engine, Sovereign Shield, dashboards, deployment rights for internal usage, proof systems, and operational workflows.
 
-### £100,000 GBP white-label commercial license
+### £160,000 GBP white-label commercial license
 
 The commercial license is for teams that want to deploy Xavira Control Stack as part of their own market offer. It includes white-label rights, reseller rights, commercial deployment rights, branding customization, multi-client deployment rights, and licensing support.
 

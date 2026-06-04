@@ -12,8 +12,8 @@ Pricing cards:
 
 | License | Price | Buyer | Rights |
 |---|---:|---|---|
-| Internal Enterprise License | £25,000 | Company using the stack internally | Internal operational usage only |
-| White-Label Commercial License | £100,000 | Agency, consultancy, MSSP, RevOps operator, infrastructure firm | White-label, reseller, commercial deployment, multi-client operations |
+| Internal Enterprise License | £40,000 | Company using the stack internally | Internal operational usage only |
+| White-Label Commercial License | £160,000 | Agency, consultancy, MSSP, RevOps operator, infrastructure firm | White-label, reseller, commercial deployment, multi-client operations |
 | Operations & Maintenance | £3,000/month | Active license holder | Support, updates, monitoring support, governance support |
 
 Website rule: never frame the platform as a cold email tool, bulk email software, email marketing platform, or lead generation tool.
@@ -64,7 +64,7 @@ Allowed:
 
 Buyer language: This is not software access. It is a commercial infrastructure license that lets a partner build a premium operating model around Xavira Control Stack.
 
-Partner economics: The £100,000 GBP license is designed to become a reusable agency revenue asset. A partner can package Xavira Control Stack as a premium client deployment covering outbound governance, deliverability operations, AI safety controls, proof dashboards, and ongoing operational support. Roughly 3-4 serious client rollouts can recover the license cost; after that, each additional deployment compounds on the same infrastructure base.
+Partner economics: The £160,000 GBP license is designed to become a reusable agency revenue asset. A partner can package Xavira Control Stack as a premium client deployment covering outbound governance, deliverability operations, AI safety controls, proof dashboards, and ongoing operational support. Roughly 3-4 serious client rollouts can recover the license cost; after that, each additional deployment compounds on the same infrastructure base.
 
 ## 4. Commercial Rights Page
 
@@ -98,7 +98,7 @@ Q: Why GBP?
 A: Xavira Tech Labs invoices in GBP globally. Buyers outside the UK pay the GBP equivalent.
 
 Q: Can an internal license holder resell it?
-A: No. Reseller, white-label, and client deployment rights require the £100,000 White-Label Commercial License.
+A: No. Reseller, white-label, and client deployment rights require the £160,000 White-Label Commercial License.
 
 Q: Does maintenance include sending services?
 A: No. Maintenance covers technical support, updates, infrastructure guidance, operational assistance, monitoring support, and governance support.
@@ -128,14 +128,14 @@ Core message: Xavira Control Stack is licensed as infrastructure, not seat-based
 
 Pricing:
 
-- Internal Enterprise License: £25,000
-- White-Label Commercial License: £100,000
+- Internal Enterprise License: £40,000
+- White-Label Commercial License: £160,000
 - Operations & Maintenance: £3,000/month
 
 Decision frame:
 
-- Use internally: £25,000
-- Commercialize for clients: £100,000
+- Use internally: £40,000
+- Commercialize for clients: £160,000
 - Keep operations supported: £3,000/month
 
 ## 8. Contract Language
@@ -156,11 +156,11 @@ Operations & Maintenance is billed at £3,000 per month and includes technical s
 
 Internal Enterprise License invoice line:
 
-Xavira Control Stack Internal Enterprise License - £25,000 GBP.
+Xavira Control Stack Internal Enterprise License - £40,000 GBP.
 
 White-Label Commercial License invoice line:
 
-Xavira Control Stack White-Label Commercial License - £100,000 GBP.
+Xavira Control Stack White-Label Commercial License - £160,000 GBP.
 
 Operations & Maintenance invoice line:
 
@@ -174,7 +174,7 @@ All invoices are issued in GBP. International customers pay the GBP equivalent.
 
 | Capability | Internal Enterprise | White-Label Commercial | Operations & Maintenance |
 |---|---:|---:|---:|
-| Price | £25,000 | £100,000 | £3,000/month |
+| Price | £40,000 | £160,000 | £3,000/month |
 | Sovereign Engine | Included | Included | Support |
 | Sovereign Shield | Included | Included | Support |
 | Autonomous Communication OS | Included | Included | Support |
@@ -188,13 +188,13 @@ All invoices are issued in GBP. International customers pay the GBP equivalent.
 
 ## 11. Internal License Explanation
 
-The £25,000 Internal Enterprise License is for teams that need operational control inside their own organization. It gives them the platform, deployment assistance, dashboards, consoles, and internal operating rights without granting commercial resale or client deployment rights.
+The £40,000 Internal Enterprise License is for teams that need operational control inside their own organization. It gives them the platform, deployment assistance, dashboards, consoles, and internal operating rights without granting commercial resale or client deployment rights.
 
 ## 12. White-Label License Explanation
 
-The £100,000 White-Label Commercial License is for firms that want to build a commercial service line on top of Xavira Control Stack. The price reflects commercial deployment rights, reseller rights, white-label rights, branding customization, multi-client operations, and infrastructure deployment assistance.
+The £160,000 White-Label Commercial License is for firms that want to build a commercial service line on top of Xavira Control Stack. The price reflects commercial deployment rights, reseller rights, white-label rights, branding customization, multi-client operations, and infrastructure deployment assistance.
 
-The commercial reason is simple: agencies are not buying a dashboard for one internal team. They are buying the right to package a premium operating system for clients. With a serious deployment fee per client, roughly 3-4 client wins can recover the £100,000 GBP license cost, while the same platform continues supporting additional client accounts.
+The commercial reason is simple: agencies are not buying a dashboard for one internal team. They are buying the right to package a premium operating system for clients. With a serious deployment fee per client, roughly 3-4 client wins can recover the £160,000 GBP license cost, while the same platform continues supporting additional client accounts.
 
 ## 13. Maintenance Explanation
 
@@ -212,11 +212,11 @@ Answer: The pricing reflects infrastructure licensing, deployment assistance, go
 
 Objection: We only need internal use.
 
-Answer: Then the £25,000 Internal Enterprise License is the correct path. It excludes white-label and resale rights by design.
+Answer: Then the £40,000 Internal Enterprise License is the correct path. It excludes white-label and resale rights by design.
 
 Objection: We want to sell this to clients.
 
-Answer: That requires the £100,000 White-Label Commercial License because client deployment, resale, and rebranding are commercial rights.
+Answer: That requires the £160,000 White-Label Commercial License because client deployment, resale, and rebranding are commercial rights.
 
 ## 15. Enterprise Sales Scripts
 
@@ -236,11 +236,11 @@ Would a short technical walkthrough be useful to see whether this fits your oper
 
 Internal path:
 
-If this is purely for your own team, the license is £25,000 GBP. That includes Sovereign Engine, Sovereign Shield, the Autonomous Communication OS, the web dashboard, desktop console, mobile console, deployment assistance, and internal operational usage rights.
+If this is purely for your own team, the license is £40,000 GBP. That includes Sovereign Engine, Sovereign Shield, the Autonomous Communication OS, the web dashboard, desktop console, mobile console, deployment assistance, and internal operational usage rights.
 
 White-label path:
 
-If you want to rebrand it, resell it, or deploy it commercially for clients, that is the White-Label Commercial License at £100,000 GBP.
+If you want to rebrand it, resell it, or deploy it commercially for clients, that is the White-Label Commercial License at £160,000 GBP.
 
 Maintenance path:
 
@@ -258,16 +258,16 @@ Discovery questions:
 
 Qualification:
 
-- Internal use only -> £25,000 license.
-- Client deployment, resale, or rebranding -> £100,000 license.
+- Internal use only -> £40,000 license.
+- Client deployment, resale, or rebranding -> £160,000 license.
 - Ongoing support requirement -> £3,000/month maintenance.
 
 ## 18. Acquisition Listing Pricing Language
 
 Xavira Control Stack has a fixed enterprise licensing model:
 
-- £25,000 Internal Enterprise License
-- £100,000 White-Label Commercial License
+- £40,000 Internal Enterprise License
+- £160,000 White-Label Commercial License
 - £3,000/month Operations & Maintenance
 
 The commercial model is intentionally infrastructure-first and rights-based, enabling internal deployments, white-label commercialization, reseller channels, and ongoing operational support.
@@ -294,8 +294,8 @@ Dashboard labels:
 
 - License type
 - Currency: GBP
-- Internal Enterprise License: £25,000
-- White-Label Commercial License: £100,000
+- Internal Enterprise License: £40,000
+- White-Label Commercial License: £160,000
 - Operations & Maintenance: £3,000/month
 - Rights enabled
 - Rights restricted

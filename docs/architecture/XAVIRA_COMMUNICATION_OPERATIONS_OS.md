@@ -429,8 +429,8 @@ enterprise_priority =
 
 | Lane | Criteria | Action |
 |---|---|---|
-| `enterprise_direct` | high infrastructure or AI governance fit | £25,000 GBP internal enterprise license positioning |
-| `agency_white_label` | high agency fit and commercial capacity | £100,000 GBP white-label commercial license positioning |
+| `enterprise_direct` | high infrastructure or AI governance fit | £40,000 GBP internal enterprise license positioning |
+| `agency_white_label` | high agency fit and commercial capacity | £160,000 GBP white-label commercial license positioning |
 | `audit_first` | high pain, medium readiness | offer infrastructure review |
 | `research_more` | high company fit, weak evidence | enrich before outreach |
 | `do_not_contact` | invalid, suppressed, high risk, no evidence | block |

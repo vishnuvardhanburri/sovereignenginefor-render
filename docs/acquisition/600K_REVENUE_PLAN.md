@@ -1,35 +1,35 @@
-# $600K Revenue Plan
+# £600K Revenue Plan
 
-Objective: use Sovereign Engine + Sovereign Shield to create a realistic path to $600K through a mix of fast license sales, managed deployments, and strategic acquisition conversations.
+Objective: use Sovereign Engine + Sovereign Shield to create a realistic path to £600K through a mix of fast license sales, managed deployments, and strategic acquisition conversations.
 
 This plan keeps two goals active at the same time:
 
-- Short-term cash: close one $25K deal as fast as possible.
-- Strategic upside: keep positioning strong enough for $125K+ acquisition conversations.
+- Short-term cash: close one £40K deal as fast as possible.
+- Strategic upside: keep positioning strong enough for £200K+ acquisition conversations.
 
 ## Core Math
 
 Fast path:
 
-- 1 x $25K private license or deployment sprint = immediate cash proof.
-- 5 x $25K licenses/deployments = $125K.
-- 10 x $25K licenses/deployments = $250K.
-- 5 x $125K acquisitions/licensing deals = $625K.
+- 1 x £40K private license or deployment sprint = immediate cash proof.
+- 5 x £40K licenses/deployments = £200K.
+- 10 x £40K licenses/deployments = £400K.
+- 3 x £200K acquisitions/licensing deals = £600K.
 
 Blended target:
 
-- 2 fast $25K deals = $50K.
-- 2 strategic $75K licenses = $150K.
-- 2 acquisition/enterprise deals at $200K = $400K.
-- Total = $600K.
+- 2 fast £40K deals = £80K.
+- 2 strategic £120K licenses = £240K.
+- 1 acquisition/enterprise deal at £280K = £280K.
+- Total = £600K.
 
 ## Do Not Lower The Product Story
 
-Even when selling a $25K fast deal, do not make the product feel small.
+Even when selling a £40K fast deal, do not make the product feel small.
 
 Say:
 
-> We are opening one fast $25K private license/deployment slot while continuing full acquisition conversations in the $125K+ range.
+> We are opening one fast £40K private license/deployment slot while continuing full acquisition conversations in the £200K+ range.
 
 Do not say:
 
@@ -39,11 +39,11 @@ Do not say:
 
 > This is cheap.
 
-The $25K offer is a limited fast-entry package, not the full value of the asset.
+The £40K offer is a limited fast-entry package, not the full value of the asset.
 
 ## Offer Stack
 
-### $25K Fast License
+### £40K Fast License
 
 Purpose: fast cash, fast buyer validation.
 
@@ -61,7 +61,7 @@ Deliver:
 - Operator walkthrough
 - 14-day support
 
-### $75K Strategic License
+### £120K Strategic License
 
 Purpose: bigger company that wants private internal use.
 
@@ -80,7 +80,7 @@ Deliver:
 - 30-day support
 - Custom handoff docs
 
-### $125K-$200K Acquisition
+### £200K-£320K Acquisition
 
 Purpose: full asset sale.
 
@@ -102,7 +102,7 @@ Deliver:
 
 ## Buyer Segments By Deal Size
 
-### Best For $25K
+### Best For £40K
 
 - Cold email agencies
 - Lead generation agencies
@@ -110,14 +110,14 @@ Deliver:
 - AI automation agencies
 - Deliverability consultants
 
-### Best For $75K
+### Best For £120K
 
-- Agencies doing $50K+/month
+- Agencies doing £80K+/month
 - RevOps teams serving funded SaaS
 - Cybersecurity outbound teams
 - Growth infra companies with engineering capacity
 
-### Best For $125K-$200K
+### Best For £200K-£320K
 
 - Acquire.com buyers
 - Micro private equity operators
@@ -157,7 +157,7 @@ Stage 4: Data Room Shared
 
 Stage 5: Offer Sent
 
-- $25K, $75K, or acquisition offer sent.
+- £40K, £120K, or acquisition offer sent.
 
 Stage 6: Negotiation
 
@@ -184,13 +184,13 @@ We built a private outbound revenue infrastructure stack with reputation control
 Fast-close line:
 
 ```text
-We are opening one fast $25K license/deployment slot while continuing larger acquisition discussions.
+We are opening one fast £40K license/deployment slot while continuing larger acquisition discussions.
 ```
 
 Acquisition line:
 
 ```text
-For strategic buyers, we are also open to a full asset acquisition conversation in the $125K+ range.
+For strategic buyers, we are also open to a full asset acquisition conversation in the £200K+ range.
 ```
 
 ## Demo Close Options
@@ -198,19 +198,19 @@ For strategic buyers, we are also open to a full asset acquisition conversation 
 After the demo, ask one direct question:
 
 ```text
-Which path fits you better: the $25K private license/deployment sprint, or a broader acquisition/license discussion?
+Which path fits you better: the £40K private license/deployment sprint, or a broader acquisition/license discussion?
 ```
 
 If they ask price:
 
 ```text
-Fast license/deployment is $25K. Strategic license starts at $75K. Full acquisition conversation starts at $125K.
+Fast license/deployment is £40K. Strategic license starts at £120K. Full acquisition conversation starts at £200K.
 ```
 
 If they hesitate:
 
 ```text
-The $25K option is intentionally the fastest path: source/deployment, walkthrough, data room, and support. It lets your team own the infrastructure without waiting for a full acquisition process.
+The £40K option is intentionally the fastest path: source/deployment, walkthrough, data room, and support. It lets your team own the infrastructure without waiting for a full acquisition process.
 ```
 
 ## 14-Day Sprint Plan
@@ -230,13 +230,13 @@ Days 3-4:
 Days 5-7:
 
 - Run calls.
-- Send $25K offer to all qualified buyers.
+- Send £40K offer to all qualified buyers.
 - Share data room only with serious prospects.
 
 Days 8-10:
 
 - Push strategic license angle to bigger buyers.
-- Ask for $25K deposit if acquisition interest is real.
+- Ask for £40K deposit if acquisition interest is real.
 
 Days 11-14:
 
@@ -245,7 +245,7 @@ Days 11-14:
 
 ## Important Rule
 
-Do not let the $25K offer damage the $600K target.
+Do not let the £40K offer damage the £600K target.
 
 Frame it as:
 
