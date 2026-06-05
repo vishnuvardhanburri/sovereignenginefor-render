@@ -31,6 +31,11 @@ import { leadScoutToContacts, scoutOpenLeads, verifyOpenLeadEvidenceTimeboxed } 
 import { notifyTelegramEvent } from '@/lib/telegram-notifications'
 import { getOutboundTelegramDigest } from '@/lib/outbound-telegram-digest'
 import { runOutboundEventRetention } from '@/lib/outbound-event-retention'
+import {
+  compactCycleBody,
+  runOutboundCycleDirect,
+  shouldRunOutboundCycleDirect,
+} from '@/lib/outbound-cycle-direct'
 import { enqueueOutboundCycleJob } from '@/lib/outbound-cycle-queue'
 import { requestPublicOrigin } from '@/lib/request-origin'
 import { reconcileBootstrapSendingDomain } from '@/lib/bootstrap-sending-domain'
@@ -2292,9 +2297,43 @@ export async function GET(request: NextRequest) {
       const runUrl = new URL(request.nextUrl.pathname + request.nextUrl.search, requestPublicOrigin(request))
       runUrl.searchParams.delete('kick')
       runUrl.searchParams.delete('background')
+      runUrl.searchParams.delete('direct')
+      runUrl.searchParams.delete('directRun')
+      runUrl.searchParams.delete('runInline')
+      runUrl.searchParams.delete('inline')
+      runUrl.searchParams.delete('sync')
       runUrl.searchParams.delete('secret')
       runUrl.searchParams.set('compact', '1')
       runUrl.searchParams.set('cronCompact', '1')
+
+      if (shouldRunOutboundCycleDirect(request)) {
+        const result = await runOutboundCycleDirect({
+          publicRunUrl: runUrl.toString(),
+          secret: appEnv.cronSecret(),
+        })
+
+        return new Response(
+          [
+            `ok=${result.ok ? 1 : 0}`,
+            'cycleQueued=0',
+            'directRun=1',
+            `client=${clientId}`,
+            'worker=direct-fallback',
+            `cycleStatus=${result.status}`,
+            `elapsedMs=${result.elapsedMs}`,
+            `publicFallback=${result.usedPublicFallback ? 1 : 0}`,
+            `body=${compactCycleBody(result.body)}`,
+            `ts=${new Date().toISOString()}`,
+          ].join(' '),
+          {
+            status: result.ok ? 200 : 502,
+            headers: {
+              'content-type': 'text/plain; charset=utf-8',
+              'cache-control': 'no-store',
+            },
+          }
+        )
+      }
 
       const queued = await enqueueOutboundCycleJob({
         clientId,

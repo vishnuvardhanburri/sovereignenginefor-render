@@ -1,5 +1,10 @@
 import { NextRequest } from 'next/server'
 import { appEnv } from '@/lib/env'
+import {
+  compactCycleBody,
+  runOutboundCycleDirect,
+  shouldRunOutboundCycleDirect,
+} from '@/lib/outbound-cycle-direct'
 import { enqueueOutboundCycleJob } from '@/lib/outbound-cycle-queue'
 import { requestPublicOrigin } from '@/lib/request-origin'
 
@@ -122,9 +127,39 @@ export async function GET(request: NextRequest) {
 
   try {
     const clientId = clientIdFrom(request)
+    const runUrl = buildRunUrl(request, clientId)
+    if (shouldRunOutboundCycleDirect(request)) {
+      const result = await runOutboundCycleDirect({
+        publicRunUrl: runUrl,
+        secret: appEnv.cronSecret(),
+      })
+
+      return new Response(
+        [
+          `ok=${result.ok ? 1 : 0}`,
+          'cycleQueued=0',
+          'directRun=1',
+          `client=${clientId}`,
+          'worker=direct-fallback',
+          `cycleStatus=${result.status}`,
+          `elapsedMs=${result.elapsedMs}`,
+          `publicFallback=${result.usedPublicFallback ? 1 : 0}`,
+          `body=${compactCycleBody(result.body)}`,
+          `ts=${new Date().toISOString()}`,
+        ].join(' '),
+        {
+          status: result.ok ? 200 : 502,
+          headers: {
+            'content-type': 'text/plain; charset=utf-8',
+            'cache-control': 'no-store',
+          },
+        }
+      )
+    }
+
     const queued = await enqueueOutboundCycleJob({
       clientId,
-      runUrl: buildRunUrl(request, clientId),
+      runUrl,
     })
 
     return new Response(
