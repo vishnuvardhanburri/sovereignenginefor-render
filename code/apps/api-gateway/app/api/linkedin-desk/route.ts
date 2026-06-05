@@ -31,6 +31,15 @@ function contactDomain(contact: Contact): string {
   return contact.company_domain || contact.email.split('@')[1] || ''
 }
 
+async function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T | null> {
+  return Promise.race([
+    promise,
+    new Promise<null>((resolve) => {
+      setTimeout(() => resolve(null), timeoutMs)
+    }),
+  ])
+}
+
 function contactLinkedInUrl(contact: Contact): string {
   return String(
     contact.custom_fields?.linkedin_url ||
@@ -145,6 +154,64 @@ async function insertTierOneSeedContacts(
   )
 
   return result.rows
+}
+
+function seedToFallbackContact(
+  seed: ReturnType<typeof tierOneLinkedInCloseSeeds>[number],
+  index: number
+): Contact {
+  const now = new Date().toISOString()
+  return {
+    id: -10_000 - index,
+    client_id: 1,
+    email: seed.email,
+    email_domain: seed.email.split('@')[1] ?? seed.domain,
+    name: null,
+    company: seed.company,
+    company_domain: seed.domain,
+    title: seed.title,
+    timezone: null,
+    source: 'tier_one_linkedin_close_fallback',
+    custom_fields: {
+      linkedin_first_seed: true,
+      close_channel: 'linkedin_manual',
+      target_market: true,
+      target_region: 'us_foreign_paying_market',
+      region: seed.region,
+      website_url: seed.websiteUrl,
+      public_evidence_url: seed.websiteUrl,
+      research_evidence_url: seed.websiteUrl,
+      linkedin_url: seed.linkedinUrl,
+      company_linkedin_url: seed.linkedinUrl,
+      linkedin_exact_account_url: seed.linkedinUrl,
+      offer_type: seed.offerType,
+      sovereign_offer_type: seed.offerType,
+      approval_required: true,
+      email_evidence: 'role_pattern_needs_public_verification',
+      contact_role: seed.title,
+      confidence: 'medium',
+      close_score_override: seed.closeScore,
+      public_signals: seed.publicSignals,
+      research_summary: seed.reason,
+      reason_to_contact: seed.reason,
+      fallback_queue: true,
+    },
+    enrichment: null,
+    verification_status: 'pending',
+    verification_sub_status: null,
+    status: 'active',
+    unsubscribed_at: null,
+    bounced_at: null,
+    created_at: now,
+    updated_at: now,
+  }
+}
+
+function fallbackSeedQueue(dailyTarget: number) {
+  return buildLinkedInDeskQueue(
+    tierOneLinkedInCloseSeeds(dailyTarget).map(seedToFallbackContact),
+    dailyTarget
+  )
 }
 
 async function enrichMissingExactLinkedInAccounts(input: {
@@ -300,7 +367,7 @@ export async function GET(request: NextRequest) {
     const fetchLimit = Math.max(dailyTarget * 6, 160)
     const today = todayIsoDate()
 
-    const contacts = await query<Contact>(
+    const contacts = await withTimeout(query<Contact>(
       `SELECT c.*
        FROM contacts c
        WHERE c.client_id = $1
@@ -314,24 +381,36 @@ export async function GET(request: NextRequest) {
          c.created_at DESC
        LIMIT $3`,
       [clientId, today, fetchLimit]
-    )
+    ), 6_000)
 
-    const seededContacts = await ensureTierOneSeedInventory({
-      clientId,
-      contacts: contacts.rows,
-      dailyTarget,
-    })
+    if (!contacts) {
+      const fallback = fallbackSeedQueue(dailyTarget)
+      return NextResponse.json(fallback)
+    }
+
+    const seededContacts =
+      (await withTimeout(ensureTierOneSeedInventory({
+        clientId,
+        contacts: contacts.rows,
+        dailyTarget,
+      }), 8_000)) ?? contacts.rows
+
     const seededQueue = buildLinkedInDeskQueue(seededContacts, dailyTarget)
     if (seededQueue.queue.length >= dailyTarget) {
       return NextResponse.json(seededQueue)
     }
 
-    const enrichedContacts = await enrichMissingExactLinkedInAccounts({
+    const enrichedContacts =
+      (await withTimeout(enrichMissingExactLinkedInAccounts({
       clientId,
       contacts: seededContacts,
       dailyTarget,
-    })
+    }), 8_000)) ?? seededContacts
     const { queue, summary } = buildLinkedInDeskQueue(enrichedContacts, dailyTarget)
+    if (queue.length === 0) {
+      const fallback = fallbackSeedQueue(dailyTarget)
+      return NextResponse.json(fallback)
+    }
     return NextResponse.json({ queue, summary })
   } catch (error) {
     console.error('[LinkedIn Desk] Failed to build queue', error)
