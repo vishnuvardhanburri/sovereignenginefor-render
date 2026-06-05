@@ -159,12 +159,18 @@ function envBool(value: string | undefined, fallback: boolean): boolean {
   return ['1', 'true', 'yes', 'on'].includes(value.trim().toLowerCase())
 }
 
-function stageEventEnabled(env: TelegramEnv, flag: string): boolean {
+function envAnyTrue(env: TelegramEnv, flags: string[]): boolean {
+  return flags.some((flag) => envBool(env[flag], false))
+}
+
+function stageEventEnabled(env: TelegramEnv, flags: string[]): boolean {
+  if (envAnyTrue(env, flags)) return true
+
   const operatorReportOnly = envBool(env.TELEGRAM_OPERATOR_REPORT_ONLY, true)
   const debugStageNotifications = envBool(env.TELEGRAM_DEBUG_STAGE_NOTIFICATIONS, false)
   if (operatorReportOnly && !debugStageNotifications) return false
 
-  return envBool(env.TELEGRAM_NOTIFY_STAGE_EVENTS, false) || envBool(env[flag], false)
+  return envBool(env.TELEGRAM_NOTIFY_STAGE_EVENTS, false)
 }
 
 function clip(value: string | null | undefined, max = 240): string {
@@ -215,19 +221,20 @@ export function shouldNotifyTelegram(type: TelegramNotificationType, env: Telegr
 
   switch (type) {
     case 'email_sent':
-      return envBool(env.TELEGRAM_NOTIFY_SENT_EVENTS, false)
+      return envAnyTrue(env, ['TELEGRAM_NOTIFY_SENT_EVENTS', 'TELEGRAM_NOTIFY_SENT'])
     case 'email_failed':
-      return envBool(env.TELEGRAM_NOTIFY_FAILED, true)
+      return envAnyTrue(env, ['TELEGRAM_NOTIFY_FAILED_EVENTS', 'TELEGRAM_NOTIFY_FAILED']) ||
+        (!env.TELEGRAM_NOTIFY_FAILED_EVENTS && !env.TELEGRAM_NOTIFY_FAILED)
     case 'lead_scout':
     case 'sheet_import':
     case 'maps_import':
     case 'hunter_domain_search':
-      return stageEventEnabled(env, 'TELEGRAM_NOTIFY_IMPORT_EVENTS')
+      return stageEventEnabled(env, ['TELEGRAM_NOTIFY_IMPORT_EVENTS', 'TELEGRAM_NOTIFY_IMPORTS'])
     case 'contacts_approved':
-      return stageEventEnabled(env, 'TELEGRAM_NOTIFY_APPROVAL_EVENTS')
+      return stageEventEnabled(env, ['TELEGRAM_NOTIFY_APPROVAL_EVENTS', 'TELEGRAM_NOTIFY_APPROVALS'])
     case 'queue_batch':
     case 'queue_skipped':
-      return stageEventEnabled(env, 'TELEGRAM_NOTIFY_QUEUE_EVENTS')
+      return stageEventEnabled(env, ['TELEGRAM_NOTIFY_QUEUE_EVENTS', 'TELEGRAM_NOTIFY_QUEUE'])
     case 'daily_outbound':
     case 'reputation_recovery':
       return envBool(env.TELEGRAM_NOTIFY_QUEUE, true)

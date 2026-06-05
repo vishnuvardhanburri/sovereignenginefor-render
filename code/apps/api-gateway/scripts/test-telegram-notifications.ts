@@ -9,11 +9,11 @@ assert.equal(maskEmail('sales@verified-agency.com'), 's***s@verified-agency.com'
 assert.equal(maskEmail('ab@company.com'), 'a*@company.com')
 assert.equal(maskEmail('bad-value'), 'bad-value')
 
-assert.equal(shouldNotifyTelegram('email_sent', { TELEGRAM_NOTIFY_SENT: 'true' }), false)
+assert.equal(shouldNotifyTelegram('email_sent', { TELEGRAM_NOTIFY_SENT: 'true' }), true)
 assert.equal(shouldNotifyTelegram('email_sent', { TELEGRAM_NOTIFY_SENT_EVENTS: 'true' }), true)
 assert.equal(shouldNotifyTelegram('email_failed', { TELEGRAM_NOTIFY_FAILED: '0' }), false)
-assert.equal(shouldNotifyTelegram('sheet_import', { TELEGRAM_NOTIFY_IMPORTS: 'yes' }), false)
-assert.equal(shouldNotifyTelegram('sheet_import', { TELEGRAM_NOTIFY_IMPORT_EVENTS: 'yes' }), false)
+assert.equal(shouldNotifyTelegram('sheet_import', { TELEGRAM_NOTIFY_IMPORTS: 'yes' }), true)
+assert.equal(shouldNotifyTelegram('sheet_import', { TELEGRAM_NOTIFY_IMPORT_EVENTS: 'yes' }), true)
 assert.equal(
   shouldNotifyTelegram('sheet_import', {
     TELEGRAM_OPERATOR_REPORT_ONLY: 'false',
@@ -29,7 +29,8 @@ assert.equal(
   }),
   true
 )
-assert.equal(shouldNotifyTelegram('queue_batch', { TELEGRAM_NOTIFY_QUEUE: 'yes' }), false)
+assert.equal(shouldNotifyTelegram('contacts_approved', { TELEGRAM_NOTIFY_APPROVALS: 'yes' }), true)
+assert.equal(shouldNotifyTelegram('queue_batch', { TELEGRAM_NOTIFY_QUEUE: 'yes' }), true)
 assert.equal(shouldNotifyTelegram('daily_outbound', { TELEGRAM_NOTIFY_QUEUE: 'yes' }), true)
 
 const sent = formatTelegramNotification({
