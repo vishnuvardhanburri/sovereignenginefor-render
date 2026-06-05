@@ -20,18 +20,25 @@ export async function sendTelegramMessage(input: {
   }
 
   const timeoutMs = Math.max(1_000, Math.min(Number(process.env.TELEGRAM_SEND_TIMEOUT_MS ?? 8_000), 30_000))
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), timeoutMs)
 
-  const response = await fetch(
-    `https://api.telegram.org/bot${input.botToken}/sendMessage`,
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(body),
-      signal: AbortSignal.timeout(timeoutMs),
-    }
-  )
+  let response: Response
+  try {
+    response = await fetch(
+      `https://api.telegram.org/bot${input.botToken}/sendMessage`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
+        signal: controller.signal,
+      }
+    )
+  } finally {
+    clearTimeout(timer)
+  }
 
   if (!response.ok) {
     const body = await response.text()
