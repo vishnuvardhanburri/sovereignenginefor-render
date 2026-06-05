@@ -4,18 +4,105 @@ import type { Contact } from '@/lib/db/types'
 import { resolveClientId } from '@/lib/client-context'
 import {
   buildLinkedInDeskQueue,
-  contactToLinkedInDeskLead,
+  contactToLinkedInDeskAccount,
   dailyLinkedInDmTarget,
+  findExactLinkedInAccountUrl,
 } from '@/lib/linkedin-desk'
+import { isTargetPayingMarketLead } from '@/lib/target-market'
 
 function clampLimit(value: string | null): number {
   const parsed = Number(value)
   if (!Number.isFinite(parsed)) return dailyLinkedInDmTarget()
-  return Math.max(20, Math.min(100, Math.trunc(parsed)))
+  return Math.max(34, Math.min(100, Math.trunc(parsed)))
 }
 
 function todayIsoDate(): string {
   return new Date().toISOString().slice(0, 10)
+}
+
+function exactLookupBatchSize(): number {
+  const parsed = Number(process.env.LINKEDIN_EXACT_ACCOUNT_LOOKUP_BATCH ?? 12)
+  if (!Number.isFinite(parsed)) return 12
+  return Math.max(0, Math.min(25, Math.trunc(parsed)))
+}
+
+function contactDomain(contact: Contact): string {
+  return contact.company_domain || contact.email.split('@')[1] || ''
+}
+
+async function enrichMissingExactLinkedInAccounts(input: {
+  clientId: number
+  contacts: Contact[]
+  dailyTarget: number
+}): Promise<Contact[]> {
+  const initial = buildLinkedInDeskQueue(input.contacts, input.dailyTarget)
+  if (initial.queue.length >= input.dailyTarget) return input.contacts
+
+  const batchSize = exactLookupBatchSize()
+  if (batchSize <= 0) return input.contacts
+
+  const candidates = input.contacts
+    .filter((contact) => contact.status === 'active')
+    .filter((contact) => !contactToLinkedInDeskAccount(contact).linkedinUrl)
+    .filter((contact) =>
+      isTargetPayingMarketLead({
+        email: contact.email,
+        domain: contact.company_domain,
+        company: contact.company,
+        title: contact.title,
+        source: contact.source,
+        customFields: contact.custom_fields,
+      })
+    )
+    .filter((contact) => Boolean(contact.company || contactDomain(contact)))
+    .slice(0, batchSize)
+
+  if (candidates.length === 0) return input.contacts
+
+  const found = await Promise.all(
+    candidates.map(async (contact) => {
+      const linkedinUrl = await findExactLinkedInAccountUrl({
+        company: contact.company || '',
+        domain: contactDomain(contact),
+      })
+      if (!linkedinUrl) return null
+
+      const patch = {
+        linkedin_url: linkedinUrl,
+        company_linkedin_url: linkedinUrl,
+        linkedin_exact_account_url: linkedinUrl,
+        linkedin_exact_lookup_at: new Date().toISOString(),
+        linkedin_exact_lookup_source: 'public_search',
+        target_market: true,
+      }
+
+      await query(
+        `UPDATE contacts
+         SET custom_fields = COALESCE(custom_fields, '{}'::jsonb) || $3::jsonb,
+             updated_at = CURRENT_TIMESTAMP
+         WHERE client_id = $1
+           AND id = $2`,
+        [input.clientId, contact.id, JSON.stringify(patch)]
+      )
+
+      return { id: contact.id, patch }
+    })
+  )
+
+  const patchesById = new Map(found.filter(Boolean).map((result) => [result!.id, result!.patch]))
+  if (patchesById.size === 0) return input.contacts
+
+  return input.contacts.map((contact) => {
+    const patch = patchesById.get(contact.id)
+    if (!patch) return contact
+    return {
+      ...contact,
+      custom_fields: {
+        ...(contact.custom_fields ?? {}),
+        ...patch,
+      },
+    }
+  })
 }
 
 function patchForAction(action: string, notes: string): Record<string, unknown> {
@@ -84,7 +171,12 @@ export async function GET(request: NextRequest) {
       [clientId, today, fetchLimit]
     )
 
-    const { queue, summary } = buildLinkedInDeskQueue(contacts.rows, dailyTarget)
+    const enrichedContacts = await enrichMissingExactLinkedInAccounts({
+      clientId,
+      contacts: contacts.rows,
+      dailyTarget,
+    })
+    const { queue, summary } = buildLinkedInDeskQueue(enrichedContacts, dailyTarget)
     return NextResponse.json({ queue, summary })
   } catch (error) {
     console.error('[LinkedIn Desk] Failed to build queue', error)
@@ -122,7 +214,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Contact not found' }, { status: 404 })
     }
 
-    return NextResponse.json({ lead: contactToLinkedInDeskLead(updated) })
+    return NextResponse.json({ account: contactToLinkedInDeskAccount(updated) })
   } catch (error) {
     console.error('[LinkedIn Desk] Failed to update action', error)
     return NextResponse.json({ error: 'Failed to update LinkedIn action' }, { status: 500 })

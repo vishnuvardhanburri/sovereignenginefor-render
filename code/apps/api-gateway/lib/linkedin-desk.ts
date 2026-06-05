@@ -1,7 +1,6 @@
 import type { Contact } from '@/lib/db/types'
 import { validateBusinessEmailSyntax } from '@/lib/email-address'
 import {
-  balanceSovereignOfferMix,
   buildSovereignCopyDecision,
   inferSovereignOfferType,
   renderSovereignTemplate,
@@ -13,10 +12,14 @@ import {
   type SovereignCopyLead,
   type SovereignOfferType,
 } from '@/lib/outbound-copy'
+import {
+  isTargetPayingMarketLead,
+  targetMarketScoreBonus,
+} from '@/lib/target-market'
 
 export type LinkedInOfferMode = 'auto' | SovereignOfferType
 
-export type LinkedInDeskLead = {
+export type LinkedInDeskAccount = {
   id: number
   email: string
   name: string
@@ -30,7 +33,6 @@ export type LinkedInDeskLead = {
   dealValueGbp: number
   closeScore: number
   linkedinUrl: string
-  linkedinSearchUrl: string
   websiteUrl: string
   evidenceUrl: string
   dmStatus: string
@@ -69,6 +71,12 @@ export type PublicEmailScrapeResult = {
   sourceUrl: string
   linkedinUrl: string
   offerType: SovereignOfferType
+  confidence: 'high' | 'medium' | 'low'
+  contactRole: string
+  evidenceSummary: string
+  publicSignals: string[]
+  phoneNumbers: string[]
+  discoveredPages: number
 }
 
 export type PublicEmailScrapeResponse = {
@@ -80,21 +88,68 @@ export type PublicEmailScrapeResponse = {
 const LINKEDIN_URL_RE = /https?:\/\/(?:[\w-]+\.)?linkedin\.com\/[^\s),]+/gi
 const URL_RE = /https?:\/\/[^\s),]+|(?:www\.)?[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+(?:\/[^\s),]*)?/gi
 const EMAIL_RE = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi
-const COMMON_PUBLIC_PATHS = ['', '/', '/contact', '/contact-us', '/about', '/about-us', '/team', '/people', '/leadership']
-const MINIMUM_DAILY_DM_TARGET = 20
-const DEFAULT_DAILY_DM_TARGET = 24
+const COMMON_PUBLIC_PATHS = [
+  '',
+  '/',
+  '/contact',
+  '/contact-us',
+  '/get-in-touch',
+  '/sales',
+  '/demo',
+  '/book-a-demo',
+  '/about',
+  '/about-us',
+  '/team',
+  '/people',
+  '/leadership',
+  '/company',
+  '/solutions',
+  '/services',
+  '/partners',
+  '/partnerships',
+  '/customers',
+  '/case-studies',
+  '/work',
+  '/pricing',
+]
+const SITEMAP_PATHS = ['/sitemap.xml', '/sitemap_index.xml']
+const HIGH_VALUE_LINK_RE =
+  /\b(?:contact|contact-us|get-in-touch|sales|demo|book-a-demo|about|team|people|leadership|company|solutions|services|partners?|partnerships?|customers?|case-stud(?:y|ies)|work|pricing)\b/i
+const PUBLIC_SIGNAL_PATTERNS: Array<[RegExp, string]> = [
+  [/\b(?:enterprise|mid-market|b2b|revenue operations|revops|go-to-market|gtm)\b/i, 'B2B revenue motion'],
+  [/\b(?:white[-\s]?label|agency|client services|managed service|done[-\s]?for[-\s]?you)\b/i, 'white-label or agency motion'],
+  [/\b(?:ai governance|governance|compliance|audit|soc 2|iso 27001|security)\b/i, 'governance/security proof'],
+  [/\b(?:outbound|cold email|sales development|sdr|appointment setting|lead generation)\b/i, 'outbound or pipeline ops'],
+  [/\b(?:deliverability|sender reputation|inbox|email infrastructure|domain health)\b/i, 'email infrastructure pain'],
+  [/\b(?:case studies|customers|portfolio|results|roi)\b/i, 'public proof available'],
+]
+const MINIMUM_DAILY_DM_TARGET = 34
+const DEFAULT_DAILY_DM_TARGET = 34
 const MAX_SCRAPE_TARGETS = 60
 const MAX_EMAILS_PER_TARGET = 12
+const MAX_PUBLIC_PAGES_PER_TARGET = 24
+const MAX_DISCOVERED_LINKS_PER_SOURCE = 16
 const MAX_FETCH_BYTES = 500_000
 const SCRAPE_TIMEOUT_MS = 4500
+const LINKEDIN_LOOKUP_TIMEOUT_MS = 3500
+const PERSONAL_EMAIL_DOMAINS = new Set([
+  'aol.com',
+  'gmail.com',
+  'googlemail.com',
+  'hotmail.com',
+  'icloud.com',
+  'live.com',
+  'mail.com',
+  'msn.com',
+  'outlook.com',
+  'proton.me',
+  'protonmail.com',
+  'yahoo.com',
+  'yandex.com',
+])
 
 function asString(value: unknown, fallback = ''): string {
   return typeof value === 'string' && value.trim() ? value.trim() : fallback
-}
-
-function asNumber(value: unknown, fallback = 0): number {
-  const parsed = Number(value)
-  return Number.isFinite(parsed) ? parsed : fallback
 }
 
 function normalizeWhitespace(value: string): string {
@@ -125,6 +180,33 @@ function isLinkedInUrl(value: string): boolean {
   }
 }
 
+function isExactLinkedInAccountUrl(value: string): boolean {
+  try {
+    const url = new URL(value)
+    const host = url.hostname.toLowerCase()
+    const path = url.pathname.toLowerCase().replace(/\/+$/, '')
+    return (
+      host.endsWith('linkedin.com') &&
+      (/^\/in\/[^/]+/.test(path) ||
+        /^\/company\/[^/]+/.test(path) ||
+        /^\/school\/[^/]+/.test(path) ||
+        /^\/showcase\/[^/]+/.test(path))
+    )
+  } catch {
+    return false
+  }
+}
+
+function normalizeExactLinkedInAccountUrl(value: string): string {
+  const decoded = value.replace(/&amp;/gi, '&')
+  const url = safeUrl(decoded)
+  if (!url || !isExactLinkedInAccountUrl(url)) return ''
+  const parsed = new URL(url)
+  parsed.hash = ''
+  parsed.search = ''
+  return parsed.toString()
+}
+
 function hostDomain(value: string): string {
   try {
     return new URL(value).hostname.replace(/^www\./i, '').toLowerCase()
@@ -137,6 +219,77 @@ function companyFromDomain(domain: string): string {
   const base = domain.replace(/^www\./i, '').split('.')[0]?.replace(/[-_]+/g, ' ').trim()
   return base ? base.replace(/\b\w/g, (letter) => letter.toUpperCase()) : 'Unknown company'
 }
+
+function decodeBingTarget(value: string): string {
+  const decoded = value.replace(/&amp;/gi, '&')
+  try {
+    const url = new URL(decoded, 'https://www.bing.com')
+    const encodedTarget = url.searchParams.get('u')
+    if (!encodedTarget) return url.toString()
+    const payload = encodedTarget.startsWith('a1') ? encodedTarget.slice(2) : encodedTarget
+    const normalized = payload.replace(/-/g, '+').replace(/_/g, '/')
+    const padding = normalized.length % 4 === 0 ? '' : '='.repeat(4 - (normalized.length % 4))
+    return Buffer.from(`${normalized}${padding}`, 'base64').toString('utf8') || url.toString()
+  } catch {
+    return decoded
+  }
+}
+
+function extractExactLinkedInAccountsFromHtml(html: string): string[] {
+  const directMatches = html.match(LINKEDIN_URL_RE) ?? []
+  const hrefMatches = Array.from(html.matchAll(/href=["']([^"']+)["']/gi)).map((match) =>
+    decodeBingTarget(String(match[1] || ''))
+  )
+  return Array.from(
+    new Set(
+      [...directMatches, ...hrefMatches]
+        .map(normalizeExactLinkedInAccountUrl)
+        .filter(Boolean)
+    )
+  )
+}
+
+export async function findExactLinkedInAccountUrl(input: {
+  company: string
+  domain: string
+}): Promise<string> {
+  const enabled = String(process.env.LINKEDIN_EXACT_ACCOUNT_LOOKUP ?? 'true').toLowerCase() !== 'false'
+  if (!enabled) return ''
+
+  const company = input.company || companyFromDomain(input.domain)
+  const queries = [
+    `"${company}" "${input.domain}" site:linkedin.com/company`,
+    `"${company}" site:linkedin.com/company`,
+    `"${company}" founder site:linkedin.com/in`,
+  ]
+
+  for (const query of queries) {
+    try {
+      const url = new URL('https://www.bing.com/search')
+      url.searchParams.set('q', query)
+      url.searchParams.set('setlang', 'en-US')
+      url.searchParams.set('ensearch', '1')
+      const response = await fetch(url, {
+        headers: {
+          accept: 'text/html,application/xhtml+xml',
+          'accept-language': 'en-US,en;q=0.8',
+          'user-agent': 'SovereignEngineLinkedInAccountLookup/1.0',
+        },
+        cache: 'no-store',
+        signal: AbortSignal.timeout(LINKEDIN_LOOKUP_TIMEOUT_MS),
+      })
+      if (!response.ok) continue
+      const html = await response.text()
+      const [accountUrl] = extractExactLinkedInAccountsFromHtml(html)
+      if (accountUrl) return accountUrl
+    } catch {
+      // Public lookup is best-effort; never block email discovery on it.
+    }
+  }
+
+  return ''
+}
+
 
 function firstNameFromName(name: string, email: string): string {
   const first = name.split(/\s+/)[0]?.trim()
@@ -181,7 +334,7 @@ function offerLabel(offerType: SovereignOfferType): string {
 
 function linkedinUrlForContact(contact: Contact): string {
   const custom = contactCustom(contact)
-  return pickCustom(
+  const raw = pickCustom(
     custom,
     'linkedin_url',
     'linkedin',
@@ -190,6 +343,8 @@ function linkedinUrlForContact(contact: Contact): string {
     'company_linkedin_url',
     'profile_url'
   )
+  const url = safeUrl(raw)
+  return url && isExactLinkedInAccountUrl(url) ? url : ''
 }
 
 function websiteForContact(contact: Contact): string {
@@ -204,11 +359,6 @@ function websiteForContact(contact: Contact): string {
 function evidenceForContact(contact: Contact): string {
   const custom = contactCustom(contact)
   return pickCustom(custom, 'public_evidence_url', 'research_evidence_url', 'hunter_source_proof_url', 'source_url')
-}
-
-function linkedinSearchUrl(name: string, company: string, title: string): string {
-  const keywords = normalizeWhitespace([name, title, company].filter(Boolean).join(' '))
-  return `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(keywords || company || name || 'founder')}`
 }
 
 function closingReason(contact: Contact, offerType: SovereignOfferType, closeScore: number): string {
@@ -266,6 +416,7 @@ function closeScoreForContact(contact: Contact): number {
   let score = sovereignClientIntentScore(lead)
 
   if (offerType === 'agency') score += 8
+  score += targetMarketScoreBonus(contact.email, contact.company_domain, contact.company, contact.title, contact.source, custom)
   if (linkedinUrlForContact(contact)) score += 5
   if (websiteForContact(contact)) score += 3
   if (evidenceForContact(contact)) score += 4
@@ -283,7 +434,7 @@ export function dailyLinkedInDmTarget(): number {
   return Math.max(MINIMUM_DAILY_DM_TARGET, Math.min(100, Math.trunc(raw)))
 }
 
-export function contactToLinkedInDeskLead(contact: Contact): LinkedInDeskLead {
+export function contactToLinkedInDeskAccount(contact: Contact): LinkedInDeskAccount {
   const lead = contactToLead(contact)
   const offerType = inferSovereignOfferType(lead)
   const closeScore = closeScoreForContact(contact)
@@ -308,7 +459,6 @@ export function contactToLinkedInDeskLead(contact: Contact): LinkedInDeskLead {
     dealValueGbp: sovereignDealValueGbp(lead),
     closeScore,
     linkedinUrl: linkedinUrlForContact(contact),
-    linkedinSearchUrl: linkedinSearchUrl(name, company, title),
     websiteUrl: websiteForContact(contact),
     evidenceUrl: evidenceForContact(contact),
     dmStatus: asString(custom.linkedin_dm_status, 'new'),
@@ -324,29 +474,29 @@ export function contactToLinkedInDeskLead(contact: Contact): LinkedInDeskLead {
 export function buildLinkedInDeskQueue(
   contacts: Contact[],
   dailyTarget = dailyLinkedInDmTarget()
-): { queue: LinkedInDeskLead[]; summary: LinkedInDeskSummary } {
+): { queue: LinkedInDeskAccount[]; summary: LinkedInDeskSummary } {
   const candidates = contacts
     .filter((contact) => contact.status === 'active')
-    .map((contact) => ({ contact, lead: contactToLead(contact) }))
-    .filter(({ contact }) => asString(contactCustom(contact).linkedin_dm_status) !== 'blocked')
+    .filter((contact) =>
+      isTargetPayingMarketLead({
+        email: contact.email,
+        domain: contact.company_domain,
+        company: contact.company,
+        title: contact.title,
+        source: contact.source,
+        customFields: contact.custom_fields,
+      })
+    )
+    .map(contactToLinkedInDeskAccount)
+    .filter((account) => account.dmStatus !== 'blocked')
+    .filter((account) => Boolean(account.linkedinUrl))
 
-  const selectedContacts = balanceSovereignOfferMix(
-    candidates.map(({ contact, lead }) => ({ ...lead, contact })),
-    dailyTarget,
-    {
-      allowRemainderFill: true,
-      preferredOfferType: 'agency',
-      preferredSlots: Math.ceil(dailyTarget * 0.6),
-    }
-  ).map((candidate) => candidate.contact)
-
-  const queue = selectedContacts
-    .map(contactToLinkedInDeskLead)
+  const queue = candidates
     .sort((a, b) => b.closeScore - a.closeScore || b.dealValueGbp - a.dealValueGbp)
     .slice(0, dailyTarget)
 
-  const agencyCount = queue.filter((lead) => lead.offerType === 'agency').length
-  const directCount = queue.filter((lead) => lead.offerType === 'direct').length
+  const agencyCount = queue.filter((account) => account.offerType === 'agency').length
+  const directCount = queue.filter((account) => account.offerType === 'direct').length
   const topMotion =
     agencyCount >= Math.ceil(queue.length * 0.55)
       ? 'white_label_first'
@@ -398,6 +548,7 @@ function isUsableBusinessEmail(email: string): boolean {
 
   const [local, domain] = validation.normalized.split('@')
   if (!local || !domain) return false
+  if (PERSONAL_EMAIL_DOMAINS.has(domain)) return false
   if (/\.(png|jpg|jpeg|gif|webp|svg|css|js|ico|pdf)$/i.test(domain)) return false
   if (/(example|domain|test)\.(com|org|net)$/i.test(domain)) return false
   if (['noreply', 'no-reply', 'donotreply', 'do-not-reply', 'postmaster', 'abuse'].includes(local)) {
@@ -406,11 +557,28 @@ function isUsableBusinessEmail(email: string): boolean {
   return true
 }
 
-function extractEmails(html: string): string[] {
+function extractEmails(html: string, expectedDomain = ''): string[] {
   const decoded = decodeEmailText(html)
   const matches = decoded.match(EMAIL_RE) ?? []
   const emails = matches.map(cleanEmail).filter(isUsableBusinessEmail)
-  return Array.from(new Set(emails))
+  const unique = Array.from(new Set(emails))
+  const normalizedExpectedDomain = expectedDomain.toLowerCase().replace(/^www\./, '')
+  return unique.sort((a, b) => {
+    const aDomain = a.split('@')[1] ?? ''
+    const bDomain = b.split('@')[1] ?? ''
+    const aAligned = normalizedExpectedDomain && aDomain === normalizedExpectedDomain ? 1 : 0
+    const bAligned = normalizedExpectedDomain && bDomain === normalizedExpectedDomain ? 1 : 0
+    return bAligned - aAligned || emailRolePriority(a) - emailRolePriority(b)
+  })
+}
+
+function emailRolePriority(email: string): number {
+  const local = email.split('@')[0] ?? ''
+  if (/^(founder|ceo|owner|partner|partners|partnerships|business|bd|growth|sales|hello|contact|team)$/i.test(local)) {
+    return 0
+  }
+  if (/^(info|marketing|inquiries|inquiry)$/i.test(local)) return 1
+  return 2
 }
 
 function targetUrls(baseUrl: string): string[] {
@@ -423,6 +591,116 @@ function targetUrls(baseUrl: string): string[] {
     return url.toString()
   })
   return Array.from(new Set(urls))
+}
+
+function resolvePublicLink(baseUrl: string, href: string): string {
+  const trimmed = trimUrlNoise(href.replace(/&amp;/gi, '&'))
+  if (!trimmed || trimmed.startsWith('#') || /^(mailto|tel|javascript):/i.test(trimmed)) return ''
+  try {
+    const base = new URL(baseUrl)
+    const url = new URL(trimmed, base)
+    if (!['http:', 'https:'].includes(url.protocol)) return ''
+    if (url.hostname.replace(/^www\./i, '').toLowerCase() !== base.hostname.replace(/^www\./i, '').toLowerCase()) {
+      return ''
+    }
+    url.hash = ''
+    return url.toString()
+  } catch {
+    return ''
+  }
+}
+
+function extractHighValueLinks(baseUrl: string, html: string): string[] {
+  const links = Array.from(html.matchAll(/href=["']([^"']+)["']/gi))
+    .map((match) => resolvePublicLink(baseUrl, String(match[1] || '')))
+    .filter((url) => url && HIGH_VALUE_LINK_RE.test(url))
+    .slice(0, MAX_DISCOVERED_LINKS_PER_SOURCE)
+  return Array.from(new Set(links))
+}
+
+function extractSitemapUrls(baseUrl: string, sitemap: string): string[] {
+  const explicit = Array.from(sitemap.matchAll(/<loc>\s*([^<]+)\s*<\/loc>/gi))
+    .map((match) => resolvePublicLink(baseUrl, String(match[1] || '')))
+  const loose = Array.from(sitemap.matchAll(/https?:\/\/[^\s<>"']+/gi))
+    .map((match) => resolvePublicLink(baseUrl, String(match[0] || '')))
+  return Array.from(new Set([...explicit, ...loose].filter((url) => url && HIGH_VALUE_LINK_RE.test(url)))).slice(
+    0,
+    MAX_PUBLIC_PAGES_PER_TARGET
+  )
+}
+
+function extractPhoneNumbers(text: string): string[] {
+  const decoded = decodeEmailText(text)
+  const matches = decoded.match(/(?:\+\d{1,3}[\s.-]?)?(?:\(?\d{2,4}\)?[\s.-]?){2,5}\d{2,4}/g) ?? []
+  return Array.from(
+    new Set(
+      matches
+        .map((value) => normalizeWhitespace(value))
+        .filter((value) => value.replace(/\D/g, '').length >= 8)
+        .slice(0, 5)
+    )
+  )
+}
+
+function publicSignalsFromHtml(html: string): string[] {
+  return PUBLIC_SIGNAL_PATTERNS
+    .filter(([pattern]) => pattern.test(html))
+    .map(([, signal]) => signal)
+}
+
+function summarizeEvidence(input: {
+  company: string
+  domain: string
+  sourceUrl: string
+  publicSignals: string[]
+  email: string
+  discoveredPages: number
+}): string {
+  const role = contactRoleFromEmail(input.email)
+  const signals = input.publicSignals.slice(0, 3).join(', ') || 'public business evidence'
+  return `${input.company} (${input.domain}) exposed ${role} on public pages. Signals: ${signals}. Checked ${input.discoveredPages} public pages; strongest proof: ${input.sourceUrl}.`
+}
+
+function contactRoleFromEmail(email: string): string {
+  const local = email.split('@')[0] ?? ''
+  if (/founder|ceo|owner/i.test(local)) return 'founder/operator mailbox'
+  if (/partner|bd|business/i.test(local)) return 'partnership/business mailbox'
+  if (/sales|growth|revenue/i.test(local)) return 'sales/growth mailbox'
+  if (/hello|team|contact|info/i.test(local)) return 'company contact mailbox'
+  return 'business mailbox'
+}
+
+function confidenceForScrape(input: {
+  email: string
+  targetDomain: string
+  sourceUrl: string
+  publicSignals: string[]
+}): 'high' | 'medium' | 'low' {
+  const emailDomain = input.email.split('@')[1] ?? ''
+  const aligned = emailDomain === input.targetDomain
+  const highValuePage = HIGH_VALUE_LINK_RE.test(input.sourceUrl)
+  if (aligned && highValuePage && input.publicSignals.length > 0) return 'high'
+  if (aligned || input.publicSignals.length > 1) return 'medium'
+  return 'low'
+}
+
+async function collectPublicEvidenceUrls(baseUrl: string): Promise<string[]> {
+  const seeds = targetUrls(baseUrl)
+  const discovered = new Set<string>(seeds)
+
+  for (const sitemapPath of SITEMAP_PATHS) {
+    const sitemapUrl = new URL(baseUrl)
+    sitemapUrl.pathname = sitemapPath
+    sitemapUrl.search = ''
+    sitemapUrl.hash = ''
+    const sitemap = await fetchText(sitemapUrl.toString())
+    for (const url of extractSitemapUrls(baseUrl, sitemap)) discovered.add(url)
+  }
+
+  const home = await fetchText(baseUrl)
+  for (const url of extractHighValueLinks(baseUrl, home)) discovered.add(url)
+
+  return Array.from(discovered).slice(0, MAX_PUBLIC_PAGES_PER_TARGET)
 }
 
 async function fetchText(url: string): Promise<string> {
@@ -461,23 +739,34 @@ export function parsePublicEmailTargets(input: string): PublicEmailScrapeRespons
 
   for (const raw of lines) {
     const linkedinUrl = safeUrl((raw.match(LINKEDIN_URL_RE) ?? [])[0] ?? '')
+    const exactLinkedinUrl = normalizeExactLinkedInAccountUrl(linkedinUrl)
     const urls = raw.match(URL_RE) ?? []
     const websiteUrl = urls
       .map(safeUrl)
       .find((url) => url && !isLinkedInUrl(url))
 
     if (!websiteUrl) {
-      rejected.push({ raw, reason: linkedinUrl ? 'linkedin_only_needs_public_company_site' : 'no_public_website_url' })
+      rejected.push({ raw, reason: exactLinkedinUrl ? 'linkedin_only_needs_public_company_site' : 'no_public_website_url_or_exact_linkedin_account' })
       continue
     }
-
     const domain = hostDomain(websiteUrl)
+    if (
+      !isTargetPayingMarketLead({
+        domain,
+        company: raw,
+        source: raw,
+        customFields: { website_url: websiteUrl, linkedin_url: exactLinkedinUrl },
+      })
+    ) {
+      rejected.push({ raw, reason: 'not_target_paying_market_or_india_signal' })
+      continue
+    }
     if (!domain || seen.has(domain)) continue
     seen.add(domain)
     targets.push({
       raw,
       websiteUrl,
-      linkedinUrl,
+      linkedinUrl: exactLinkedinUrl,
       domain,
       company: companyFromDomain(domain),
     })
@@ -495,20 +784,39 @@ export async function scrapePublicBusinessEmails(
   const seenEmails = new Set<string>()
 
   for (const target of parsed.targets) {
-    for (const url of targetUrls(target.websiteUrl)) {
+    const exactLinkedinUrl =
+      target.linkedinUrl || (await findExactLinkedInAccountUrl({ company: target.company, domain: target.domain }))
+    if (!exactLinkedinUrl) {
+      parsed.rejected.push({ raw: target.raw, reason: 'missing_exact_linkedin_account_url' })
+      continue
+    }
+
+    const evidenceUrls = await collectPublicEvidenceUrls(target.websiteUrl)
+    const targetSignals = new Set<string>()
+    const targetPhones = new Set<string>()
+
+    for (const url of evidenceUrls) {
       const html = await fetchText(url)
       if (!html) continue
+      publicSignalsFromHtml(html).forEach((signal) => targetSignals.add(signal))
+      extractPhoneNumbers(html).forEach((phone) => targetPhones.add(phone))
 
-      for (const email of extractEmails(html)) {
+      for (const email of extractEmails(html, target.domain)) {
         if (seenEmails.has(email)) continue
+        if ((email.split('@')[1] ?? '') !== target.domain) continue
         seenEmails.add(email)
+        const publicSignals = Array.from(targetSignals)
         const offerType =
           offerMode === 'auto'
             ? inferSovereignOfferType({
                 company: target.company,
                 companyDomain: target.domain,
                 source: target.raw,
-                customFields: { source_url: target.websiteUrl, linkedin_url: target.linkedinUrl },
+                customFields: {
+                  source_url: target.websiteUrl,
+                  linkedin_url: exactLinkedinUrl,
+                  public_signals: publicSignals,
+                },
               })
             : offerMode
         found.push({
@@ -516,8 +824,26 @@ export async function scrapePublicBusinessEmails(
           domain: email.split('@')[1] ?? target.domain,
           company: target.company,
           sourceUrl: url,
-          linkedinUrl: target.linkedinUrl,
+          linkedinUrl: exactLinkedinUrl,
           offerType,
+          confidence: confidenceForScrape({
+            email,
+            targetDomain: target.domain,
+            sourceUrl: url,
+            publicSignals,
+          }),
+          contactRole: contactRoleFromEmail(email),
+          evidenceSummary: summarizeEvidence({
+            company: target.company,
+            domain: target.domain,
+            sourceUrl: url,
+            publicSignals,
+            email,
+            discoveredPages: evidenceUrls.length,
+          }),
+          publicSignals,
+          phoneNumbers: Array.from(targetPhones).slice(0, 5),
+          discoveredPages: evidenceUrls.length,
         })
         if (found.filter((result) => result.domain === target.domain).length >= MAX_EMAILS_PER_TARGET) break
       }

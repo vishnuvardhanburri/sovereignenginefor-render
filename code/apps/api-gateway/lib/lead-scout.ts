@@ -1,5 +1,10 @@
 import { resolveMx } from 'node:dns/promises'
 import type { ContactInput } from '@/lib/backend'
+import {
+  isTargetPayingMarketLead,
+  normalizePayingMarketRegion,
+  targetMarketScoreBonus,
+} from '@/lib/target-market'
 
 export type LeadScoutIndustry =
   | 'saas'
@@ -258,7 +263,10 @@ function normalizePersona(input?: string): LeadScoutPersona {
 }
 
 function normalizeRegion(input?: string): string {
-  return String(input || 'global').trim().toLowerCase()
+  const value = normalizePayingMarketRegion(input).trim().toLowerCase()
+  if (/united states|usa|u\.s\.|\bus\b|america/.test(value)) return 'us'
+  if (/europe|eu|united kingdom|\buk\b|germany|netherlands|france|sweden|norway|denmark/.test(value)) return 'eu'
+  return 'global'
 }
 
 function clampLimit(value?: number): number {
@@ -274,10 +282,21 @@ function clampOffset(value?: number): number {
 }
 
 function scoreSeed(seed: CompanySeed, industry: LeadScoutIndustry, region: string): number {
+  if (
+    !isTargetPayingMarketLead({
+      domain: seed.domain,
+      company: seed.company,
+      region: seed.region,
+      customFields: { signals: seed.signals.join(' ') },
+    })
+  ) {
+    return 0
+  }
   let score = seed.industries.includes(industry) ? 76 : 45
   if (seed.region === region) score += 10
   if (seed.region === 'global') score += 8
   if (seed.industries.length > 1) score += 4
+  score += targetMarketScoreBonus(seed.company, seed.domain, seed.region, seed.signals.join(' '))
   return Math.min(score, 98)
 }
 
@@ -764,6 +783,14 @@ export function scoutOpenLeads(input: LeadScoutRequest = {}): {
 
   const rankedSeeds = COMPANY_SEEDS
     .filter((seed) => seed.industries.includes(industry) || industry === 'saas')
+    .filter((seed) =>
+      isTargetPayingMarketLead({
+        domain: seed.domain,
+        company: seed.company,
+        region: seed.region,
+        customFields: { signals: seed.signals.join(' ') },
+      })
+    )
     .map((seed) => ({
       seed,
       fitScore: scoreSeed(seed, industry, region),
@@ -817,6 +844,8 @@ export function leadScoutToContacts(leads: OpenLead[]): ContactInput[] {
       data_source: 'owned_open_lead_graph',
       email_evidence: lead.emailEvidence ?? 'synthetic_role_pattern',
       lead_scout: true,
+      target_market: true,
+      target_region: 'us_foreign_paying_market',
       fit_score: lead.fitScore,
       confidence: lead.confidence,
       reason_to_contact: lead.reason,

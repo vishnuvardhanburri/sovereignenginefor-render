@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { importContacts } from '@/lib/backend'
 import { resolveClientId } from '@/lib/client-context'
 import { leadScoutToContacts, scoutOpenLeads, verifyOpenLeadEvidenceTimeboxed } from '@/lib/lead-scout'
+import { normalizePayingMarketRegion } from '@/lib/target-market'
 
 export const dynamic = 'force-dynamic'
 
@@ -73,7 +74,9 @@ export async function GET(request: NextRequest) {
 
     const result = scoutOpenLeads({
       industry: request.nextUrl.searchParams.get('industry') || pickIndustry(),
-      region: request.nextUrl.searchParams.get('region') || process.env.LEAD_SCOUT_REGION || 'global',
+      region: normalizePayingMarketRegion(
+        request.nextUrl.searchParams.get('region') || process.env.LEAD_SCOUT_REGION || 'United States'
+      ),
       persona: request.nextUrl.searchParams.get('persona') || process.env.LEAD_SCOUT_PERSONA || 'founder',
       limit,
       offset,

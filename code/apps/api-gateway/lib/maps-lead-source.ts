@@ -1,4 +1,9 @@
 import type { ContactInput } from './backend'
+import {
+  isTargetPayingMarketLead,
+  targetMarketSearchRegions,
+  targetMarketScoreBonus,
+} from '@/lib/target-market'
 
 export type MapsLeadRejected = {
   row: number
@@ -138,16 +143,7 @@ const DEFAULT_HYBRID_MAPS_SEARCHES = [
   'enterprise sales consulting',
 ]
 
-const DEFAULT_HYBRID_MARKETS = [
-  'United States',
-  'Canada',
-  'United Kingdom',
-  'Australia',
-  'India',
-  'Singapore',
-  'United Arab Emirates',
-  'Germany',
-]
+const DEFAULT_HYBRID_MARKETS = targetMarketSearchRegions()
 
 function asString(value: unknown): string {
   return typeof value === 'string' ? value.trim() : ''
@@ -323,6 +319,7 @@ function fitScoreFor(input: {
   if (input.industry && input.categories.toLowerCase().includes(input.industry.toLowerCase())) {
     score += 4
   }
+  score += targetMarketScoreBonus(input.categories, input.industry)
   return Math.max(50, Math.min(score, 98))
 }
 
@@ -379,6 +376,14 @@ export function prepareMapsLeadContacts(
     const evidenceUrl = website || placeUrl
     const websiteDomain = website ? hostnameFromUrl(website) : ''
     const categories = categoryText(item)
+    const location = [
+      pickFirst(item, ['city', 'addressCity']),
+      pickFirst(item, ['state', 'addressState', 'region']),
+      pickFirst(item, ['country', 'addressCountry']),
+      pickFirst(item, ['address', 'street', 'fullAddress']),
+    ]
+      .filter(Boolean)
+      .join(' ')
 
     for (const email of emails) {
       if (contacts.length >= limit) break
@@ -402,6 +407,20 @@ export function prepareMapsLeadContacts(
       const [mailbox = '', emailDomain = ''] = email.split('@')
       const companyDomain = websiteDomain || emailDomain
       const alignedWebsite = websiteDomain ? domainsAlign(emailDomain, websiteDomain) : false
+
+      if (
+        !isTargetPayingMarketLead({
+          email,
+          domain: companyDomain,
+          company,
+          source: evidenceUrl,
+          region: opts?.region || location,
+          customFields: { categories, location },
+        })
+      ) {
+        rejected.push({ row, email, reason: 'not_tier1_paying_market_or_india_signal' })
+        continue
+      }
 
       if (websiteDomain && !alignedWebsite) {
         rejected.push({ row, email, reason: 'email_domain_mismatch' })
@@ -448,6 +467,8 @@ export function prepareMapsLeadContacts(
           maps_address: pickFirst(item, ['address', 'street', 'fullAddress']) || null,
           maps_category: categories || null,
           maps_region: opts?.region || null,
+          target_market: true,
+          target_region: 'us_foreign_paying_market',
           fit_score: fitScore,
           confidence: alignedWebsite ? 'high' : 'medium',
           reason_to_contact: reasonToContact,

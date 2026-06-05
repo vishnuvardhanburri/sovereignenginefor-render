@@ -38,7 +38,7 @@ type OfferType = 'agency' | 'direct'
 type OfferFilter = 'all' | OfferType
 type OfferMode = 'auto' | OfferType
 
-type LinkedInDeskLead = {
+type LinkedInDeskAccount = {
   id: number
   email: string
   name: string
@@ -52,7 +52,6 @@ type LinkedInDeskLead = {
   dealValueGbp: number
   closeScore: number
   linkedinUrl: string
-  linkedinSearchUrl: string
   websiteUrl: string
   evidenceUrl: string
   dmStatus: string
@@ -77,7 +76,7 @@ type LinkedInDeskSummary = {
 }
 
 type LinkedInDeskResponse = {
-  queue: LinkedInDeskLead[]
+  queue: LinkedInDeskAccount[]
   summary: LinkedInDeskSummary
 }
 
@@ -88,6 +87,12 @@ type ScrapeResult = {
   sourceUrl: string
   linkedinUrl: string
   offerType: OfferType
+  confidence: 'high' | 'medium' | 'low'
+  contactRole: string
+  evidenceSummary: string
+  publicSignals: string[]
+  phoneNumbers: string[]
+  discoveredPages: number
 }
 
 type ScrapeResponse = {
@@ -98,7 +103,7 @@ type ScrapeResponse = {
   importFound: boolean
 }
 
-const EMPTY_QUEUE: LinkedInDeskLead[] = []
+const EMPTY_QUEUE: LinkedInDeskAccount[] = []
 
 async function fetchLinkedInDesk(): Promise<LinkedInDeskResponse> {
   const response = await fetch('/api/linkedin-desk', { cache: 'no-store' })
@@ -189,10 +194,10 @@ export default function LinkedInDeskPage() {
         body: JSON.stringify({ contactId: selectedLead.id, action }),
       })
       if (!response.ok) throw new Error('Action failed')
-      toast.success(action === 'dm_sent' ? 'DM marked sent' : 'Lead updated')
+      toast.success(action === 'dm_sent' ? 'DM marked sent' : 'Client account updated')
       await refetch()
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to update lead')
+      toast.error(error instanceof Error ? error.message : 'Failed to update client account')
     } finally {
       setIsMarking(false)
     }
@@ -228,7 +233,7 @@ export default function LinkedInDeskPage() {
         <div>
           <h1 className="text-3xl font-bold">LinkedIn DM Desk</h1>
           <p className="text-muted-foreground">
-            Daily manual close queue for Xavira Control Stack: LinkedIn DM, email fallback, and public email discovery.
+            Daily 34-client Tier-1 100-score account queue for Xavira Control Stack: one-hour personalization, exact LinkedIn account DM, email fallback, and public email discovery.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -250,9 +255,9 @@ export default function LinkedInDeskPage() {
           <CardContent className="p-5">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <p className="text-sm text-muted-foreground">Today DM queue</p>
+                <p className="text-sm text-muted-foreground">Today 100-score clients</p>
                 <p className="text-2xl font-bold text-emerald-400">
-                  {summary?.queueCount ?? 0}/{summary?.dailyTarget ?? 24}
+                  {summary?.queueCount ?? 0}/{summary?.dailyTarget ?? 34}
                 </p>
               </div>
               <Send className="h-5 w-5 text-emerald-400" />
@@ -263,7 +268,7 @@ export default function LinkedInDeskPage() {
         <Card className="border-purple-500/20 bg-purple-500/[0.03]">
           <CardContent className="flex items-center justify-between p-5">
             <div>
-              <p className="text-sm text-muted-foreground">White-label targets</p>
+              <p className="text-sm text-muted-foreground">White-label clients</p>
               <p className="text-2xl font-bold text-purple-400">{summary?.agencyCount ?? 0}</p>
               <p className="text-xs text-muted-foreground">£160,000 license motion</p>
             </div>
@@ -273,7 +278,7 @@ export default function LinkedInDeskPage() {
         <Card className="border-blue-500/20 bg-blue-500/[0.03]">
           <CardContent className="flex items-center justify-between p-5">
             <div>
-              <p className="text-sm text-muted-foreground">Internal targets</p>
+              <p className="text-sm text-muted-foreground">Internal clients</p>
               <p className="text-2xl font-bold text-blue-400">{summary?.directCount ?? 0}</p>
               <p className="text-xs text-muted-foreground">£40,000 license motion</p>
             </div>
@@ -284,8 +289,8 @@ export default function LinkedInDeskPage() {
           <CardContent className="p-5">
             <p className="text-sm text-muted-foreground">Close priority</p>
             <p className="mt-2 text-lg font-semibold leading-tight">{summary?.topMotionLabel ?? 'Loading close motion'}</p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              {summary?.availableCount ?? 0} available prospects before today exclusions
+              <p className="mt-1 text-xs text-muted-foreground">
+              1 hour/client research mode - {summary?.availableCount ?? 0} exact LinkedIn accounts before today exclusions
             </p>
           </CardContent>
         </Card>
@@ -294,9 +299,9 @@ export default function LinkedInDeskPage() {
       {summary && summary.shortfall > 0 ? (
         <Alert className="border-amber-500/30 bg-amber-500/[0.04]">
           <Target className="h-4 w-4 text-amber-400" />
-          <AlertTitle>Queue shortfall: {summary.shortfall} more LinkedIn targets needed</AlertTitle>
+          <AlertTitle>Queue shortfall: {summary.shortfall} more exact LinkedIn client accounts needed</AlertTitle>
           <AlertDescription>
-            Scrape/import more public company emails below or add prospects until the daily queue reaches at least {summary.minimumDailyTarget}.
+            Add Tier-1 client accounts with exact LinkedIn URLs until the daily research queue reaches {summary.minimumDailyTarget} high-score accounts.
           </AlertDescription>
         </Alert>
       ) : null}
@@ -308,7 +313,7 @@ export default function LinkedInDeskPage() {
               <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 className="pl-9"
-                placeholder="Search company, person, email, title..."
+                placeholder="Search client account, person, email, title..."
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
               />
@@ -318,7 +323,7 @@ export default function LinkedInDeskPage() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All close motions</SelectItem>
+                <SelectItem value="all">All client motions</SelectItem>
                 <SelectItem value="agency">£160k white-label</SelectItem>
                 <SelectItem value="direct">£40k internal</SelectItem>
               </SelectContent>
@@ -330,7 +335,7 @@ export default function LinkedInDeskPage() {
       <div className="grid gap-6 xl:grid-cols-[minmax(360px,0.9fr)_minmax(0,1.1fr)]">
         <Card>
           <CardHeader>
-            <CardTitle>Ranked manual DM queue</CardTitle>
+            <CardTitle>Ranked 100-score client queue</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             {isLoading ? (
@@ -357,20 +362,20 @@ export default function LinkedInDeskPage() {
                     </div>
                     <div className="text-right">
                       <p className="text-sm font-semibold">{lead.closeScore}</p>
-                      <p className="text-xs text-muted-foreground">score</p>
+                      <p className="text-xs text-muted-foreground">/100</p>
                     </div>
                   </div>
                   <div className="mt-3 flex flex-wrap items-center gap-2">
                     <Badge className={offerBadgeClass(lead.offerType)}>{lead.offerLabel}</Badge>
                     <Badge variant="outline">{money(lead.dealValueGbp)}</Badge>
-                    {lead.linkedinUrl ? <Badge variant="outline">profile</Badge> : <Badge variant="outline">search</Badge>}
+                    <Badge variant="outline">exact LinkedIn</Badge>
                     {lead.websiteUrl ? <Badge variant="outline">{shortUrl(lead.websiteUrl)}</Badge> : null}
                   </div>
                 </button>
               ))
             ) : (
               <div className="rounded-md border border-dashed p-8 text-center text-sm text-muted-foreground">
-                No LinkedIn targets match this filter.
+                No exact LinkedIn client accounts match this filter.
               </div>
             )}
           </CardContent>
@@ -396,19 +401,19 @@ export default function LinkedInDeskPage() {
                     </div>
                     <div className="rounded-md border px-4 py-3 text-center">
                       <p className="text-2xl font-bold">{selectedLead.closeScore}</p>
-                      <p className="text-xs text-muted-foreground">close score</p>
+                      <p className="text-xs text-muted-foreground">client score /100</p>
                     </div>
                   </div>
 
                   <div className="grid gap-3 md:grid-cols-2">
                     <Button asChild variant="outline">
                       <a
-                        href={selectedLead.linkedinUrl || selectedLead.linkedinSearchUrl}
+                        href={selectedLead.linkedinUrl}
                         target="_blank"
                         rel="noreferrer"
                       >
                         <Linkedin />
-                        {selectedLead.linkedinUrl ? 'Open LinkedIn' : 'Search LinkedIn'}
+                        Open Exact LinkedIn
                         <ExternalLink />
                       </a>
                     </Button>
@@ -464,7 +469,7 @@ export default function LinkedInDeskPage() {
 
                   <div className="grid gap-4 text-sm md:grid-cols-2">
                     <div className="rounded-md border p-4">
-                      <p className="font-medium">Why this lead</p>
+                      <p className="font-medium">Why this client account</p>
                       <p className="mt-2 text-muted-foreground">{selectedLead.reason}</p>
                     </div>
                     <div className="rounded-md border p-4">
@@ -479,7 +484,7 @@ export default function LinkedInDeskPage() {
                 </>
               ) : (
                 <div className="rounded-md border border-dashed p-8 text-center text-sm text-muted-foreground">
-                  Build/import prospects to create today&apos;s manual LinkedIn close queue.
+                  Add Tier-1 client accounts with exact LinkedIn URLs to create today&apos;s manual close queue.
                 </div>
               )}
             </CardContent>
@@ -492,7 +497,7 @@ export default function LinkedInDeskPage() {
             <CardContent className="space-y-4">
               <Textarea
                 className="min-h-32 font-mono text-sm"
-                placeholder="Paste one company website per line. LinkedIn URLs can be included on the same line, but scraping uses the public company site."
+                placeholder="Paste one Tier-1 client account per line: exact LinkedIn /in or /company URL plus public company website. The scraper checks public contact/about/team/sales/sitemap pages only."
                 value={targets}
                 onChange={(event) => setTargets(event.target.value)}
               />
@@ -523,7 +528,7 @@ export default function LinkedInDeskPage() {
               {scrapeResult ? (
                 <div className="space-y-3">
                   <div className="flex flex-wrap gap-2">
-                    <Badge variant="outline">{scrapeResult.targets.length} targets scanned</Badge>
+                    <Badge variant="outline">{scrapeResult.targets.length} client accounts scanned</Badge>
                     <Badge variant="outline">{scrapeResult.found.length} emails found</Badge>
                     <Badge variant="outline">{scrapeResult.imported} imported</Badge>
                     {scrapeResult.rejected.length ? <Badge variant="outline">{scrapeResult.rejected.length} rejected</Badge> : null}
@@ -531,16 +536,21 @@ export default function LinkedInDeskPage() {
                   <div className="max-h-72 overflow-y-auto rounded-md border">
                     {scrapeResult.found.length > 0 ? (
                       scrapeResult.found.map((result) => (
-                        <div key={`${result.email}-${result.sourceUrl}`} className="flex flex-col gap-2 border-b p-3 last:border-b-0 md:flex-row md:items-center md:justify-between">
+                        <div key={`${result.email}-${result.sourceUrl}`} className="flex flex-col gap-2 border-b p-3 last:border-b-0 md:flex-row md:items-start md:justify-between">
                           <div className="min-w-0">
                             <p className="truncate font-medium">{result.email}</p>
                             <p className="truncate text-xs text-muted-foreground">
-                              {result.company} - {shortUrl(result.sourceUrl)}
+                              {result.company} - {result.contactRole} - {shortUrl(result.sourceUrl)}
                             </p>
+                            <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{result.evidenceSummary}</p>
                           </div>
-                          <Badge className={offerBadgeClass(result.offerType)}>
-                            {result.offerType === 'agency' ? '£160k white-label' : '£40k internal'}
-                          </Badge>
+                          <div className="flex flex-wrap gap-2 md:justify-end">
+                            <Badge className={offerBadgeClass(result.offerType)}>
+                              {result.offerType === 'agency' ? '£160k white-label' : '£40k internal'}
+                            </Badge>
+                            <Badge variant="outline">{result.confidence}</Badge>
+                            <Badge variant="outline">{result.discoveredPages} pages</Badge>
+                          </div>
                         </div>
                       ))
                     ) : (

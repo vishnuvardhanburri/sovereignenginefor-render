@@ -1,5 +1,11 @@
 import type { ContactInput } from '@/lib/backend'
 import type { LeadScoutPersona, OpenLead } from '@/lib/lead-scout'
+import {
+  isIndiaMarketDomain,
+  isTargetPayingMarketLead,
+  normalizePayingMarketRegion,
+  targetMarketScoreBonus,
+} from '@/lib/target-market'
 
 type PublicSearchProvider = 'serpapi' | 'bing_html' | 'duckduckgo_html'
 
@@ -172,7 +178,7 @@ function normalizeIndustry(input?: string | null): string {
 }
 
 function normalizeRegion(input?: string | null): string {
-  return String(input || 'United States').trim() || 'United States'
+  return normalizePayingMarketRegion(input)
 }
 
 function glForRegion(region: string): string {
@@ -258,6 +264,7 @@ function normalizeDomainFromUrl(rawUrl: string, displayedLink?: string): string 
     if (!['http:', 'https:'].includes(url.protocol)) return null
     const hostname = url.hostname.toLowerCase().replace(/^www\./, '')
     if (!hostname || !hostname.includes('.') || /^\d+\.\d+\.\d+\.\d+$/.test(hostname)) return null
+    if (isIndiaMarketDomain(hostname)) return null
     const blocked = Array.from(BLOCKED_HOSTS).some((host) => hostname === host || hostname.endsWith(`.${host}`))
     if (blocked || BLOCKED_HOST_PATTERNS.some((pattern) => pattern.test(hostname))) return null
     if (LOW_VALUE_PATH_RE.test(url.pathname)) return null
@@ -271,6 +278,7 @@ function normalizeDomainFromUrl(rawUrl: string, displayedLink?: string): string 
         .replace(/^www\./, '')
         .split(/[/?#]/)[0]
       if (!fallback || !fallback.includes('.') || /^\d+\.\d+\.\d+\.\d+$/.test(fallback)) return null
+      if (isIndiaMarketDomain(fallback)) return null
       const blocked = Array.from(BLOCKED_HOSTS).some((host) => fallback === host || fallback.endsWith(`.${host}`))
       return blocked || BLOCKED_HOST_PATTERNS.some((pattern) => pattern.test(fallback)) ? null : fallback
     } catch {
@@ -343,6 +351,7 @@ function scoreResult(result: SerpApiOrganicResult, industry: string): number {
   if (/\b(blog|news|podcast|article|job|career)\b/i.test(text)) score -= 10
   if (/\b(what is|complete guide|best practices|ultimate guide|resources|learn|definition|introduction|tutorial|course|training|types of|explained)\b/i.test(text)) score -= 36
   if (BUSINESS_RESULT_RE.test(text)) score += 8
+  score += targetMarketScoreBonus(text)
   return Math.max(0, Math.min(score, 98))
 }
 
@@ -608,6 +617,18 @@ export async function searchPublicSearchLeads(input: PublicSearchLeadSearchInput
           rejected += 1
           continue
         }
+        if (
+          !isTargetPayingMarketLead({
+            domain,
+            company: result.title,
+            source: link,
+            region,
+            customFields: { snippet: result.snippet, displayed_link: result.displayed_link },
+          })
+        ) {
+          rejected += 1
+          continue
+        }
         if (isLowIntentSearchResult(result) || !isPublicSearchResultQualifiedForTarget(result, industry)) {
           rejected += 1
           continue
@@ -666,6 +687,7 @@ export async function searchPublicSearchLeads(input: PublicSearchLeadSearchInput
       'Public search discovers company domains only',
       'No personal email guessing',
       'Only safe company role inboxes are inferred for scored business domains',
+      'US/foreign paying markets are prioritized; India-market signals are rejected',
       'MX, provider validation, scoring, and approval gates still run before queueing',
       'Suppression, bounce, unsubscribe, and sender capacity gates remain enforced',
     ],
@@ -686,6 +708,8 @@ export function publicSearchLeadsToContacts(leads: OpenLead[]): ContactInput[] {
       email_evidence: lead.emailEvidence ?? 'synthetic_role_pattern',
       lead_scout: true,
       public_search: true,
+      target_market: true,
+      target_region: 'us_foreign_paying_market',
       fit_score: lead.fitScore,
       confidence: lead.confidence,
       reason_to_contact: lead.reason,
