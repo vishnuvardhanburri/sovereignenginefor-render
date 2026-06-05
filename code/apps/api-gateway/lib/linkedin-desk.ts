@@ -85,6 +85,20 @@ export type PublicEmailScrapeResponse = {
   rejected: Array<{ raw: string; reason: string }>
 }
 
+export type TierOneLinkedInCloseSeed = {
+  company: string
+  domain: string
+  email: string
+  linkedinUrl: string
+  websiteUrl: string
+  offerType: SovereignOfferType
+  title: string
+  region: string
+  reason: string
+  publicSignals: string[]
+  closeScore: number
+}
+
 const LINKEDIN_URL_RE = /https?:\/\/(?:[\w-]+\.)?linkedin\.com\/[^\s),]+/gi
 const URL_RE = /https?:\/\/[^\s),]+|(?:www\.)?[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+(?:\/[^\s),]*)?/gi
 const EMAIL_RE = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi
@@ -147,6 +161,76 @@ const PERSONAL_EMAIL_DOMAINS = new Set([
   'yahoo.com',
   'yandex.com',
 ])
+
+const TIER_ONE_LINKEDIN_CLOSE_SEEDS: TierOneLinkedInCloseSeed[] = [
+  seed('Directive Consulting', 'directiveconsulting.com', 'partnerships', 'https://www.linkedin.com/company/directive-consulting/', 'agency', 'RevOps / demand generation leadership', 'United States', ['B2B revenue motion', 'white-label or agency motion', 'outbound or pipeline ops']),
+  seed('KlientBoost', 'klientboost.com', 'sales', 'https://www.linkedin.com/company/klientboost/', 'agency', 'growth marketing leadership', 'United States', ['B2B revenue motion', 'white-label or agency motion']),
+  seed('Power Digital', 'powerdigitalmarketing.com', 'partnerships', 'https://www.linkedin.com/company/power-digital-marketing/', 'agency', 'client services leadership', 'United States', ['white-label or agency motion', 'public proof available']),
+  seed('SmartBug Media', 'smartbugmedia.com', 'sales', 'https://www.linkedin.com/company/smartbug-media/', 'agency', 'RevOps / HubSpot agency leadership', 'United States', ['B2B revenue motion', 'white-label or agency motion']),
+  seed('Ignite Visibility', 'ignitevisibility.com', 'sales', 'https://www.linkedin.com/company/ignite-visibility/', 'agency', 'performance marketing leadership', 'United States', ['white-label or agency motion', 'public proof available']),
+  seed('WebFX', 'webfx.com', 'sales', 'https://www.linkedin.com/company/webfxinc/', 'agency', 'enterprise client acquisition leadership', 'United States', ['B2B revenue motion', 'white-label or agency motion']),
+  seed('Single Grain', 'singlegrain.com', 'growth', 'https://www.linkedin.com/company/single-grain-llc/', 'agency', 'growth agency leadership', 'United States', ['white-label or agency motion', 'outbound or pipeline ops']),
+  seed('Belkins', 'belkins.io', 'sales', 'https://www.linkedin.com/company/belkins/', 'agency', 'B2B appointment-setting leadership', 'United States', ['outbound or pipeline ops', 'white-label or agency motion']),
+  seed('Martal Group', 'martal.ca', 'sales', 'https://www.linkedin.com/company/martal-group/', 'agency', 'B2B lead generation leadership', 'Canada', ['outbound or pipeline ops', 'white-label or agency motion']),
+  seed('SalesRoads', 'salesroads.com', 'sales', 'https://www.linkedin.com/company/salesroads/', 'agency', 'sales development leadership', 'United States', ['outbound or pipeline ops', 'B2B revenue motion']),
+  seed('EBQ', 'ebq.com', 'sales', 'https://www.linkedin.com/company/ebq/', 'agency', 'outsourced sales leadership', 'United States', ['outbound or pipeline ops', 'white-label or agency motion']),
+  seed('memoryBlue', 'memoryblue.com', 'sales', 'https://www.linkedin.com/company/memoryblue/', 'agency', 'sales development leadership', 'United States', ['outbound or pipeline ops', 'B2B revenue motion']),
+  seed('Operatix', 'operatix.net', 'sales', 'https://www.linkedin.com/company/operatix/', 'agency', 'B2B technology sales acceleration leadership', 'United Kingdom', ['outbound or pipeline ops', 'B2B revenue motion']),
+  seed('CIENCE', 'cience.com', 'sales', 'https://www.linkedin.com/company/cience/', 'agency', 'outbound operations leadership', 'United States', ['outbound or pipeline ops', 'white-label or agency motion']),
+  seed('Leadium', 'leadium.com', 'sales', 'https://www.linkedin.com/company/leadium/', 'agency', 'B2B outbound leadership', 'United States', ['outbound or pipeline ops', 'B2B revenue motion']),
+  seed('RevBoss', 'revboss.com', 'sales', 'https://www.linkedin.com/company/revboss/', 'agency', 'sales pipeline leadership', 'United States', ['outbound or pipeline ops', 'B2B revenue motion']),
+  seed('Callbox', 'callboxinc.com', 'sales', 'https://www.linkedin.com/company/callbox-inc/', 'agency', 'B2B lead generation leadership', 'United States', ['outbound or pipeline ops', 'white-label or agency motion']),
+  seed('MarketOne', 'marketone.com', 'sales', 'https://www.linkedin.com/company/marketone-international/', 'agency', 'demand generation leadership', 'United Kingdom', ['B2B revenue motion', 'white-label or agency motion']),
+  seed('DemandZEN', 'demandzen.com', 'sales', 'https://www.linkedin.com/company/demandzen/', 'agency', 'demand generation leadership', 'United States', ['outbound or pipeline ops', 'white-label or agency motion']),
+  seed('SalesHive', 'saleshive.com', 'sales', 'https://www.linkedin.com/company/saleshive/', 'agency', 'sales development leadership', 'United States', ['outbound or pipeline ops', 'B2B revenue motion']),
+  seed('Cleverly', 'cleverly.co', 'sales', 'https://www.linkedin.com/company/cleverlyagency/', 'agency', 'LinkedIn outreach agency leadership', 'United States', ['outbound or pipeline ops', 'white-label or agency motion']),
+  seed('Gong', 'gong.io', 'sales', 'https://www.linkedin.com/company/gong-io/', 'direct', 'revenue intelligence operations leadership', 'United States', ['B2B revenue motion', 'governance/security proof']),
+  seed('Salesloft', 'salesloft.com', 'sales', 'https://www.linkedin.com/company/salesloft/', 'direct', 'sales engagement leadership', 'United States', ['outbound or pipeline ops', 'B2B revenue motion']),
+  seed('Outreach', 'outreach.io', 'sales', 'https://www.linkedin.com/company/outreach-saas/', 'direct', 'sales execution platform leadership', 'United States', ['outbound or pipeline ops', 'B2B revenue motion']),
+  seed('Apollo', 'apollo.io', 'sales', 'https://www.linkedin.com/company/apolloio/', 'direct', 'go-to-market platform leadership', 'United States', ['outbound or pipeline ops', 'B2B revenue motion']),
+  seed('Clay', 'clay.com', 'sales', 'https://www.linkedin.com/company/clay-hq/', 'direct', 'growth infrastructure leadership', 'United States', ['B2B revenue motion', 'outbound or pipeline ops']),
+  seed('HubSpot', 'hubspot.com', 'sales', 'https://www.linkedin.com/company/hubspot/', 'direct', 'RevOps platform leadership', 'United States', ['B2B revenue motion', 'governance/security proof']),
+  seed('Pipedrive', 'pipedrive.com', 'sales', 'https://www.linkedin.com/company/pipedrive/', 'direct', 'CRM growth leadership', 'Europe', ['B2B revenue motion', 'outbound or pipeline ops']),
+  seed('Calendly', 'calendly.com', 'sales', 'https://www.linkedin.com/company/calendly/', 'direct', 'sales workflow leadership', 'United States', ['B2B revenue motion', 'outbound or pipeline ops']),
+  seed('Lemlist', 'lemlist.com', 'sales', 'https://www.linkedin.com/company/lemlist/', 'direct', 'outbound platform leadership', 'France', ['outbound or pipeline ops', 'email infrastructure pain']),
+  seed('Instantly', 'instantly.ai', 'sales', 'https://www.linkedin.com/company/instantlyai/', 'direct', 'outbound platform leadership', 'United States', ['outbound or pipeline ops', 'email infrastructure pain']),
+  seed('Smartlead', 'smartlead.ai', 'sales', 'https://www.linkedin.com/company/smartlead-ai/', 'direct', 'cold email infrastructure leadership', 'United States', ['outbound or pipeline ops', 'email infrastructure pain']),
+  seed('Close', 'close.com', 'sales', 'https://www.linkedin.com/company/close-com/', 'direct', 'sales CRM leadership', 'United States', ['B2B revenue motion', 'outbound or pipeline ops']),
+  seed('Attio', 'attio.com', 'sales', 'https://www.linkedin.com/company/attio/', 'direct', 'CRM infrastructure leadership', 'United Kingdom', ['B2B revenue motion', 'governance/security proof']),
+  seed('Customer.io', 'customer.io', 'sales', 'https://www.linkedin.com/company/customer-io/', 'direct', 'customer messaging infrastructure leadership', 'United States', ['B2B revenue motion', 'email infrastructure pain']),
+  seed('Intercom', 'intercom.com', 'sales', 'https://www.linkedin.com/company/intercom/', 'direct', 'customer communication platform leadership', 'United States', ['B2B revenue motion', 'governance/security proof']),
+  seed('Zendesk', 'zendesk.com', 'sales', 'https://www.linkedin.com/company/zendesk/', 'direct', 'customer operations leadership', 'United States', ['B2B revenue motion', 'governance/security proof']),
+  seed('Monday.com', 'monday.com', 'sales', 'https://www.linkedin.com/company/mondaydotcom/', 'direct', 'work management leadership', 'United States', ['B2B revenue motion', 'public proof available']),
+  seed('Notion', 'notion.so', 'sales', 'https://www.linkedin.com/company/notionhq/', 'direct', 'workspace operations leadership', 'United States', ['B2B revenue motion', 'governance/security proof']),
+  seed('Vercel', 'vercel.com', 'sales', 'https://www.linkedin.com/company/vercel/', 'direct', 'developer platform GTM leadership', 'United States', ['B2B revenue motion', 'governance/security proof']),
+]
+
+function seed(
+  company: string,
+  domain: string,
+  mailbox: string,
+  linkedinUrl: string,
+  offerType: SovereignOfferType,
+  title: string,
+  region: string,
+  publicSignals: string[]
+): TierOneLinkedInCloseSeed {
+  const signalText = publicSignals.join(', ')
+  const isAgency = offerType === 'agency'
+  return {
+    company,
+    domain,
+    email: `${mailbox}@${domain}`,
+    linkedinUrl,
+    websiteUrl: `https://${domain}`,
+    offerType,
+    title,
+    region,
+    publicSignals,
+    closeScore: isAgency ? 100 : 92,
+    reason: `${company} is a Tier-1 ${region} account with ${signalText}. Work LinkedIn first; email is a role-pattern fallback that needs verification before any send.`,
+  }
+}
 
 function asString(value: unknown, fallback = ''): string {
   return typeof value === 'string' && value.trim() ? value.trim() : fallback
@@ -414,6 +498,7 @@ function closeScoreForContact(contact: Contact): number {
   const lead = contactToLead(contact)
   const offerType = inferSovereignOfferType(lead)
   let score = sovereignClientIntentScore(lead)
+  const overrideScore = Number(custom.close_score_override)
 
   if (offerType === 'agency') score += 8
   score += targetMarketScoreBonus(contact.email, contact.company_domain, contact.company, contact.title, contact.source, custom)
@@ -424,6 +509,7 @@ function closeScoreForContact(contact: Contact): number {
   if (asString(custom.linkedin_dm_status) === 'interested') score += 15
   if (asString(custom.linkedin_dm_status) === 'skipped') score -= 25
   if (asString(custom.send_status) === 'blocked') score -= 30
+  if (Number.isFinite(overrideScore)) score = Math.max(score, overrideScore)
 
   return Math.max(0, Math.min(100, Math.round(score)))
 }
@@ -432,6 +518,11 @@ export function dailyLinkedInDmTarget(): number {
   const raw = Number(process.env.LINKEDIN_DM_DAILY_TARGET ?? DEFAULT_DAILY_DM_TARGET)
   if (!Number.isFinite(raw)) return DEFAULT_DAILY_DM_TARGET
   return Math.max(MINIMUM_DAILY_DM_TARGET, Math.min(100, Math.trunc(raw)))
+}
+
+export function tierOneLinkedInCloseSeeds(limit = dailyLinkedInDmTarget()): TierOneLinkedInCloseSeed[] {
+  const count = Math.max(MINIMUM_DAILY_DM_TARGET, Math.min(100, Math.trunc(limit)))
+  return TIER_ONE_LINKEDIN_CLOSE_SEEDS.slice(0, count)
 }
 
 export function contactToLinkedInDeskAccount(contact: Contact): LinkedInDeskAccount {
