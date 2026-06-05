@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { importContacts } from '@/lib/backend'
 import { query, queryOne } from '@/lib/db'
 import type { Contact } from '@/lib/db/types'
 import { resolveClientId } from '@/lib/client-context'
@@ -49,6 +48,103 @@ function isEligibleForToday(contact: Contact): boolean {
     String(custom.linkedin_dm_status ?? '') !== 'blocked' &&
     String(custom.linkedin_dm_last_sent_date ?? '') !== todayIsoDate()
   )
+}
+
+async function insertTierOneSeedContacts(
+  clientId: number,
+  seeds: ReturnType<typeof tierOneLinkedInCloseSeeds>
+): Promise<Contact[]> {
+  if (seeds.length === 0) return []
+
+  const emails = seeds.map((seed) => seed.email.toLowerCase())
+  const emailDomains = seeds.map((seed) => seed.email.split('@')[1] ?? seed.domain)
+  const companies = seeds.map((seed) => seed.company)
+  const companyDomains = seeds.map((seed) => seed.domain)
+  const titles = seeds.map((seed) => seed.title)
+  const sources = seeds.map(() => 'tier_one_linkedin_close_seed')
+  const customFields = seeds.map((seed) =>
+    JSON.stringify({
+      linkedin_first_seed: true,
+      close_channel: 'linkedin_manual',
+      target_market: true,
+      target_region: 'us_foreign_paying_market',
+      region: seed.region,
+      website_url: seed.websiteUrl,
+      public_evidence_url: seed.websiteUrl,
+      research_evidence_url: seed.websiteUrl,
+      linkedin_url: seed.linkedinUrl,
+      company_linkedin_url: seed.linkedinUrl,
+      linkedin_exact_account_url: seed.linkedinUrl,
+      offer_type: seed.offerType,
+      sovereign_offer_type: seed.offerType,
+      approval_required: true,
+      email_evidence: 'role_pattern_needs_public_verification',
+      contact_role: seed.title,
+      confidence: 'medium',
+      close_score_override: seed.closeScore,
+      public_signals: seed.publicSignals,
+      research_summary: seed.reason,
+      reason_to_contact: seed.reason,
+    })
+  )
+
+  const result = await query<Contact>(
+    `INSERT INTO contacts (
+       client_id,
+       email,
+       email_domain,
+       company,
+       company_domain,
+       title,
+       source,
+       custom_fields,
+       enrichment,
+       verification_status,
+       status
+     )
+     SELECT
+       $1,
+       email,
+       email_domain,
+       company,
+       company_domain,
+       title,
+       source,
+       custom_fields::jsonb,
+       '{}'::jsonb,
+       'pending',
+       'active'
+     FROM UNNEST(
+       $2::text[],
+       $3::text[],
+       $4::text[],
+       $5::text[],
+       $6::text[],
+       $7::text[],
+       $8::text[]
+     ) AS t(email, email_domain, company, company_domain, title, source, custom_fields)
+     ON CONFLICT (client_id, email) DO UPDATE
+     SET company = COALESCE(EXCLUDED.company, contacts.company),
+         company_domain = COALESCE(EXCLUDED.company_domain, contacts.company_domain),
+         title = COALESCE(EXCLUDED.title, contacts.title),
+         source = COALESCE(EXCLUDED.source, contacts.source),
+         email_domain = COALESCE(EXCLUDED.email_domain, contacts.email_domain),
+         custom_fields = COALESCE(contacts.custom_fields, '{}'::jsonb) || COALESCE(EXCLUDED.custom_fields, '{}'::jsonb),
+         updated_at = CURRENT_TIMESTAMP
+     RETURNING *`,
+    [
+      clientId,
+      emails,
+      emailDomains,
+      companies,
+      companyDomains,
+      titles,
+      sources,
+      customFields,
+    ]
+  )
+
+  return result.rows
 }
 
 async function enrichMissingExactLinkedInAccounts(input: {
@@ -146,45 +242,10 @@ async function ensureTierOneSeedInventory(input: {
     .filter((seed) => !existing.has(seed.email.toLowerCase()))
     .filter((seed) => !existing.has(seed.linkedinUrl.toLowerCase()))
     .slice(0, Math.max(shortfall, input.dailyTarget))
-    .map((seed) => ({
-      email: seed.email,
-      company: seed.company,
-      companyDomain: seed.domain,
-      title: seed.title,
-      source: 'tier_one_linkedin_close_seed',
-      customFields: {
-        linkedin_first_seed: true,
-        close_channel: 'linkedin_manual',
-        target_market: true,
-        target_region: 'us_foreign_paying_market',
-        region: seed.region,
-        website_url: seed.websiteUrl,
-        public_evidence_url: seed.websiteUrl,
-        research_evidence_url: seed.websiteUrl,
-        linkedin_url: seed.linkedinUrl,
-        company_linkedin_url: seed.linkedinUrl,
-        linkedin_exact_account_url: seed.linkedinUrl,
-        offer_type: seed.offerType,
-        sovereign_offer_type: seed.offerType,
-        approval_required: true,
-        email_evidence: 'role_pattern_needs_public_verification',
-        contact_role: seed.title,
-        confidence: 'medium',
-        close_score_override: seed.closeScore,
-        public_signals: seed.publicSignals,
-        research_summary: seed.reason,
-        reason_to_contact: seed.reason,
-      },
-    }))
 
   if (seedContacts.length === 0) return input.contacts
 
-  const imported = await importContacts(input.clientId, {
-    contacts: seedContacts,
-    verify: false,
-    enrich: false,
-    dedupeByDomain: false,
-  })
+  const imported = await insertTierOneSeedContacts(input.clientId, seedContacts)
 
   return [...input.contacts, ...imported.filter(isEligibleForToday)]
 }
@@ -255,17 +316,22 @@ export async function GET(request: NextRequest) {
       [clientId, today, fetchLimit]
     )
 
-    const enrichedContacts = await enrichMissingExactLinkedInAccounts({
+    const seededContacts = await ensureTierOneSeedInventory({
       clientId,
       contacts: contacts.rows,
       dailyTarget,
     })
-    const seededContacts = await ensureTierOneSeedInventory({
+    const seededQueue = buildLinkedInDeskQueue(seededContacts, dailyTarget)
+    if (seededQueue.queue.length >= dailyTarget) {
+      return NextResponse.json(seededQueue)
+    }
+
+    const enrichedContacts = await enrichMissingExactLinkedInAccounts({
       clientId,
-      contacts: enrichedContacts,
+      contacts: seededContacts,
       dailyTarget,
     })
-    const { queue, summary } = buildLinkedInDeskQueue(seededContacts, dailyTarget)
+    const { queue, summary } = buildLinkedInDeskQueue(enrichedContacts, dailyTarget)
     return NextResponse.json({ queue, summary })
   } catch (error) {
     console.error('[LinkedIn Desk] Failed to build queue', error)
