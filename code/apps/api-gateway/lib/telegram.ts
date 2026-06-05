@@ -19,6 +19,8 @@ export async function sendTelegramMessage(input: {
     body.parse_mode = parseMode
   }
 
+  const timeoutMs = Math.max(1_000, Math.min(Number(process.env.TELEGRAM_SEND_TIMEOUT_MS ?? 8_000), 30_000))
+
   const response = await fetch(
     `https://api.telegram.org/bot${input.botToken}/sendMessage`,
     {
@@ -27,6 +29,7 @@ export async function sendTelegramMessage(input: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(body),
+      signal: AbortSignal.timeout(timeoutMs),
     }
   )
 
