@@ -36,6 +36,24 @@ function intParam(value: string | null, fallback: number, min: number, max: numb
   return Math.max(min, Math.min(Math.trunc(parsed), max))
 }
 
+function envBool(value: string | undefined | null, fallback: boolean): boolean {
+  const normalized = String(value ?? '').trim().toLowerCase()
+  if (!normalized) return fallback
+  if (['1', 'true', 'yes', 'y', 'on'].includes(normalized)) return true
+  if (['0', 'false', 'no', 'n', 'off'].includes(normalized)) return false
+  return fallback
+}
+
+function freeTierSafeMode(): boolean {
+  const profile = String(process.env.WEB_MEMORY_PROFILE ?? '').trim().toLowerCase()
+  if (profile === 'free' || profile === 'small') return true
+  return envBool(process.env.WEB_FREE_TIER_SAFE_MODE, false)
+}
+
+function setDefaultParam(runUrl: URL, params: URLSearchParams, key: string, value: string) {
+  if (!params.has(key)) runUrl.searchParams.set(key, value)
+}
+
 function buildRunUrl(request: NextRequest, clientId: number): string {
   const runUrl = new URL('/api/cron/daily-outbound', requestPublicOrigin(request))
   const params = request.nextUrl.searchParams
@@ -106,6 +124,18 @@ function buildRunUrl(request: NextRequest, clientId: number): string {
   runUrl.searchParams.set('client_id', String(clientId))
   runUrl.searchParams.set('compact', '1')
   runUrl.searchParams.set('cronCompact', '1')
+
+  if (freeTierSafeMode() && shouldRunOutboundCycleDirect(request)) {
+    setDefaultParam(runUrl, params, 'providerValidationLimit', '0')
+    setDefaultParam(runUrl, params, 'evidenceFetchLimit', '0')
+    setDefaultParam(runUrl, params, 'hunterSearch', '0')
+    setDefaultParam(runUrl, params, 'mapsLimit', '0')
+    setDefaultParam(runUrl, params, 'publicSearch', '0')
+    setDefaultParam(runUrl, params, 'leadScout', '0')
+    setDefaultParam(runUrl, params, 'evidenceDeadlineMs', '3500')
+    setDefaultParam(runUrl, params, 'evidenceMaxPages', '1')
+    setDefaultParam(runUrl, params, 'evidenceRequestTimeoutMs', '900')
+  }
 
   return runUrl.toString()
 }
