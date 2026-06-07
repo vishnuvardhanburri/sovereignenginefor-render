@@ -39,7 +39,7 @@ services:
       - key: WEB_FREE_TIER_SAFE_MODE
         value: "true"
       - key: NODE_OPTIONS
-        value: "--max-old-space-size=256"
+        value: "--max-old-space-size=192"
       - key: LOG_FORMAT
         value: json
       - key: MOCK_SMTP
@@ -149,17 +149,21 @@ services:
       - key: WEB_EMBED_FREE_MAIL_PUMP
         value: "true"
       - key: FREE_MAIL_PUMP_INTERVAL_MS
-        value: "900000"
+        value: "1800000"
       - key: FREE_MAIL_PUMP_DISCOVERY_INTERVAL_MS
-        value: "3600000"
+        value: "43200000"
+      - key: FREE_MAIL_PUMP_INITIAL_DELAY_MS
+        value: "120000"
+      - key: FREE_MAIL_PUMP_DISCOVERY_ON_START
+        value: "false"
       - key: FREE_MAIL_PUMP_SEND_LIMIT
         value: "1"
       - key: FREE_MAIL_PUMP_APPROVE_LIMIT
-        value: "5"
+        value: "2"
       - key: FREE_MAIL_PUMP_LEAD_SCOUT_LIMIT
-        value: "3"
+        value: "1"
       - key: FREE_MAIL_PUMP_PUBLIC_SEARCH_LIMIT
-        value: "3"
+        value: "1"
       - key: WEB_EMBED_AUTONOMOUS_OPS_WORKER
         value: "false"
       - key: WEB_EMBED_INBOUND_WORKER
@@ -173,17 +177,17 @@ services:
       - key: DAILY_OUTBOUND_SKIP_LEAD_EVIDENCE_VERIFICATION
         value: "true"
       - key: LEAD_SCOUT_DAILY_LIMIT
-        value: "15"
+        value: "5"
       - key: DAILY_OUTBOUND_SMALL_MAX_LEAD_SCOUT_LIMIT
-        value: "15"
+        value: "1"
       - key: PUBLIC_SEARCH_SOURCE_ENABLED
         value: "true"
       - key: DAILY_OUTBOUND_RUN_PUBLIC_SEARCH
         value: "true"
       - key: PUBLIC_SEARCH_DAILY_LIMIT
-        value: "10"
+        value: "5"
       - key: DAILY_OUTBOUND_SMALL_MAX_PUBLIC_SEARCH_LIMIT
-        value: "10"
+        value: "1"
       - key: PUBLIC_SEARCH_TIMEOUT_MS
         value: "12000"
       - key: LEAD_SCOUT_INDUSTRIES

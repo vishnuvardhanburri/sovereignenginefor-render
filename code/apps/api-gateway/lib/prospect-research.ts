@@ -236,6 +236,21 @@ const PROTECTED_ENTERPRISE_DOMAINS = new Set([
   'zscaler.com',
 ])
 
+const BROAD_DIRECT_ENTERPRISE_DOMAINS = new Set([
+  'adobe.com',
+  'atlassian.com',
+  'github.com',
+  'hubspot.com',
+  'monday.com',
+  'neon.tech',
+  'replicate.com',
+  'salesforce.com',
+  'stripe.com',
+])
+
+const AGENCY_BUYER_SIGNAL_RE =
+  /\b(?:abm|appointment\s+setting|b2b\s+(?:demand|lead|marketing|sales)|client\s+acquisition|demand\s+generation|done[-\s]?for[-\s]?you\s+outbound|go[-\s]?to[-\s]?market|gtm|lead[-\s]?gen(?:eration)?|outbound\s+(?:agency|operator|ops|operations|sales|service)|pipeline\s+operations|revenue\s+operations|revops|sales\s+development|sdr\s+as\s+a\s+service|white[-\s]?label)\b/i
+
 const LOW_INTENT_DOMAIN_PATTERNS = [
   /(^|\.)cylex-/,
   /(^|\.)findglocal\./,
@@ -623,7 +638,12 @@ function hasLowIntentDomain(domain: string): boolean {
 function hasProtectedEnterpriseDomain(domain: string): boolean {
   const normalized = normalizeDomain(domain)
   const root = rootDomain(normalized)
-  return PROTECTED_ENTERPRISE_DOMAINS.has(normalized) || PROTECTED_ENTERPRISE_DOMAINS.has(root)
+  return (
+    PROTECTED_ENTERPRISE_DOMAINS.has(normalized) ||
+    PROTECTED_ENTERPRISE_DOMAINS.has(root) ||
+    BROAD_DIRECT_ENTERPRISE_DOMAINS.has(normalized) ||
+    BROAD_DIRECT_ENTERPRISE_DOMAINS.has(root)
+  )
 }
 
 function isArtifactMailboxPrefix(prefix: string): boolean {
@@ -754,6 +774,10 @@ function prospectText(contact: ProspectResearchContact): string {
     .join(' ')
 }
 
+function hasAgencyBuyerSignal(contact: ProspectResearchContact): boolean {
+  return AGENCY_BUYER_SIGNAL_RE.test(prospectText(contact))
+}
+
 function hasUnsafeOrAdultProspectSignal(contact: ProspectResearchContact): boolean {
   const text = prospectText(contact)
   return UNSAFE_OR_ADULT_PATTERNS.some((pattern) => pattern.test(text))
@@ -822,9 +846,12 @@ export function approvedContactQueueBlockers(
 ): string[] {
   const blockers: string[] = []
   const email = contact.email.trim().toLowerCase()
-  const [prefix = ''] = email.split('@')
+  const [prefix = '', emailDomainFromAddress = ''] = email.split('@')
+  const emailDomain = normalizeDomain(contact.email_domain || emailDomainFromAddress)
   const verificationStatus = String(contact.verification_status ?? 'pending')
   const customFields = contact.custom_fields ?? {}
+  const fitScore = scoreNumber(customFields.fit_score)
+  const agencyBuyerSignal = hasAgencyBuyerSignal(contact)
 
   if (!isEmail(email)) blockers.push('invalid_email')
   if (contact.status && contact.status !== 'active') blockers.push('inactive_contact')
@@ -832,17 +859,31 @@ export function approvedContactQueueBlockers(
   if (contact.unsubscribed_at) blockers.push('unsubscribed')
   if (BLOCKED_MAILBOX_PREFIXES.has(prefix)) blockers.push('blocked_mailbox_prefix')
   if (isArtifactMailboxPrefix(prefix)) blockers.push('artifact_or_too_short_mailbox')
-  if (hasInstitutionalOrGovernmentDomain(email.split('@')[1] ?? '')) {
+  if (hasInstitutionalOrGovernmentDomain(emailDomain)) {
     blockers.push('institutional_or_government_domain')
   }
-  if (hasLowIntentDomain(email.split('@')[1] ?? '')) {
+  if (hasLowIntentDomain(emailDomain)) {
     blockers.push('low_intent_public_directory_domain')
   }
   if (
     WEAK_GENERIC_PREFIXES.has(prefix) &&
-    hasProtectedEnterpriseDomain(email.split('@')[1] ?? '')
+    hasProtectedEnterpriseDomain(emailDomain)
   ) {
     blockers.push('weak_generic_enterprise_inbox_requires_manual_review')
+  }
+  if (
+    !agencyBuyerSignal &&
+    hasProtectedEnterpriseDomain(emailDomain) &&
+    !hasExactPublicEmailEvidence(customFields.email_evidence)
+  ) {
+    blockers.push('protected_direct_enterprise_requires_manual_review')
+  }
+  if (
+    !agencyBuyerSignal &&
+    (WEAK_GENERIC_PREFIXES.has(prefix) || mailboxQualityFor(prefix) === 'generic') &&
+    fitScore < 95
+  ) {
+    blockers.push('direct_generic_low_reply_risk')
   }
   if (
     WEAK_GENERIC_PREFIXES.has(prefix) &&
@@ -1101,6 +1142,7 @@ export function scoreProspectForResearchApproval(
   const source = contact.source || asString(customFields.data_source) || null
   const reasons: string[] = []
   const blockers: string[] = []
+  const agencyBuyerSignal = hasAgencyBuyerSignal(contact)
   let score = 0
 
   if (!Number.isSafeInteger(Number(contact.id))) {
@@ -1171,6 +1213,14 @@ export function scoreProspectForResearchApproval(
     hasProtectedEnterpriseDomain(emailDomain)
   ) {
     blockers.push('weak_generic_enterprise_inbox_requires_manual_review')
+  }
+
+  if (
+    !agencyBuyerSignal &&
+    hasProtectedEnterpriseDomain(emailDomain) &&
+    !hasExactPublicEmailEvidence(customFields.email_evidence)
+  ) {
+    blockers.push('protected_direct_enterprise_requires_manual_review')
   }
 
   if (
@@ -1282,6 +1332,14 @@ export function scoreProspectForResearchApproval(
   }
 
   const fitScore = scoreNumber(customFields.fit_score)
+  if (
+    !agencyBuyerSignal &&
+    (WEAK_GENERIC_PREFIXES.has(prefix) || mailboxQuality === 'generic') &&
+    fitScore < 95
+  ) {
+    blockers.push('direct_generic_low_reply_risk')
+  }
+
   if (fitScore >= 90) {
     score += 8
     reasons.push('high_fit_score')

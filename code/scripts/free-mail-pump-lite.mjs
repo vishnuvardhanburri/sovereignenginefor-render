@@ -1,37 +1,59 @@
-import 'dotenv/config'
+#!/usr/bin/env node
 
-type CycleKind = 'queue' | 'discovery'
-type DiscoverySource = 'lead_scout' | 'public_search' | 'both'
+const TRUE_VALUES = new Set(['1', 'true', 'yes', 'y', 'on'])
+const FALSE_VALUES = new Set(['0', 'false', 'no', 'n', 'off'])
 
-function envBool(name: string, fallback: boolean): boolean {
+function envBool(name, fallback) {
   const raw = process.env[name]
   if (raw === undefined || raw === null || raw === '') return fallback
-  return ['1', 'true', 'yes', 'on'].includes(raw.trim().toLowerCase())
+  const normalized = String(raw).trim().toLowerCase()
+  if (TRUE_VALUES.has(normalized)) return true
+  if (FALSE_VALUES.has(normalized)) return false
+  return fallback
 }
 
-function envInt(name: string, fallback: number, min: number, max: number): number {
+function envInt(name, fallback, min, max) {
   const parsed = Number.parseInt(String(process.env[name] ?? ''), 10)
-  if (!Number.isFinite(parsed)) return fallback
-  return Math.max(min, Math.min(Math.trunc(parsed), max))
+  const value = Number.isFinite(parsed) ? Math.trunc(parsed) : fallback
+  return Math.max(min, Math.min(value, max))
 }
 
-function freeTierSafeMode(): boolean {
+function freeTierSafeMode() {
   const profile = String(process.env.WEB_MEMORY_PROFILE || '').trim().toLowerCase()
-  if (profile === 'free' || profile === 'small') return true
-  return envBool('WEB_FREE_TIER_SAFE_MODE', false)
+  return profile === 'free' || profile === 'small' || envBool('WEB_FREE_TIER_SAFE_MODE', false)
 }
 
-function localBaseUrl(): string {
+function localBaseUrl() {
   const explicit = String(process.env.FREE_MAIL_PUMP_BASE_URL || '').trim()
   if (explicit) return explicit.replace(/\/+$/, '')
   return `http://127.0.0.1:${process.env.PORT || '10000'}`
 }
 
-function appendCommonParams(url: URL, kind: CycleKind, discoverySource: DiscoverySource = 'both') {
+function summarize(body) {
+  try {
+    const parsed = JSON.parse(body)
+    return {
+      ok: parsed.ok,
+      queued: parsed.summary?.queued,
+      imported: parsed.summary?.imported,
+      approved: parsed.summary?.approved,
+      sentToday: parsed.summary?.sentToday,
+      terminalDuplicateContactsRepaired: parsed.summary?.terminalDuplicateContactsRepaired,
+      mode: parsed.plan?.mode,
+      sendLimit: parsed.plan?.sendLimit,
+      leadScout: parsed.plan?.runLeadScout,
+      publicSearch: parsed.plan?.runPublicSearch,
+    }
+  } catch {
+    return { body: body.slice(0, 280) }
+  }
+}
+
+function appendCommonParams(url, kind, discoverySource = 'both') {
   const safeMode = freeTierSafeMode()
   const clientId = envInt('DEFAULT_CLIENT_ID', 1, 1, 1_000_000)
-  const sendLimit = envInt('FREE_MAIL_PUMP_SEND_LIMIT', 1, 0, 5)
-  const approveLimit = envInt('FREE_MAIL_PUMP_APPROVE_LIMIT', safeMode ? 3 : 5, 1, 25)
+  const sendLimit = envInt('FREE_MAIL_PUMP_SEND_LIMIT', 1, 0, safeMode ? 2 : 5)
+  const approveLimit = envInt('FREE_MAIL_PUMP_APPROVE_LIMIT', safeMode ? 2 : 5, 1, safeMode ? 3 : 25)
   const maxDailyVolume = envInt('FREE_MAIL_PUMP_MAX_DAILY_VOLUME', safeMode ? 20 : 30, 1, 200)
   const targetDailyVolume = envInt(
     'DAILY_OUTBOUND_TARGET_DAILY_VOLUME',
@@ -66,72 +88,54 @@ function appendCommonParams(url: URL, kind: CycleKind, discoverySource: Discover
     discoverySource !== 'public_search' && envBool('LEAD_SCOUT_ENABLED', true)
   const runPublicSearch =
     discoverySource !== 'lead_scout' && envBool('PUBLIC_SEARCH_SOURCE_ENABLED', true)
+
   url.searchParams.set('leadScout', runLeadScout ? '1' : '0')
-  url.searchParams.set('leadScoutLimit', String(envInt('FREE_MAIL_PUMP_LEAD_SCOUT_LIMIT', safeMode ? 1 : 3, 0, 10)))
+  url.searchParams.set('leadScoutLimit', String(envInt('FREE_MAIL_PUMP_LEAD_SCOUT_LIMIT', safeMode ? 1 : 3, 0, safeMode ? 1 : 10)))
   url.searchParams.set('publicSearch', runPublicSearch ? '1' : '0')
-  url.searchParams.set('publicSearchLimit', String(envInt('FREE_MAIL_PUMP_PUBLIC_SEARCH_LIMIT', safeMode ? 1 : 3, 0, 10)))
-  url.searchParams.set('evidenceDeadlineMs', String(envInt('FREE_MAIL_PUMP_EVIDENCE_DEADLINE_MS', safeMode ? 3500 : 8000, 1000, 15000)))
-  url.searchParams.set('evidenceMaxPages', String(envInt('FREE_MAIL_PUMP_EVIDENCE_MAX_PAGES', safeMode ? 1 : 3, 1, 4)))
-  url.searchParams.set('evidenceRequestTimeoutMs', String(envInt('FREE_MAIL_PUMP_EVIDENCE_REQUEST_TIMEOUT_MS', safeMode ? 900 : 1200, 500, 2500)))
+  url.searchParams.set('publicSearchLimit', String(envInt('FREE_MAIL_PUMP_PUBLIC_SEARCH_LIMIT', safeMode ? 1 : 3, 0, safeMode ? 1 : 10)))
+  url.searchParams.set('evidenceDeadlineMs', String(envInt('FREE_MAIL_PUMP_EVIDENCE_DEADLINE_MS', safeMode ? 2500 : 8000, 800, safeMode ? 3500 : 15000)))
+  url.searchParams.set('evidenceMaxPages', String(envInt('FREE_MAIL_PUMP_EVIDENCE_MAX_PAGES', safeMode ? 1 : 3, 1, safeMode ? 1 : 4)))
+  url.searchParams.set('evidenceRequestTimeoutMs', String(envInt('FREE_MAIL_PUMP_EVIDENCE_REQUEST_TIMEOUT_MS', safeMode ? 800 : 1200, 400, safeMode ? 1000 : 2500)))
 }
 
-function summarize(body: string): Record<string, unknown> {
-  try {
-    const parsed = JSON.parse(body)
-    return {
-      ok: parsed.ok,
-      queued: parsed.summary?.queued,
-      sentToday: parsed.summary?.sentToday,
-      imported: parsed.summary?.imported,
-      approved: parsed.summary?.approved,
-      mode: parsed.plan?.mode,
-      sendLimit: parsed.plan?.sendLimit,
-      runQueue: parsed.plan?.runQueue,
-      leadScout: parsed.plan?.runLeadScout,
-      publicSearch: parsed.plan?.runPublicSearch,
-    }
-  } catch {
-    return { body: body.slice(0, 280) }
-  }
-}
-
-async function runCycle(kind: CycleKind, discoverySource: DiscoverySource = 'both'): Promise<void> {
+async function runCycle(kind, discoverySource = 'both') {
   const secret = process.env.CRON_SECRET || ''
   if (!secret) {
-    console.warn('[free-mail-pump] skipped; CRON_SECRET is missing')
+    console.warn('[free-mail-pump-lite] skipped; CRON_SECRET is missing')
     return
   }
 
   const url = new URL('/api/cron/daily-outbound', localBaseUrl())
   appendCommonParams(url, kind, discoverySource)
 
-  const startedAt = Date.now()
   const safeMode = freeTierSafeMode()
   const controller = new AbortController()
   const timeout = setTimeout(
     () => controller.abort(),
-    envInt('FREE_MAIL_PUMP_TIMEOUT_MS', kind === 'queue' ? 45000 : safeMode ? 30000 : 90000, 5000, 120000)
+    envInt('FREE_MAIL_PUMP_TIMEOUT_MS', kind === 'queue' ? 35000 : safeMode ? 18000 : 90000, 5000, safeMode ? 45000 : 120000)
   )
+  const startedAt = Date.now()
 
   try {
     const response = await fetch(url, {
       method: 'GET',
       headers: {
         'x-cron-secret': secret,
-        'user-agent': `Sovereign-Free-Mail-Pump/${kind}`,
+        'user-agent': `Sovereign-Free-Mail-Pump-Lite/${kind}`,
       },
       cache: 'no-store',
       signal: controller.signal,
     })
     const body = await response.text()
-    console.log('[free-mail-pump] cycle completed', {
+    console.log('[free-mail-pump-lite] cycle completed', {
       kind,
+      discoverySource: kind === 'discovery' ? discoverySource : undefined,
       status: response.status,
       elapsedMs: Date.now() - startedAt,
       ...summarize(body),
     })
   } catch (error) {
-    console.error('[free-mail-pump] cycle failed', {
+    console.error('[free-mail-pump-lite] cycle failed', {
       kind,
       discoverySource: kind === 'discovery' ? discoverySource : undefined,
       elapsedMs: Date.now() - startedAt,
@@ -143,28 +147,33 @@ async function runCycle(kind: CycleKind, discoverySource: DiscoverySource = 'bot
 }
 
 async function main() {
-  const enabled = envBool('FREE_MAIL_PUMP_ENABLED', true)
-  if (!enabled) {
-    console.log('[free-mail-pump] disabled')
+  if (!envBool('FREE_MAIL_PUMP_ENABLED', true)) {
+    console.log('[free-mail-pump-lite] disabled')
     return
   }
 
   const safeMode = freeTierSafeMode()
-  const intervalMs = envInt('FREE_MAIL_PUMP_INTERVAL_MS', 15 * 60_000, 60_000, 60 * 60_000)
+  const intervalMs = envInt(
+    'FREE_MAIL_PUMP_INTERVAL_MS',
+    safeMode ? 30 * 60_000 : 15 * 60_000,
+    safeMode ? 30 * 60_000 : 60_000,
+    60 * 60_000
+  )
   const discoveryEveryMs = envInt(
     'FREE_MAIL_PUMP_DISCOVERY_INTERVAL_MS',
     safeMode ? 12 * 60 * 60_000 : 60 * 60_000,
     safeMode ? 12 * 60 * 60_000 : 5 * 60_000,
     24 * 60 * 60_000
   )
-  const initialDelayMs = envInt('FREE_MAIL_PUMP_INITIAL_DELAY_MS', safeMode ? 120_000 : 45_000, 1_000, 10 * 60_000)
+  const initialDelayMs = envInt('FREE_MAIL_PUMP_INITIAL_DELAY_MS', safeMode ? 120_000 : 45_000, 5_000, 10 * 60_000)
   const discoveryEnabled = envBool('FREE_MAIL_PUMP_DISCOVERY_ENABLED', true)
   const discoveryOnStart = envBool('FREE_MAIL_PUMP_DISCOVERY_ON_START', !safeMode)
+
   let running = false
   let lastDiscoveryAt = discoveryOnStart ? 0 : Date.now()
   let discoveryRuns = 0
 
-  console.log('[free-mail-pump] started', {
+  console.log('[free-mail-pump-lite] started', {
     intervalMs,
     discoveryEveryMs,
     initialDelayMs,
@@ -176,7 +185,7 @@ async function main() {
 
   const tick = async () => {
     if (running) {
-      console.warn('[free-mail-pump] previous cycle still running; skipping tick')
+      console.warn('[free-mail-pump-lite] previous cycle still running; skipping tick')
       return
     }
     running = true
@@ -188,7 +197,7 @@ async function main() {
         const sourceMode = String(process.env.FREE_MAIL_PUMP_DISCOVERY_SOURCE_MODE || (safeMode ? 'alternate' : 'both'))
           .trim()
           .toLowerCase()
-        const discoverySource: DiscoverySource =
+        const discoverySource =
           sourceMode === 'lead_scout'
             ? 'lead_scout'
             : sourceMode === 'public_search'

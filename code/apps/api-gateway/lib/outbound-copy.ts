@@ -74,14 +74,7 @@ export function sovereignBookingUrl(): string {
 export const SOVEREIGN_BOOKING_URL = SOVEREIGN_DEFAULT_BOOKING_URL
 
 export function sovereignBookingCtaText(): string {
-  return [
-    `If useful, book a short walkthrough here: ${sovereignBookingUrl()}`,
-    '',
-    'Before the call, please share:',
-    '* Use case: internal operations or client-facing/white-label',
-    '* Current setup: domains/mailboxes/providers and approximate monthly outbound volume',
-    '* Timeline and decision owner',
-  ].join('\n')
+  return `If this is active on your side, the fastest next step is a short walkthrough: ${sovereignBookingUrl()}`
 }
 
 export function withSovereignBookingCta(body: string): string {
@@ -530,28 +523,28 @@ function hookForCopyDecision(
 
 function painForCopyDecision(industry: SovereignBuyerIndustry): string {
   if (industry === 'agency') {
-    return 'Most agencies can launch campaigns. The harder part is proving the infrastructure behind those campaigns is controlled.'
+    return 'The expensive failure is not writing copy. It is client outreach landing in spam or promotions, domains getting burned, duplicate touches happening across operators, and no proof that sender capacity, suppression, and follow-ups are under control.'
   }
   if (industry === 'revops') {
-    return 'Activity metrics can show volume, but they rarely show reputation risk, queue discipline, suppression gaps, or where qualified conversations are being lost.'
+    return 'Activity dashboards show volume, but the hidden damage is sender reputation, spam/promotions placement, suppression gaps, duplicate follow-ups, and qualified conversations leaking between tools.'
   }
   if (industry === 'cybersecurity' || industry === 'compliance') {
-    return 'Trust-heavy buyers ignore anything that feels uncontrolled. Governance, suppression, auditability, and clean follow-up discipline matter before the demo.'
+    return 'Trust-heavy buyers ignore outreach that feels uncontrolled. Spam placement, burned senders, messy suppression, weak audit trails, and leaked prospect context can kill a serious conversation before the demo.'
   }
   if (industry === 'ai' || industry === 'devtools') {
-    return 'Strong technical products still lose buyers when outreach feels generic or when the communication layer has no governance around follow-up, suppression, and proof.'
+    return 'Strong technical products still lose buyers when outreach lands in spam, hits the same contact twice, or runs through inboxes and sheets without sender-capacity control, suppression, or audit proof.'
   }
-  return 'Most teams can see campaign activity. The harder part is visibility into the infrastructure layer: sender health, queue discipline, suppression, and the operational blind spots that decide whether qualified conversations actually happen.'
+  return 'The expensive problem usually shows up as silence: emails landing in spam or promotions, follow-ups slipping, duplicate touches, sender reputation damage, and sensitive outreach data spread across inboxes, sheets, CRM records, and assistants.'
 }
 
 function valueForCopyDecision(offerType: SovereignOfferType, industry: SovereignBuyerIndustry): string {
   if (offerType === 'agency') {
-    return 'Xavira Control Stack gives agencies a client-facing communication operations layer around sender health, delivery proof, queue discipline, suppression, follow-ups, and AI governance.'
+    return 'Xavira Control Stack is our proven control layer for agencies: domain protection, sender capacity, inbox-placement visibility, queue discipline, suppression governance, reply tracking, delivery proof, audit trails, and Xavira Shield for outreach data.'
   }
   if (industry === 'cybersecurity' || industry === 'compliance') {
-    return 'Xavira Control Stack gives operators one governed layer for communication proof, suppression, follow-ups, delivery confidence, and AI governance.'
+    return 'Xavira Control Stack gives operators one governed layer for domain protection, sender capacity, inbox-placement visibility, suppression, follow-ups, delivery proof, audit trails, and Xavira Shield for communication data.'
   }
-  return 'Xavira Control Stack gives operators one governed layer for sender health, queue discipline, suppression, follow-ups, delivery proof, and AI governance.'
+  return 'Xavira Control Stack gives operators one governed layer for domain protection, sender capacity, spam/promotions visibility, queue discipline, suppression, follow-up control, delivery proof, audit trails, and Xavira Shield for outreach data.'
 }
 
 function ctaForCopyDecision(
@@ -560,31 +553,31 @@ function ctaForCopyDecision(
   persona: SovereignBuyerPersona
 ): string {
   if (industry === 'agency' || industry === 'revops' || persona === 'partnerships') {
-    return `Worth a brief conversation to see whether this could fit ${company}'s client-services roadmap?`
+    return `Is this already a client-delivery or white-label risk inside ${company}?`
   }
   if (persona === 'founder') {
-    return 'Worth a brief conversation to see whether this is worth your attention now, or not a priority?'
+    return 'Is domain burn, spam placement, missed follow-up, or outreach-data leakage a real risk for you right now?'
   }
   if (persona === 'technical' || persona === 'security') {
-    return 'Worth a brief conversation to compare the architecture and governance model?'
+    return 'Is this communication-control layer something your team is actively trying to solve?'
   }
-  return `Worth a brief conversation to compare how ${company} handles this today?`
+  return `Where does ${company} feel this communication-control problem most today?`
 }
 
 function followupObservationForCopyDecision(industry: SovereignBuyerIndustry): string {
   if (industry === 'agency') {
-    return 'Most agencies focus on campaign execution, but the client trust gap usually sits in the operational layer behind the campaigns.'
+    return 'Most agencies focus on campaign execution, but the client trust gap usually sits behind it: sender capacity, domain protection, suppression, inbox placement, and proof.'
   }
   if (industry === 'revops') {
-    return 'Most pipeline reports explain activity, but not whether sender health, suppression, and follow-up governance are protecting qualified conversations.'
+    return 'Most pipeline reports explain activity, but not whether sender health, spam/promotions placement, suppression, and follow-up governance are protecting qualified conversations.'
   }
   if (industry === 'cybersecurity' || industry === 'compliance') {
-    return 'For trust-heavy buyers, the message is only one part of the risk; governance, suppression, and auditability decide whether outreach feels safe.'
+    return 'For trust-heavy buyers, the message is only one part of the risk; domain protection, suppression, auditability, and data shielding decide whether outreach feels safe.'
   }
   if (industry === 'ai' || industry === 'devtools') {
-    return 'Technical buyers notice when outreach feels generic. The operating layer behind the message has to protect timing, proof, suppression, and trust.'
+    return 'Technical buyers notice when outreach feels generic. The operating layer behind the message has to protect timing, sender reputation, suppression, proof, and trust.'
   }
-  return 'Most teams focus on campaigns and sequences, but rarely have clean visibility into the operational layer behind the outreach.'
+  return 'Most teams focus on campaigns and sequences, but rarely have clean visibility into the operational layer behind outreach: sender reputation, spam placement, suppression, follow-ups, and data exposure.'
 }
 
 export function buildSovereignCopyDecision(lead: SovereignCopyLead): SovereignCopyDecision {
