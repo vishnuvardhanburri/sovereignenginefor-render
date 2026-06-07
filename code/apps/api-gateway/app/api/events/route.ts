@@ -87,7 +87,9 @@ export async function POST(request: NextRequest) {
     const rawIds = Array.isArray(meta.pattern_ids)
       ? (meta.pattern_ids as unknown[])
       : (typeof meta.pattern_id === 'string' ? [meta.pattern_id] : [])
-    const patternIds = rawIds.filter((x): x is string => typeof x === 'string' && x.length > 0)
+    const patternIds = rawIds.flatMap((x) =>
+      typeof x === 'string' && x.length > 0 ? [x] : []
+    )
 
     if (patternIds.length > 0) {
       if (body.type === 'opened') {

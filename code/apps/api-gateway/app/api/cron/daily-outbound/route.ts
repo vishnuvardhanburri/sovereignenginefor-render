@@ -2147,7 +2147,7 @@ async function runQueue(input: {
           job_id: item.job.id === undefined ? null : String(item.job.id),
         }
       })
-      .filter((item): item is { id: number; state: string; job_id: string | null } => Boolean(item))
+      .flatMap((item) => (item ? [item] : []))
     const estimatedPipelineValueUsd = queuedLeads.reduce(
       (sum, lead) => sum + lead.deal_value_usd,
       0
@@ -2156,7 +2156,8 @@ async function runQueue(input: {
     const directQueued = queuedLeads.length - agencyQueued
     const contactIds = queuedLeads
       .map((lead) => lead.contact_id)
-      .filter((id): id is number => Number.isSafeInteger(id))
+      .filter((id) => Number.isSafeInteger(id))
+      .map((id) => id as number)
 
     if (contactIds.length > 0 && added.length > 0) {
       await query(
