@@ -180,6 +180,13 @@ export async function getOutboundTelegramDigest(clientId: number): Promise<Outbo
                WHERE s.client_id = c.client_id
                  AND LOWER(s.email) = LOWER(c.email)
              )
+             AND NOT EXISTS (
+               SELECT 1
+               FROM events e
+               WHERE e.client_id = c.client_id
+                 AND e.contact_id = c.id
+                 AND e.event_type IN ('sent', 'failed', 'bounce', 'bounced')
+             )
          )
          SELECT
            COUNT(*)::text AS total,

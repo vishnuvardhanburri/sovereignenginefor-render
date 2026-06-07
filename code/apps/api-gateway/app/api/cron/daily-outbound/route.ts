@@ -1848,6 +1848,13 @@ async function loadApprovedContacts(
          WHERE s.client_id = c.client_id
            AND LOWER(s.email) = LOWER(c.email)
        )
+       AND NOT EXISTS (
+         SELECT 1
+         FROM events e
+         WHERE e.client_id = c.client_id
+           AND e.contact_id = c.id
+           AND e.event_type IN ('sent', 'failed', 'bounce', 'bounced')
+       )
      ORDER BY
        CASE
          WHEN COALESCE(c.custom_fields->>'fit_score', '') ~ '^[0-9]+$'
@@ -2125,8 +2132,22 @@ async function runQueue(input: {
         item.isFresh &&
         ['waiting', 'waiting-children', 'delayed', 'prioritized', 'active'].includes(item.state)
     )
+    const terminalDuplicates = jobStates.filter(
+      (item) => !item.isFresh && ['completed', 'failed'].includes(item.state)
+    )
     const queuedLeads = liveAdded.map((item) => leads[item.index]).filter(Boolean)
     const duplicateOrTerminalJobs = added.length - liveAdded.length
+    const terminalDuplicateContacts = terminalDuplicates
+      .map((item) => {
+        const lead = leads[item.index]
+        if (!lead?.contact_id) return null
+        return {
+          id: lead.contact_id,
+          state: item.state,
+          job_id: item.job.id === undefined ? null : String(item.job.id),
+        }
+      })
+      .filter((item): item is { id: number; state: string; job_id: string | null } => Boolean(item))
     const estimatedPipelineValueUsd = queuedLeads.reduce(
       (sum, lead) => sum + lead.deal_value_usd,
       0
@@ -2149,6 +2170,29 @@ async function runQueue(input: {
          WHERE client_id = $1
            AND id = ANY($2::bigint[])`,
         [input.clientId, contactIds]
+      )
+    }
+
+    if (terminalDuplicateContacts.length > 0) {
+      await query(
+        `UPDATE contacts c
+         SET custom_fields = COALESCE(c.custom_fields, '{}'::jsonb)
+           || jsonb_build_object(
+             'send_status',
+             CASE WHEN updates.state = 'completed' THEN 'sent' ELSE 'failed' END,
+             'terminal_queue_state', updates.state,
+             'terminal_queue_job_id', updates.job_id,
+             'terminal_queue_repaired_at', to_char(CURRENT_TIMESTAMP AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
+           ),
+           updated_at = CURRENT_TIMESTAMP
+         FROM jsonb_to_recordset($2::jsonb) AS updates(
+           id bigint,
+           state text,
+           job_id text
+         )
+         WHERE c.client_id = $1
+           AND c.id = updates.id`,
+        [input.clientId, JSON.stringify(terminalDuplicateContacts)]
       )
     }
 
@@ -2175,6 +2219,7 @@ async function runQueue(input: {
         agencyQueued,
         directQueued,
         duplicateOrTerminalJobs,
+        terminalDuplicateContactsRepaired: terminalDuplicateContacts.length,
         firstJobId: liveAdded[0]?.job.id ?? null,
         lastJobId: liveAdded.at(-1)?.job.id ?? null,
         repairedQueuedContacts,
