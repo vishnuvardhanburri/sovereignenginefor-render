@@ -82,7 +82,7 @@ export async function loadPatternStore(): Promise<PatternMemoryStore> {
       return {
         version: 2,
         patterns: parsed.patterns
-          .filter((p): p is PatternRecord => Boolean(p && typeof p.id === 'string' && typeof p.type === 'string' && typeof p.content === 'string'))
+          .filter((p) => Boolean(p && typeof p.id === 'string' && typeof p.type === 'string' && typeof p.content === 'string'))
           .map((p) => ({
             id: String(p.id),
             type: p.type as PatternType,
@@ -173,4 +173,3 @@ export async function disablePattern(patternId: string): Promise<void> {
   pattern.status = 'disabled'
   await savePatternStore(store)
 }
-

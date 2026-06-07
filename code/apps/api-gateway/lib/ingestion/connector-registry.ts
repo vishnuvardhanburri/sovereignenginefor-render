@@ -113,13 +113,13 @@ export const CONNECTOR_REGISTRY: Record<IngestionSourceType, ConnectorDefinition
   },
 }
 
-export function isIngestionSourceType(value: string): value is IngestionSourceType {
-  return value in CONNECTOR_REGISTRY
+export function isIngestionSourceType(value: string): boolean {
+  return Object.prototype.hasOwnProperty.call(CONNECTOR_REGISTRY, value)
 }
 
 export function getConnectorDefinition(sourceType: string): ConnectorDefinition {
   if (!isIngestionSourceType(sourceType)) {
     throw new Error(`unsupported_ingestion_source:${sourceType}`)
   }
-  return CONNECTOR_REGISTRY[sourceType]
+  return CONNECTOR_REGISTRY[sourceType as IngestionSourceType]
 }

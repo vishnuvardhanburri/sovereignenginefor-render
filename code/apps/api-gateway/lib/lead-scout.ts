@@ -370,7 +370,7 @@ function stripHtmlTags(input: string): string {
 function expandEvidenceText(html: string): string {
   const cloudflareEmails = Array.from(html.matchAll(/data-cfemail=["']([0-9a-f]+)["']/gi))
     .map((match) => decodeCloudflareEmail(String(match[1] || '')))
-    .filter((email): email is string => Boolean(email))
+    .filter((email) => typeof email === 'string' && email.length > 0)
   const mailtoEmails = Array.from(html.matchAll(/mailto:([^"'\s?]+)/gi)).map((match) =>
     safeDecodeURIComponent(String(match[1] || ''))
   )

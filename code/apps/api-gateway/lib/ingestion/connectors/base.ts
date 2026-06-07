@@ -39,11 +39,12 @@ export function asNumber(value: unknown, fallback: number): number {
 
 export function recordsAtPath(payload: unknown, path: string | undefined): Array<Record<string, unknown>> {
   if (!path) {
-    if (Array.isArray(payload)) return payload.filter(isRecord)
-    if (isRecord(payload)) {
+    if (Array.isArray(payload)) return payload.filter(isRecord).map((item) => item as Record<string, unknown>)
+    const payloadRecord = asRecord(payload)
+    if (payloadRecord) {
       for (const key of ['records', 'contacts', 'people', 'data', 'results']) {
-        const value = payload[key]
-        if (Array.isArray(value)) return value.filter(isRecord)
+        const value = payloadRecord[key]
+        if (Array.isArray(value)) return value.filter(isRecord).map((item) => item as Record<string, unknown>)
       }
     }
     return []
@@ -51,14 +52,19 @@ export function recordsAtPath(payload: unknown, path: string | undefined): Array
 
   let current: unknown = payload
   for (const segment of path.split('.').filter(Boolean)) {
-    if (!isRecord(current)) return []
-    current = current[segment]
+    const currentRecord = asRecord(current)
+    if (!currentRecord) return []
+    current = currentRecord[segment]
   }
-  return Array.isArray(current) ? current.filter(isRecord) : []
+  return Array.isArray(current) ? current.filter(isRecord).map((item) => item as Record<string, unknown>) : []
 }
 
-export function isRecord(value: unknown): value is Record<string, unknown> {
+export function isRecord(value: unknown): boolean {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value)
+}
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return isRecord(value) ? (value as Record<string, unknown>) : null
 }
 
 export async function resolveConnectorSecret(

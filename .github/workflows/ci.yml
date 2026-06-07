@@ -16,6 +16,7 @@ jobs:
     timeout-minutes: 25
 
     env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
       NEXT_TELEMETRY_DISABLED: "1"
       PUPPETEER_SKIP_DOWNLOAD: "true"
       DATABASE_URL: postgresql://postgres:password@127.0.0.1:5432/sovereign_engine?sslmode=disable

@@ -20,8 +20,12 @@ export interface TryOpenRouterJsonInput<T> {
   timeoutMs?: number
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
+function isRecord(value: unknown): boolean {
   return Boolean(value && typeof value === 'object' && !Array.isArray(value))
+}
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return isRecord(value) ? (value as Record<string, unknown>) : null
 }
 
 function openRouterReferer(): string {
@@ -113,11 +117,12 @@ export async function tryOpenRouterJson<T>(
     const payload = (await response.json().catch(() => null)) as Record<string, unknown> | null
     const choices = Array.isArray(payload?.choices) ? payload?.choices : []
     const first = choices[0] as Record<string, unknown> | undefined
-    const message = isRecord(first?.message) ? first.message : null
+    const message = asRecord(first?.message)
     const content = String(message?.content ?? '')
     const parsed = extractJsonObject(content)
+    const parsedRecord = asRecord(parsed)
 
-    if (!isRecord(parsed)) {
+    if (!parsedRecord) {
       return {
         source: 'fallback',
         data: input.fallback,
@@ -128,7 +133,7 @@ export async function tryOpenRouterJson<T>(
 
     return {
       source: 'openrouter',
-      data: parsed as T,
+      data: parsedRecord as T,
       model,
     }
   } catch (error) {

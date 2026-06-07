@@ -32,7 +32,7 @@ export async function parseCsvLeadFile(filePath: string): Promise<ParsedLeadDocu
         company: String(record.company ?? ''),
       })
     })
-    .filter((item): item is ParsedLeadDocument => Boolean(item))
+    .flatMap((item) => (item ? [item] : []))
 }
 
 export async function parseTextLeadFile(filePath: string): Promise<ParsedLeadDocument[]> {
@@ -56,7 +56,7 @@ export function extractLeadRecordsFromText(rawText: string): ParsedLeadDocument[
       email: match[0],
       company,
     }))
-    .filter((item): item is ParsedLeadDocument => Boolean(item))
+    .flatMap((item) => (item ? [item] : []))
 }
 
 function normalizeLeadRecord(input: ParsedLeadDocument): ParsedLeadDocument | null {

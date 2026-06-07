@@ -410,8 +410,7 @@ export async function buildProductionReadinessReport(input: {
   const score = scoreSections(sections)
   const nextActions = checks
     .filter((item) => item.status === 'fail' || item.status === 'warn')
-    .map((item) => item.action)
-    .filter((action): action is string => Boolean(action))
+    .flatMap((item) => (item.action ? [item.action] : []))
     .slice(0, 8)
 
   return {

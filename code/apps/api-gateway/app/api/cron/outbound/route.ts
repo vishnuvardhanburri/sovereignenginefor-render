@@ -373,7 +373,8 @@ export async function GET(request: NextRequest) {
     const added = await queue.addBulk(jobs)
     const contactIds = leads
       .map((lead) => lead.contact_id)
-      .filter((id): id is number => Number.isSafeInteger(id))
+      .filter((id) => Number.isSafeInteger(id))
+      .map((id) => id as number)
 
     if (contactIds.length > 0 && added.length > 0) {
       await query(

@@ -156,7 +156,7 @@ export async function createIngestionBatch(input: IngestionBatchInput): Promise<
     throw new Error(`unsupported_ingestion_source:${input.sourceType}`)
   }
 
-  const sourceType = input.sourceType
+  const sourceType = input.sourceType as IngestionSourceType
   const connector = getConnectorDefinition(sourceType)
   const idempotencyKey = buildJobKey(input)
   const existing = await findJob(input.clientId, idempotencyKey)
