@@ -147,7 +147,36 @@ export type SovereignBuyerPersona =
   | 'technical'
   | 'security'
   | 'operations'
+  | 'investor'
   | 'generic'
+
+export type SovereignBuyerIntelligence = {
+  companyType: string
+  businessModel: string
+  revenueMotion: string
+  customerType: string
+  growthMotion: string
+  communicationComplexity: string
+  operationalRiskIndicators: string[]
+  likelyStakeholders: string[]
+  likelyCommunicationChannels: string[]
+  businessSummary: string
+  riskSummary: string
+  communicationHypothesis: string
+}
+
+export type SovereignConversationSelfScore = {
+  observationQuality: number
+  hypothesisQuality: number
+  personaRelevance: number
+  conversationPotential: number
+}
+
+type SovereignConversationQualityResult = {
+  ok: boolean
+  scores: SovereignConversationSelfScore
+  reasons: string[]
+}
 
 export type SovereignCopyDecision = {
   offerType: SovereignOfferType
@@ -443,6 +472,172 @@ function leadTextForCopyAgent(lead: SovereignCopyLead): string {
     .join(' ')
 }
 
+function compactResearchValue(value: unknown, max = 220): string {
+  const text = String(value ?? '')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+  if (!text) return ''
+  return text.length > max ? `${text.slice(0, max - 3).trim()}...` : text
+}
+
+function researchTextForBuyerIntelligence(
+  lead: SovereignCopyLead,
+  ragContext: SovereignCopyRagContext = {}
+): string {
+  const custom = lead.customFields ?? {}
+  const fields = [
+    lead.company,
+    lead.companyDomain,
+    lead.title,
+    lead.source,
+    lead.reason_to_contact,
+    lead.reasonToContact,
+    ...Object.values(custom),
+    ...Object.values(ragContext.contactFacts ?? {}),
+    ...(ragContext.evidenceFacts ?? []),
+    ...(ragContext.accountSignals ?? []),
+    ...(ragContext.riskSignals ?? []),
+  ]
+
+  return fields.map((value) => compactResearchValue(value, 260).toLowerCase()).join(' ')
+}
+
+function includesAny(text: string, patterns: RegExp[]): boolean {
+  return patterns.some((pattern) => pattern.test(text))
+}
+
+function uniqueList(values: string[]): string[] {
+  return Array.from(new Set(values.map((value) => value.trim()).filter(Boolean)))
+}
+
+function inferCompanyType(text: string, offerType: SovereignOfferType): string {
+  if (offerType === 'agency') return 'agency or client acquisition services firm'
+  if (includesAny(text, [/\brevops\b|revenue operations|gtm ops|sales operations/])) {
+    return 'RevOps or revenue operations team'
+  }
+  if (includesAny(text, [/\bmssp\b|security consultancy|cybersecurity consultancy|incident response|soc\b/])) {
+    return 'security consultancy or managed security provider'
+  }
+  if (includesAny(text, [/\bcapital raising\b|lender|broker|real estate|property|development|project stakeholders?/])) {
+    return 'project-led development or capital-raising business'
+  }
+  if (includesAny(text, [/\bsaas\b|software|platform|subscription|cloud/])) return 'B2B software company'
+  if (includesAny(text, [/\bconsulting\b|advisory|services|implementation/])) return 'consulting or services firm'
+  return 'communication-heavy B2B business'
+}
+
+function inferBusinessModel(text: string, offerType: SovereignOfferType): string {
+  if (offerType === 'agency') return 'service-led client delivery'
+  if (includesAny(text, [/\bsubscription\b|saas|platform|licenses?/])) return 'software subscription'
+  if (includesAny(text, [/\bcapital raising\b|lender|broker|development|project/])) return 'deal-led project execution'
+  if (includesAny(text, [/\bconsulting\b|advisory|implementation|managed service/])) return 'consulting and managed services'
+  return 'relationship-led B2B sales'
+}
+
+function inferRevenueMotion(text: string, offerType: SovereignOfferType): string {
+  if (includesAny(text, [/\bcapital raising\b|investor|lender|broker|partner communications?/])) {
+    return 'capital raising and stakeholder coordination'
+  }
+  if (offerType === 'agency' || includesAny(text, [/\bclient acquisition\b|lead generation|appointment setting|outbound/])) {
+    return 'client acquisition and outbound-led growth'
+  }
+  if (includesAny(text, [/\benterprise\b|strategic accounts?|mid-market|sales-led/])) return 'sales-led enterprise pipeline'
+  if (includesAny(text, [/\bdemand gen|pipeline|gtm|revenue/])) return 'pipeline and demand generation'
+  return 'relationship-driven growth'
+}
+
+function inferCustomerType(text: string, offerType: SovereignOfferType): string {
+  if (offerType === 'agency') return 'clients that depend on pipeline or campaign execution'
+  if (includesAny(text, [/\binvestor|lender|broker|partner|project stakeholders?/])) {
+    return 'investors, lenders, brokers, partners, and project stakeholders'
+  }
+  if (includesAny(text, [/\benterprise|procurement|security buyer|trust-heavy|compliance/])) {
+    return 'enterprise or trust-heavy buyers'
+  }
+  if (includesAny(text, [/\bdeveloper|cto|engineering|platform/])) return 'technical buyers and operators'
+  return 'B2B buyers and internal stakeholders'
+}
+
+function inferGrowthMotion(text: string, offerType: SovereignOfferType): string {
+  if (includesAny(text, [/\bhiring\b|open role|recruiting|team growth|expanding/])) return 'team expansion'
+  if (includesAny(text, [/\bcapital raising\b|raising capital|fundraising|investor/])) return 'capital formation'
+  if (offerType === 'agency') return 'client acquisition scale'
+  if (includesAny(text, [/\bpartnership|channel|alliances?|ecosystem/])) return 'partnership-led growth'
+  return 'outbound or relationship-led expansion'
+}
+
+function inferCommunicationComplexity(text: string, offerType: SovereignOfferType): string {
+  if (includesAny(text, [/\bcapital raising\b|investor|lender|broker|project stakeholders?|development/])) {
+    return 'investors, lenders, brokers, partners, and project stakeholders'
+  }
+  if (offerType === 'agency') return 'clients, prospects, account owners, and delivery teams'
+  if (includesAny(text, [/\benterprise|procurement|security|compliance|legal|risk/])) {
+    return 'buyers, technical evaluators, legal, security, and internal operators'
+  }
+  if (includesAny(text, [/\brevops\b|sales operations|gtm ops|pipeline/])) {
+    return 'sales, marketing, customer-facing teams, and operations owners'
+  }
+  return 'prospects, internal owners, and follow-up workflows'
+}
+
+export function buildSovereignBuyerIntelligence(
+  lead: SovereignCopyLead,
+  ragContext: SovereignCopyRagContext = {}
+): SovereignBuyerIntelligence {
+  const company = safeCompanyName(lead)
+  const offerType = inferSovereignOfferType(lead)
+  const text = researchTextForBuyerIntelligence(lead, ragContext)
+  const companyType = inferCompanyType(text, offerType)
+  const businessModel = inferBusinessModel(text, offerType)
+  const revenueMotion = inferRevenueMotion(text, offerType)
+  const customerType = inferCustomerType(text, offerType)
+  const growthMotion = inferGrowthMotion(text, offerType)
+  const communicationComplexity = inferCommunicationComplexity(text, offerType)
+  const operationalRiskIndicators = uniqueList([
+    includesAny(text, [/\bfollow[- ]?up|reply|inbox|missed response/]) ? 'follow-up ownership' : '',
+    includesAny(text, [/\bclient|reporting|account owner|delivery/]) ? 'client reporting visibility' : '',
+    includesAny(text, [/\binvestor|lender|broker|partner|stakeholder/]) ? 'multi-stakeholder coordination' : '',
+    includesAny(text, [/\bsecurity|compliance|governance|audit|risk/]) ? 'communication governance and evidence' : '',
+    includesAny(text, [/\boutbound|lead generation|campaign|sdr|demand gen/]) ? 'outbound delivery visibility' : '',
+    includesAny(text, [/\bspreadsheet|crm|linkedin|gmail|calendar|assistant/]) ? 'context spread across tools' : '',
+  ])
+  const likelyStakeholders = uniqueList([
+    includesAny(text, [/\bfounder|ceo|owner|principal|partner/]) ? 'founders or principals' : '',
+    includesAny(text, [/\brevops|sales|cro|revenue|gtm|demand gen/]) ? 'revenue and RevOps leaders' : '',
+    includesAny(text, [/\boperations|coo|delivery|account owner/]) ? 'operations and delivery owners' : '',
+    includesAny(text, [/\bcto|engineering|platform|integrations?/]) ? 'technical owners' : '',
+    includesAny(text, [/\bciso|security|compliance|audit|risk/]) ? 'security or compliance owners' : '',
+    includesAny(text, [/\binvestor|lender|broker|capital|project stakeholder/]) ? 'investors, lenders, brokers, and partners' : '',
+  ])
+  const likelyCommunicationChannels = uniqueList([
+    'email',
+    includesAny(text, [/\blinkedin|social selling|dm\b/]) ? 'LinkedIn' : '',
+    includesAny(text, [/\bcrm|salesforce|hubspot|pipeline/]) ? 'CRM' : '',
+    includesAny(text, [/\bcalendar|calendly|meeting|demo/]) ? 'calendar workflows' : '',
+    includesAny(text, [/\bspreadsheet|sheet|assistant/]) ? 'spreadsheets or assistant-managed workflows' : '',
+  ])
+
+  const risks = operationalRiskIndicators.length
+    ? operationalRiskIndicators.join(', ')
+    : 'reply visibility, follow-up ownership, and communication context'
+
+  return {
+    companyType,
+    businessModel,
+    revenueMotion,
+    customerType,
+    growthMotion,
+    communicationComplexity,
+    operationalRiskIndicators,
+    likelyStakeholders: likelyStakeholders.length ? likelyStakeholders : ['founders, revenue owners, and operators'],
+    likelyCommunicationChannels,
+    businessSummary: `${company} appears to be a ${companyType} with a ${businessModel} model and a ${revenueMotion} motion.`,
+    riskSummary: `The likely risk is ${risks} becoming hard to see as communication volume grows.`,
+    communicationHypothesis: `When ${company} has to coordinate ${communicationComplexity}, the first problems are usually visibility, ownership, and knowing which conversations need action.`,
+  }
+}
+
 export function detectSovereignBuyerIndustry(lead: SovereignCopyLead): SovereignBuyerIndustry {
   const text = leadTextForCopyAgent(lead)
   const offerType = inferSovereignOfferType(lead)
@@ -480,6 +675,7 @@ export function detectSovereignBuyerIndustry(lead: SovereignCopyLead): Sovereign
 
 export function detectSovereignBuyerPersona(lead: SovereignCopyLead): SovereignBuyerPersona {
   const text = leadTextForCopyAgent(lead)
+  if (/\binvestor\b|venture partner|capital partner|private equity|vc\b|fund manager/.test(text)) return 'investor'
   if (/\bfounder\b|co[- ]?founder|\bceo\b|owner|managing partner|principal/.test(text)) return 'founder'
   if (/partnerships?|alliances?|channel|ecosystem/.test(text)) return 'partnerships'
   if (/revenue|growth|sales|gtm|go[- ]?to[- ]?market|demand gen|client acquisition|commercial/.test(text)) {
@@ -489,6 +685,88 @@ export function detectSovereignBuyerPersona(lead: SovereignCopyLead): SovereignB
   if (/security|compliance|risk|trust|governance|privacy/.test(text)) return 'security'
   if (/operations|revops|ops|delivery|customer success/.test(text)) return 'operations'
   return 'generic'
+}
+
+function isRejectedObservation(observation: string): boolean {
+  const text = observation.toLowerCase()
+  return (
+    /\b(?:you are growing|you'?re growing|great company|impressive work|love what you do|came across your website)\b/.test(text) ||
+    /\b(?:leading provider|mission is to|committed to|trusted by|founded in|headquartered in)\b/.test(text) ||
+    /\b(?:end-to-end|comprehensive solutions|tailored solutions|innovative solutions)\b/.test(text)
+  )
+}
+
+function isOperationalObservation(observation: string): boolean {
+  return /\b(?:coordinate|communication|stakeholder|investor|lender|broker|partner|follow-up|client|reporting|pipeline|governance|visibility|delivery|operations|outreach|growth|workflow)\b/i.test(
+    observation
+  )
+}
+
+function selectOperationalObservation(
+  lead: SovereignCopyLead,
+  intelligence: SovereignBuyerIntelligence
+): string {
+  const company = safeCompanyName(lead)
+  const complexity = intelligence.communicationComplexity
+  const candidates = [
+    /\binvestors?, lenders?, brokers?, partners?, and project stakeholders?\b/i.test(complexity)
+      ? `I noticed ${company} appears to coordinate investors, lenders, brokers, partners, and project stakeholders simultaneously.`
+      : '',
+    /\bclients?, prospects?, account owners?, and delivery teams?\b/i.test(complexity)
+      ? `I noticed ${company} appears to manage client, prospect, account-owner, and delivery conversations in parallel.`
+      : '',
+    /\bbuyers?, technical evaluators?, legal, security\b/i.test(complexity)
+      ? `I noticed ${company} appears to sell into groups where buyers, technical evaluators, security, and internal operators all influence the conversation.`
+      : '',
+    /\bsales, marketing, customer-facing teams\b/i.test(complexity)
+      ? `I noticed ${company} appears to sit across sales, marketing, customer-facing teams, and operations owners.`
+      : '',
+    `I noticed ${company} appears to run a communication-heavy ${intelligence.revenueMotion} motion.`,
+  ]
+
+  const selected = candidates
+    .map((candidate) => candidate.trim())
+    .find((candidate) => candidate && !isRejectedObservation(candidate) && isOperationalObservation(candidate))
+
+  return selected || `I noticed ${company} appears to run a communication-heavy revenue motion.`
+}
+
+function hypothesisForBuyerIntelligence(intelligence: SovereignBuyerIntelligence): string {
+  return intelligence.communicationHypothesis
+}
+
+function xaviraMentionForBuyerIntelligence(): string {
+  return 'Xavira Control Stack was built around that layer.'
+}
+
+function questionForPersona(
+  company: string,
+  persona: SovereignBuyerPersona,
+  intelligence: SovereignBuyerIntelligence
+): string {
+  if (persona === 'founder') {
+    return `As ${company} scales this motion, what becomes hardest to keep visible: growth conversations, stakeholder coordination, or follow-up ownership?`
+  }
+  if (persona === 'revenue') {
+    return `Where does ${company} feel the most friction today: pipeline visibility, follow-up ownership, or knowing which conversations actually need attention?`
+  }
+  if (persona === 'operations') {
+    return `Where does this become hardest operationally for ${company}: process control, accountability, or visibility across owners?`
+  }
+  if (persona === 'technical') {
+    return `Where does this become hardest for ${company}: system handoffs, integrations, or reliability across communication workflows?`
+  }
+  if (persona === 'security') {
+    return `Where does ${company} need the clearest evidence today: communication governance, auditability, or control over sensitive context?`
+  }
+  if (persona === 'investor') {
+    return `Where does communication discipline matter most for ${company}: reporting, stakeholder visibility, or keeping follow-ups consistent?`
+  }
+  if (persona === 'partnerships') {
+    return `Where does this become hardest for ${company}: partner coordination, follow-up ownership, or visibility across shared conversations?`
+  }
+  const channels = intelligence.likelyCommunicationChannels.slice(0, 3).join(', ')
+  return `Where does ${company} feel the most communication friction today: visibility, follow-ups, or coordination across ${channels || 'current tools'}?`
 }
 
 function subjectForCopyDecision(
@@ -588,23 +866,28 @@ function followupObservationForCopyDecision(industry: SovereignBuyerIndustry): s
   return 'Most teams focus on campaigns and sequences, but rarely have clean visibility into the operational layer behind outreach: sender reputation, spam placement, suppression, follow-ups, and data exposure.'
 }
 
-export function buildSovereignCopyDecision(lead: SovereignCopyLead): SovereignCopyDecision {
+export function buildSovereignCopyDecision(
+  lead: SovereignCopyLead,
+  ragContext: SovereignCopyRagContext = {}
+): SovereignCopyDecision {
   const company = safeCompanyName(lead)
   const offerType = inferSovereignOfferType(lead)
   const industry = detectSovereignBuyerIndustry(lead)
   const persona = detectSovereignBuyerPersona(lead)
+  const intelligence = buildSovereignBuyerIntelligence(lead, ragContext)
+  const observation = selectOperationalObservation(lead, intelligence)
 
   return {
     offerType,
     industry,
     persona,
     subject: subjectForCopyDecision(offerType, industry, persona),
-    hook: hookForCopyDecision(company, industry, persona),
-    pain: painForCopyDecision(industry),
-    value: valueForCopyDecision(offerType, industry),
-    cta: ctaForCopyDecision(company, industry, persona),
+    hook: observation,
+    pain: hypothesisForBuyerIntelligence(intelligence),
+    value: xaviraMentionForBuyerIntelligence(),
+    cta: questionForPersona(company, persona, intelligence),
     followupObservation: followupObservationForCopyDecision(industry),
-    proof: buildSovereignPainLine(lead),
+    proof: observation,
   }
 }
 
@@ -1003,8 +1286,9 @@ function questionCount(body: string): number {
 }
 
 function productWordShare(body: string): number {
-  const paragraphs = body.split(/\n{2,}/).map((paragraph) => paragraph.trim()).filter(Boolean)
-  const total = Math.max(wordCount(body), 1)
+  const message = bodyBeforeSignature(body)
+  const paragraphs = message.split(/\n{2,}/).map((paragraph) => paragraph.trim()).filter(Boolean)
+  const total = Math.max(wordCount(message), 1)
   const productWords = paragraphs
     .filter((paragraph) => /\b(?:xavira|control stack|sovereign shield|sovereign engine)\b/i.test(paragraph))
     .reduce((sum, paragraph) => sum + wordCount(paragraph), 0)
@@ -1012,8 +1296,8 @@ function productWordShare(body: string): number {
 }
 
 function hasForbiddenColdEmailLanguage(body: string): boolean {
-  return /\b(?:revolutionary|disruptive|cutting-edge|game-changing|best-in-class|ai-powered platform)\b/i.test(body) ||
-    /\b(?:£40,000|£160,000|40k|160k|pricing|reseller rights|commercial rights|license recovery)\b/i.test(body) ||
+  return /\b(?:revolutionary|disruptive|cutting-edge|game-changing|best-in-class|powerful|innovative|industry-leading|ai-powered platform)\b/i.test(body) ||
+    /\b(?:£40,000|£160,000|40k|160k|pricing|license|licensing|reseller rights|commercial rights|maintenance|white-label|white label|license recovery)\b/i.test(body) ||
     /\b(?:book|schedule|hop on|jump on|demo|walkthrough|calendar|cal\.com)\b/i.test(body)
 }
 
@@ -1022,17 +1306,152 @@ function hasGenericColdEmailLanguage(body: string): boolean {
     /\b(?:increase revenue|grow your business|generate more leads|scale your sales)\b/i.test(body)
 }
 
-function passesColdConversationQuality(body: string, company: string): boolean {
+function hasFeatureList(body: string): boolean {
+  return /(?:^|\n)\s*(?:[-*]|\d+[.)])\s+\S/.test(body) ||
+    /\b(?:features?|includes?|offers?|provides?):\s*(?:[^.\n]+,\s*){2,}/i.test(body)
+}
+
+function xaviraMentionCount(body: string): number {
+  return bodyBeforeSignature(body).match(/\bXavira\b/gi)?.length ?? 0
+}
+
+function scoreByCondition(score: number): number {
+  return Math.max(0, Math.min(100, Math.round(score)))
+}
+
+function bodyBeforeSignature(body: string): string {
+  return body.split(/\n\nBest,\s*\nVishnu/i)[0]?.trim() ?? body.trim()
+}
+
+function contentParagraphs(body: string): string[] {
+  return bodyBeforeSignature(body)
+    .split(/\n{2,}/)
+    .map((paragraph) => paragraph.trim())
+    .filter(Boolean)
+    .filter((paragraph) => !/^hi\b/i.test(paragraph))
+}
+
+function firstBodyParagraph(body: string): string {
+  return contentParagraphs(body)[0] ?? ''
+}
+
+function secondBodyParagraph(body: string): string {
+  return contentParagraphs(body)[1] ?? ''
+}
+
+export function scoreSovereignConversationCopy(
+  body: string,
+  company: string,
+  persona: SovereignBuyerPersona = 'generic'
+): SovereignConversationSelfScore {
+  const first = firstBodyParagraph(body)
+  const second = secondBodyParagraph(body)
   const words = wordCount(body)
-  if (words < 80 || words > 170) return false
-  if (questionCount(body) !== 1) return false
-  if (productWordShare(body) > 0.32) return false
-  if (hasForbiddenColdEmailLanguage(body)) return false
-  if (hasGenericColdEmailLanguage(body)) return false
-  if (companyMentionCount(body, company) < 2) return false
-  if (!/\bBest,\s*\nVishnu\s*\nFounder\s*\nXavira Tech Labs\b/i.test(body)) return false
-  if (!/\bIf not relevant, no worries\./i.test(body)) return false
-  return true
+  const companyMentions = companyMentionCount(body, company)
+  const oneQuestion = questionCount(body) === 1
+  const productShare = productWordShare(body)
+  const forbidden = hasForbiddenColdEmailLanguage(body)
+  const generic = hasGenericColdEmailLanguage(body)
+  const featureList = hasFeatureList(body)
+  const observationOperational = isOperationalObservation(first)
+  const observationRejected = isRejectedObservation(first)
+  const hypothesisBusiness =
+    /\b(?:usually|when|as|if|the first|that can|becomes?|hardest|difficult|friction|leak|visibility|ownership|coordination|control)\b/i.test(second) &&
+    !/\b(?:Xavira|Control Stack|Sovereign)\b/i.test(second)
+  const personaTerms: Record<SovereignBuyerPersona, RegExp> = {
+    founder: /\b(?:scale|growth|coordination|stakeholder|motion)\b/i,
+    revenue: /\b(?:pipeline|visibility|follow-up|conversation|revenue)\b/i,
+    partnerships: /\b(?:partner|coordination|shared conversations|follow-up)\b/i,
+    technical: /\b(?:systems?|integrations?|reliability|handoffs?|workflow)\b/i,
+    security: /\b(?:governance|auditability|evidence|sensitive|control)\b/i,
+    operations: /\b(?:process|control|accountability|owners?|visibility)\b/i,
+    investor: /\b(?:reporting|stakeholder|visibility|discipline|follow-up)\b/i,
+    generic: /\b(?:visibility|follow-up|coordination|communication)\b/i,
+  }
+  const personaRelevant = personaTerms[persona].test(body)
+
+  return {
+    observationQuality: scoreByCondition(
+      100 -
+        (companyMentions < 1 ? 20 : 0) -
+        (!observationOperational ? 18 : 0) -
+        (observationRejected ? 35 : 0) -
+        (generic ? 25 : 0)
+    ),
+    hypothesisQuality: scoreByCondition(
+      100 -
+        (!hypothesisBusiness ? 25 : 0) -
+        (featureList ? 35 : 0) -
+        (forbidden ? 35 : 0)
+    ),
+    personaRelevance: scoreByCondition(
+      100 -
+        (!personaRelevant ? 20 : 0) -
+        (companyMentions < 2 ? 12 : 0)
+    ),
+    conversationPotential: scoreByCondition(
+      100 -
+        (!oneQuestion ? 35 : 0) -
+        (words > 180 ? 35 : 0) -
+        (words < 70 ? 15 : 0) -
+        (productShare > 0.25 ? 25 : 0) -
+        (xaviraMentionCount(body) > 1 ? 25 : 0) -
+        (forbidden ? 35 : 0) -
+        (featureList ? 30 : 0)
+    ),
+  }
+}
+
+function normalizeSelfScore(value: unknown): SovereignConversationSelfScore | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null
+  const record = value as Record<string, unknown>
+  const read = (key: keyof SovereignConversationSelfScore) => {
+    const parsed = Number(record[key])
+    return Number.isFinite(parsed) ? Math.max(0, Math.min(100, Math.trunc(parsed))) : NaN
+  }
+  const scores = {
+    observationQuality: read('observationQuality'),
+    hypothesisQuality: read('hypothesisQuality'),
+    personaRelevance: read('personaRelevance'),
+    conversationPotential: read('conversationPotential'),
+  }
+  return Object.values(scores).every((score) => Number.isFinite(score)) ? scores : null
+}
+
+function evaluateColdConversationQuality(
+  body: string,
+  company: string,
+  persona: SovereignBuyerPersona,
+  aiSelfScore?: unknown
+): SovereignConversationQualityResult {
+  const words = wordCount(body)
+  const scores = scoreSovereignConversationCopy(body, company, persona)
+  const reasons: string[] = []
+  const modelScores = normalizeSelfScore(aiSelfScore)
+
+  if (words < 70) reasons.push('too_short')
+  if (words > 180) reasons.push('too_long')
+  if (questionCount(body) !== 1) reasons.push('must_have_exactly_one_question')
+  if (productWordShare(body) > 0.25) reasons.push('too_product_heavy')
+  if (xaviraMentionCount(body) > 1) reasons.push('xavira_mentioned_more_than_once')
+  if (hasForbiddenColdEmailLanguage(body)) reasons.push('forbidden_language')
+  if (hasGenericColdEmailLanguage(body)) reasons.push('generic_language')
+  if (hasFeatureList(body)) reasons.push('feature_list')
+  if (companyMentionCount(body, company) < 2) reasons.push('company_not_mentioned_twice')
+  if (!/\bBest,\s*\nVishnu\s*\nFounder\s*\nXavira Tech Labs\b/i.test(body)) reasons.push('bad_signature')
+  if (!/\bIf not relevant, no worries\./i.test(body)) reasons.push('missing_soft_opt_out')
+  for (const [key, score] of Object.entries(scores)) {
+    if (score < 85) reasons.push(`${key}_below_85`)
+  }
+  if (modelScores) {
+    for (const [key, score] of Object.entries(modelScores)) {
+      if (score < 85) reasons.push(`model_${key}_below_85`)
+    }
+  } else if (aiSelfScore !== undefined) {
+    reasons.push('invalid_model_self_score')
+  }
+
+  return { ok: reasons.length === 0, scores, reasons }
 }
 
 function cleanBody(
@@ -1103,10 +1522,11 @@ export async function buildSovereignCopyForLead(
     'the company appears relevant to outbound infrastructure or AI security'
   const firstName = safeGreetingName(lead.first_name || lead.firstName)
   const researchContext = buildLeadResearchContext(lead)
-  const copyDecision = buildSovereignCopyDecision(lead)
   const ragContext = options.ragContext ?? {}
+  const buyerIntelligence = buildSovereignBuyerIntelligence(lead, ragContext)
+  const copyDecision = buildSovereignCopyDecision(lead, ragContext)
 
-  const aiPayload = JSON.stringify({
+  const aiPayloadBase = {
     salesBrain: buildSalesBrainContext(lead, offerType),
     retrieval: {
       method: 'database_rag',
@@ -1127,29 +1547,34 @@ export async function buildSovereignCopyForLead(
       reasonToContact: reason,
       researchContext,
     },
-    offer:
-      offerType === 'agency'
-        ? {
-            name: 'Xavira Control Stack',
-            positioning:
-              'client-facing communication operations and AI governance infrastructure for agencies, RevOps firms, MSSPs, and consultancies',
-            bullets: [
-              'Sender health, queue discipline, suppression, delivery proof, and follow-up governance',
-              'AI governance, PII controls, and audit evidence for client-facing operations',
-              'White-label/commercial licensing exists, but do not mention pricing or commercial rights until the buyer asks',
-            ],
-          }
-        : {
-            name: 'Xavira Control Stack',
-            positioning:
-              'owned outbound operations control plane plus private AI governance layer',
-            bullets: [
-              'Sovereign Engine for domain health, queue pressure, follow-ups, and delivery proof',
-              'Sovereign Shield for private AI handling, PII masking, and audit evidence',
-              'Deployment-ready dashboards, desktop apps, mobile apps, and operating reports',
-            ],
-          },
+    buyerIntelligence,
+    problemChain: {
+      observation: copyDecision.proof,
+      operationalHypothesis: copyDecision.pain,
+      xaviraMention: copyDecision.value,
+      discoveryQuestion: copyDecision.cta,
+    },
+    offer: {
+      name: 'Xavira Control Stack',
+      mentionRule:
+        'Mention Xavira once only. Use one short sentence such as "Xavira Control Stack was built around that layer." No feature list.',
+      sovereignShieldContext:
+        'Sovereign Shield is the sensitive-communication protection angle, but only mention it if directly relevant and never as a feature list.',
+    },
     copyDecision,
+    outputContract: {
+      jsonOnly: true,
+      fields: ['subject', 'body', 'selfScore'],
+      selfScoreFields: [
+        'observationQuality',
+        'hypothesisQuality',
+        'personaRelevance',
+        'conversationPotential',
+      ],
+      selfScoreMinimum: 85,
+      instruction:
+        'Score the draft. If any score is below 85, rewrite before returning the final JSON.',
+    },
     forbiddenFirstTouchClaims: [
       'GBP pricing',
       '£40,000',
@@ -1160,6 +1585,9 @@ export async function buildSovereignCopyForLead(
       '3-4 deployments',
       'booking links',
       'meeting asks',
+      'maintenance',
+      'white-label',
+      'feature lists',
     ],
     requiredSignature: ['Best', 'Vishnu', 'Founder', 'Xavira Tech Labs', 'If not relevant, no worries.'],
     physicalAddress: options.physicalAddress,
@@ -1193,34 +1621,71 @@ export async function buildSovereignCopyForLead(
       'Do not use hype, urgency, discounts, guarantees, or spammy promotional phrasing.',
       'Explain the product benefit in simple words: better visibility, cleaner follow-ups, reduced communication risk, and stronger client trust.',
     ],
-  })
+  }
   const aiSystem =
-    'You are Xavira AI, an elite B2B outbound research and email strategist. Return JSON only with subject and body. Write a cold email that feels manually researched. This is RAG writing, not a template fill: use retrieved facts first and never invent facts. The goal is to start a relevant business conversation, not pitch or ask for a meeting. Structure the body as four short paragraphs: specific observation, business hypothesis, brief Xavira mention in business language, one thoughtful question. Then sign exactly: Best, Vishnu, Founder, Xavira Tech Labs, If not relevant, no worries. Keep body copy 80-140 words before physical address. The company name must appear at least twice. Xavira must be less than 25% of the email. Avoid hype, technical jargon, pricing, booking links, meeting asks, fake personalization, spam tricks, and buzzwords.'
+    'You are Xavira AI, an elite B2B outbound research and email strategist. Return JSON only with subject, body, and selfScore. Write a cold email that feels manually researched. This is RAG writing, not a template fill: use retrieved facts first and never invent facts. The goal is reply rate, conversation rate, and discovery rate, not meeting-booking rate. Structure the body as four short paragraphs: specific operational observation, operational hypothesis, one brief Xavira sentence, one discovery question. Then sign exactly: Best, Vishnu, Founder, Xavira Tech Labs, If not relevant, no worries. Keep body copy 80-140 words before physical address. The company name must appear at least twice. Mention Xavira once only. Avoid feature lists, hype, technical jargon, pricing, booking links, meeting asks, fake personalization, spam tricks, and buzzwords. Score observationQuality, hypothesisQuality, personaRelevance, and conversationPotential from 0-100; if any score is below 85, rewrite before returning.'
 
-  const result = shouldUseXaviraAi
-    ? await tryXaviraAiJson<{
-        subject?: string
-        body?: string
-        reason?: string
-      }>({
+  type AiCopyResponse = {
+    subject?: string
+    body?: string
+    reason?: string
+    selfScore?: Partial<SovereignConversationSelfScore>
+  }
+
+  const fallbackData: AiCopyResponse = {
+    subject: fallbackSubject,
+    body: fallbackText,
+    reason: 'fallback_template',
+  }
+  const requestAiCopy = (rewriteInstruction?: string) =>
+    tryXaviraAiJson<AiCopyResponse>({
         task: 'sovereign_outbound_copy',
         system: aiSystem,
-        user: aiPayload,
-        fallback: {
-          subject: fallbackSubject,
-          body: fallbackText,
-          reason: 'fallback_template',
-        },
+        user: JSON.stringify({
+          ...aiPayloadBase,
+          rewriteInstruction,
+        }),
+        fallback: fallbackData,
         timeoutMs: 5_000,
       })
+
+  let result = shouldUseXaviraAi
+    ? await requestAiCopy()
     : {
         source: 'fallback' as const,
-        data: {
-          subject: fallbackSubject,
-          body: fallbackText,
-          reason: 'xavira_ai_disabled',
-        },
+        provider: 'fallback' as const,
+        data: fallbackData,
         error: 'xavira_ai_disabled',
+  }
+
+  let quality: SovereignConversationQualityResult | null = null
+  if (result.source === 'xavira_ai') {
+    quality = evaluateColdConversationQuality(
+      String(result.data.body ?? ''),
+      String(company),
+      copyDecision.persona,
+      result.data.selfScore
+    )
+
+    if (!quality.ok) {
+      const retry = await requestAiCopy(
+        `Previous draft failed quality gate: ${quality.reasons.join(', ')}. Regenerate from the buyer intelligence only. Keep one observation, one hypothesis, one Xavira sentence, and one discovery question.`
+      )
+      if (retry.source === 'xavira_ai') {
+        const retryQuality = evaluateColdConversationQuality(
+          String(retry.data.body ?? ''),
+          String(company),
+          copyDecision.persona,
+          retry.data.selfScore
+        )
+        if (retryQuality.ok) {
+          result = retry
+          quality = retryQuality
+        } else {
+          quality = retryQuality
+        }
+      }
+    }
   }
 
   if (result.source !== 'xavira_ai') {
@@ -1235,14 +1700,20 @@ export async function buildSovereignCopyForLead(
   }
 
   const rawAiBody = String(result.data.body ?? '').trim()
-  if (!passesColdConversationQuality(rawAiBody, String(company))) {
+  quality = quality ?? evaluateColdConversationQuality(
+    rawAiBody,
+    String(company),
+    copyDecision.persona,
+    result.data.selfScore
+  )
+  if (!quality.ok) {
     const text = options.includeBookingCta ? withSovereignBookingCta(fallbackText) : fallbackText.trim()
     return {
       subject: fallbackSubject,
       text,
       html: renderSovereignHtmlEmail(text),
       source: 'template',
-      error: 'xavira_ai_quality_rejected',
+      error: `xavira_ai_quality_rejected:${quality.reasons.slice(0, 6).join(',')}`,
     }
   }
 

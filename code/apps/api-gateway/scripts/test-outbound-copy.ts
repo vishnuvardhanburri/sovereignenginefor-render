@@ -2,6 +2,7 @@ import {
   inferSovereignOfferType,
   balanceSovereignOfferMix,
   buildLeadResearchContext,
+  buildSovereignBuyerIntelligence,
   buildSovereignCopyDecision,
   buildSovereignCopyForLead,
   buildSovereignPainLine,
@@ -15,6 +16,7 @@ import {
   sovereignDealValueUsd,
   sovereignBodyForLead,
   sovereignClientIntentScore,
+  scoreSovereignConversationCopy,
   sovereignSubjectForLead,
 } from '@/lib/outbound-copy'
 
@@ -155,8 +157,8 @@ assert(
 )
 assert(agencyDecision.persona === 'partnerships', 'agency decision should detect partnerships persona')
 assert(
-  agencyDecision.value.includes('client-facing outreach'),
-  'agency decision should frame client-facing outreach'
+  agencyDecision.value === 'Xavira Control Stack was built around that layer.',
+  'agency decision should mention Xavira only once without feature dumping'
 )
 assert(!agencyDecision.value.includes('£160'), 'agency decision should not expose price in cold value line')
 
@@ -172,8 +174,41 @@ assert(
 )
 assert(technicalDecision.persona === 'technical', 'technical decision should detect technical persona')
 assert(
-  technicalDecision.cta.includes('current tools'),
-  'technical decision should ask about the current tool reality'
+  /systems?|integrations?|reliability/.test(technicalDecision.cta),
+  'technical decision should ask about systems, integrations, or reliability'
+)
+
+const investorLead = {
+  first_name: 'David',
+  company: 'StrataX Development',
+  companyDomain: 'strataxdev.com',
+  title: 'Founder',
+  reason_to_contact:
+    'StrataX Development appears active around capital raising, investor relationships, lender and broker coordination, and partnership-driven development.',
+}
+const investorIntelligence = buildSovereignBuyerIntelligence(investorLead)
+assert(
+  investorIntelligence.communicationComplexity.includes('investors') &&
+    investorIntelligence.communicationComplexity.includes('lenders'),
+  'buyer intelligence should extract stakeholder communication complexity'
+)
+assert(
+  investorIntelligence.businessSummary.includes('capital-raising') ||
+    investorIntelligence.revenueMotion.includes('capital'),
+  'buyer intelligence should summarize the revenue motion'
+)
+const investorDecision = buildSovereignCopyDecision(investorLead)
+assert(
+  investorDecision.proof.includes('investors, lenders, brokers, partners, and project stakeholders'),
+  'observation should focus on coordination, not generic growth'
+)
+assert(
+  investorDecision.pain.includes('visibility') && investorDecision.pain.includes('ownership'),
+  'hypothesis should focus on operational control'
+)
+assert(
+  investorDecision.cta.includes('StrataX Development') && investorDecision.cta.includes('?'),
+  'question engine should produce one company-specific discovery question'
 )
 
 const coldSequenceText = SOVEREIGN_STACK_DIRECT_SEQUENCE_STEPS.map((step) => step.body).join('\n')
@@ -219,7 +254,7 @@ assert(
   'direct body should lead with a company-specific observation'
 )
 assert(
-  directBody.includes('follow-ups') && directBody.includes('visibility'),
+  /follow-up|follow-ups/.test(directBody) && directBody.includes('visibility'),
   'direct body should name business communication pains without sounding spammy'
 )
 assert(directBody.includes('Example SaaS'), 'direct body should render company')
@@ -285,8 +320,8 @@ assert(!agencyBody.includes('£160,000'), 'first-touch agency body should not me
 assert(!/reseller rights/i.test(agencyBody), 'first-touch agency body should not mention reseller rights before a reply')
 assert(!/3-4 serious client deployments/i.test(agencyBody), 'first-touch agency body should not explain resale economics')
 assert(
-  agencyBody.includes('client-facing outreach'),
-  'agency body should frame client-facing outreach'
+  agencyBody.includes('Xavira Control Stack was built around that layer.'),
+  'agency body should use the single-sentence Xavira mention'
 )
 assert(
   agencyBody.includes('?') && !/book|demo|walkthrough|schedule/i.test(agencyBody),
@@ -334,6 +369,19 @@ async function main() {
   assert(
     !/book|demo|walkthrough|schedule|cal\.com/i.test(rendered.text),
     'built copy should not ask for a meeting directly'
+  )
+  const scores = scoreSovereignConversationCopy(rendered.text, 'Example SaaS', 'revenue')
+  assert(
+    Object.values(scores).every((score) => score >= 85),
+    `built copy should pass self-scoring gate: ${JSON.stringify(scores)}`
+  )
+  assert(
+    ((rendered.text.split(/\n\nBest,\s*\nVishnu/i)[0] ?? rendered.text).match(/\bXavira\b/g) ?? []).length === 1,
+    'built copy body should mention Xavira exactly once before the signature'
+  )
+  assert(
+    !/revolutionary|cutting-edge|game-changing|powerful|innovative|industry-leading|white-label|maintenance|license/i.test(rendered.text),
+    'built copy should reject hype, white-label, maintenance, and license language'
   )
 
   console.log('outbound copy tests passed')
