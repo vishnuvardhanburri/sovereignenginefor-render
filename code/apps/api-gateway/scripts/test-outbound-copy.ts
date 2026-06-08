@@ -139,11 +139,11 @@ assert(
   'final sequence step should be the soft breakup'
 )
 assert(
-  sovereignSubjectForLead(directLead).includes('outbound infrastructure'),
-  'direct subject should lead with enterprise outbound infrastructure'
+  sovereignSubjectForLead(directLead).includes('communication visibility'),
+  'direct subject should lead with communication visibility'
 )
 assert(
-  /white-label communication|infrastructure partnership/.test(sovereignSubjectForLead(agencyLead)),
+  /client outreach visibility|partnership communication visibility|follow-up visibility/.test(sovereignSubjectForLead(agencyLead)),
   'agency subject should adapt to buyer role without generic quick-check wording'
 )
 
@@ -155,8 +155,8 @@ assert(
 )
 assert(agencyDecision.persona === 'partnerships', 'agency decision should detect partnerships persona')
 assert(
-  agencyDecision.value.includes('client-facing communication operations'),
-  'agency decision should frame client-facing operations'
+  agencyDecision.value.includes('client-facing outreach'),
+  'agency decision should frame client-facing outreach'
 )
 assert(!agencyDecision.value.includes('£160'), 'agency decision should not expose price in cold value line')
 
@@ -172,8 +172,8 @@ assert(
 )
 assert(technicalDecision.persona === 'technical', 'technical decision should detect technical persona')
 assert(
-  technicalDecision.cta.includes('architecture'),
-  'technical decision should ask to compare architecture'
+  technicalDecision.cta.includes('current tools'),
+  'technical decision should ask about the current tool reality'
 )
 
 const coldSequenceText = SOVEREIGN_STACK_DIRECT_SEQUENCE_STEPS.map((step) => step.body).join('\n')
@@ -215,12 +215,12 @@ const directBody = renderSovereignTemplate(
 )
 assert(directBody.includes('Xavira Control Stack'), 'direct body should mention Xavira Control Stack')
 assert(
-  directBody.includes('infrastructure layer'),
-  'direct body should lead with infrastructure-layer visibility'
+  directBody.includes('Example SaaS appears'),
+  'direct body should lead with a company-specific observation'
 )
 assert(
-  directBody.includes('operational blind spots'),
-  'direct body should name operational blind spots without sounding spammy'
+  directBody.includes('follow-ups') && directBody.includes('visibility'),
+  'direct body should name business communication pains without sounding spammy'
 )
 assert(directBody.includes('Example SaaS'), 'direct body should render company')
 assert(!directBody.includes('{{'), 'direct body should render all placeholders')
@@ -285,12 +285,12 @@ assert(!agencyBody.includes('£160,000'), 'first-touch agency body should not me
 assert(!/reseller rights/i.test(agencyBody), 'first-touch agency body should not mention reseller rights before a reply')
 assert(!/3-4 serious client deployments/i.test(agencyBody), 'first-touch agency body should not explain resale economics')
 assert(
-  agencyBody.includes('client-facing communication operations'),
-  'agency body should frame the client-facing operations layer'
+  agencyBody.includes('client-facing outreach'),
+  'agency body should frame client-facing outreach'
 )
 assert(
-  agencyBody.includes('brief conversation'),
-  'agency body should optimize for a reply, not a full sale'
+  agencyBody.includes('?') && !/book|demo|walkthrough|schedule/i.test(agencyBody),
+  'agency body should optimize for a reply, not a meeting ask'
 )
 assert(agencyBody.includes('Xavira Control Stack'), 'agency body should mention Xavira Control Stack')
 assert(!agencyBody.includes('{{'), 'agency body should render all placeholders')
@@ -318,22 +318,22 @@ async function main() {
     physicalAddress: 'Xavira Tech Labs, India',
     useOpenRouter: false,
   })
-  assert(rendered.html.includes('Book walkthrough'), 'built copy should include booking CTA')
+  assert(!rendered.html.includes('Book walkthrough'), 'first-touch built copy should not include booking CTA')
   assert(
-    /brief conversation|short walkthrough|walkthrough page/.test(rendered.text),
-    'built copy should use a low-friction conversation ask'
+    rendered.text.includes('If not relevant, no worries.'),
+    'built copy should include the conversation-first soft opt-out'
   )
   assert(
-    rendered.text.includes('Use case: internal operations or client-facing/white-label'),
-    'built copy should collect pre-call use case'
+    (rendered.text.match(/\?/g) ?? []).length === 1,
+    'built copy should ask exactly one thoughtful question'
   )
   assert(
-    rendered.text.includes('Current setup: domains/mailboxes/providers'),
-    'built copy should collect current setup details'
+    !/£40,000|£160,000|reseller rights|commercial rights/i.test(rendered.text),
+    'built copy should not mention pricing or license economics'
   )
   assert(
-    rendered.text.includes('Timeline and decision owner'),
-    'built copy should collect timeline and decision owner'
+    !/book|demo|walkthrough|schedule|cal\.com/i.test(rendered.text),
+    'built copy should not ask for a meeting directly'
   )
 
   console.log('outbound copy tests passed')

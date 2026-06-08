@@ -497,13 +497,13 @@ function subjectForCopyDecision(
   persona: SovereignBuyerPersona
 ): string {
   if (offerType === 'agency') {
-    if (persona === 'partnerships') return 'infrastructure partnership question'
-    if (industry === 'revops') return 'pipeline operations layer'
-    return SOVEREIGN_STACK_AGENCY_SUBJECT
+    if (persona === 'partnerships') return 'partnership communication visibility'
+    if (industry === 'revops') return 'follow-up visibility'
+    return 'client outreach visibility'
   }
-  if (industry === 'cybersecurity' || industry === 'compliance') return 'governance infrastructure question'
-  if (industry === 'ai' || industry === 'devtools') return 'communication governance question'
-  return SOVEREIGN_STACK_DIRECT_SUBJECT
+  if (industry === 'cybersecurity' || industry === 'compliance') return 'communication control question'
+  if (industry === 'ai' || industry === 'devtools') return 'buyer communication visibility'
+  return 'communication visibility'
 }
 
 function hookForCopyDecision(
@@ -531,28 +531,28 @@ function hookForCopyDecision(
 
 function painForCopyDecision(industry: SovereignBuyerIndustry): string {
   if (industry === 'agency') {
-    return 'The expensive failure is not writing copy. It is client outreach landing in spam or promotions, domains getting burned, duplicate touches happening across operators, and no proof that sender capacity, suppression, and follow-ups are under control.'
+    return 'That usually creates hard-to-see operating gaps: replies get missed, client reporting becomes fuzzy, prospects are touched twice, and deliverability problems show up only after performance drops.'
   }
   if (industry === 'revops') {
-    return 'Activity dashboards show volume, but the hidden damage is sender reputation, spam/promotions placement, suppression gaps, duplicate follow-ups, and qualified conversations leaking between tools.'
+    return 'As volume grows, the issue is less activity and more control: knowing what reached the buyer, what needs follow-up, and which conversations are leaking between tools.'
   }
   if (industry === 'cybersecurity' || industry === 'compliance') {
-    return 'Trust-heavy buyers ignore outreach that feels uncontrolled. Spam placement, burned senders, messy suppression, weak audit trails, and leaked prospect context can kill a serious conversation before the demo.'
+    return 'Trust-heavy buyers tend to punish communication that feels loose. Missed follow-ups, unclear ownership, poor inbox placement, or scattered context can weaken a serious conversation before it starts.'
   }
   if (industry === 'ai' || industry === 'devtools') {
-    return 'Strong technical products still lose buyers when outreach lands in spam, hits the same contact twice, or runs through inboxes and sheets without sender-capacity control, suppression, or audit proof.'
+    return 'Technical buyers can ignore even strong products when outreach feels automated, duplicated, or disconnected from the real buying context.'
   }
-  return 'The expensive problem usually shows up as silence: emails landing in spam or promotions, follow-ups slipping, duplicate touches, sender reputation damage, and sensitive outreach data spread across inboxes, sheets, CRM records, and assistants.'
+  return 'That kind of motion can become difficult to control when messages, follow-ups, and context live across inboxes, LinkedIn, calendars, spreadsheets, CRM records, and assistants.'
 }
 
 function valueForCopyDecision(offerType: SovereignOfferType, industry: SovereignBuyerIndustry): string {
   if (offerType === 'agency') {
-    return 'Xavira Control Stack is built as the control layer around the tools agencies already use: Gmail or SMTP, LinkedIn, CRM, Calendly, sheets, and assistants. It shows sender capacity, spam/promotions risk, suppression, queue discipline, delivery proof, follow-up state, audit trails, and Xavira Shield for client/outreach data.'
+    return 'Xavira Control Stack helps agencies keep client-facing outreach visible and controlled across the systems they already use. Sovereign Shield adds protection for sensitive communication and deal-flow data.'
   }
   if (industry === 'cybersecurity' || industry === 'compliance') {
-    return 'Xavira Control Stack gives operators one governed layer around existing tools: domain protection, sender capacity, inbox-placement visibility, suppression, follow-ups, delivery proof, audit trails, and Xavira Shield for communication data.'
+    return 'Xavira Control Stack helps teams gain visibility and control across the communication systems they already use, with Sovereign Shield protecting sensitive outreach and client data.'
   }
-  return 'Xavira Control Stack sits around the existing outreach stack and makes the hidden layer visible: sender capacity, domain burn risk, spam/promotions placement, queue discipline, suppression, follow-up control, delivery proof, audit trails, and Xavira Shield for outreach data.'
+  return 'Xavira Control Stack helps teams see and control what is happening across outreach, follow-ups, client-facing communication, and sensitive communication data.'
 }
 
 function ctaForCopyDecision(
@@ -561,15 +561,15 @@ function ctaForCopyDecision(
   persona: SovereignBuyerPersona
 ): string {
   if (industry === 'agency' || industry === 'revops' || persona === 'partnerships') {
-    return `Where does this break first inside ${company}: inbox placement, follow-ups, duplicate touches, suppression, or proving delivery to clients?`
+    return `Where does this become hardest inside ${company}: reply visibility, follow-up ownership, client reporting, or duplicate outreach?`
   }
   if (persona === 'founder') {
-    return 'If I mapped this in a short audit, would domain burn, spam/promotions placement, missed follow-up, or outreach-data leakage be the most urgent risk?'
+    return 'What tends to break first for you as communication volume grows?'
   }
   if (persona === 'technical' || persona === 'security') {
-    return 'Is this communication-control layer already on your risk list, or is it still hidden inside the current tools?'
+    return 'Is this something your team already has under control, or does it still live across the current tools?'
   }
-  return `Where does ${company} feel the most leakage today: reach, replies, follow-ups, suppression, or proof?`
+  return `Where does ${company} feel the most leakage today: reach, replies, follow-ups, or internal visibility?`
 }
 
 function followupObservationForCopyDecision(industry: SovereignBuyerIndustry): string {
@@ -611,7 +611,7 @@ export function buildSovereignCopyDecision(lead: SovereignCopyLead): SovereignCo
 export function sovereignDirectEmail1Body(): string {
   return `Hi {{FirstName}},
 
-{{agent_hook}}
+{{agent_proof}}
 
 {{agent_pain}}
 
@@ -624,15 +624,15 @@ Vishnu
 Founder
 Xavira Tech Labs
 
-{{physical_address}}
+If not relevant, no worries.
 
-If this isn't relevant, just reply "no" and I won't follow up.`
+{{physical_address}}`
 }
 
 export function sovereignAgencyEmail1Body(): string {
   return `Hi {{FirstName}},
 
-{{agent_hook}}
+{{agent_proof}}
 
 {{agent_pain}}
 
@@ -645,9 +645,9 @@ Vishnu
 Founder
 Xavira Tech Labs
 
-{{physical_address}}
+If not relevant, no worries.
 
-If this isn't relevant, just reply "no" and I won't follow up.`
+{{physical_address}}`
 }
 
 export const SOVEREIGN_STACK_DIRECT_SEQUENCE_STEPS = [
@@ -887,15 +887,15 @@ export function buildSovereignPainLine(lead: SovereignCopyLead): string {
 
   if (context.socialSignal) {
     return compactSentence(
-      `I noticed ${company} is active around ${context.socialSignal}; that usually means outbound reliability and AI data handling start affecting revenue, not just operations.`,
-      `I noticed ${company} is scaling outbound, where deliverability and AI data handling can quietly decide campaign ROI.`
+      `I noticed ${company} has been active around ${context.socialSignal}.`,
+      `I noticed ${company} has been active around a relevant business priority.`
     )
   }
 
   if (context.competitorSignal) {
     return compactSentence(
-      `I noticed ${company} sits in a category where ${context.competitorSignal}; that makes outbound reliability and private AI governance a revenue problem, not a tooling problem.`,
-      `I noticed ${company} is in a market where outbound reliability and private AI governance can become a revenue edge.`
+      `I noticed ${company} operates in a category where ${context.competitorSignal}.`,
+      `I noticed ${company} operates in a category where communication quality can affect trust.`
     )
   }
 
@@ -903,29 +903,29 @@ export function buildSovereignPainLine(lead: SovereignCopyLead): string {
     const humanReason = humanizeReasonForPainLine(reason, company)
     if (/agency|revops|growth|client acquisition|lead generation|outbound/i.test(humanReason)) {
       return compactSentence(
-        `I noticed ${company} appears tied to outbound or growth operations. When clients depend on outbound, pipeline is protected by sender health, suppression, follow-ups, and AI governance - not just copy.`,
-        `I noticed ${company} works around outbound; that is where sender health and AI governance start deciding client trust.`
+        `I noticed ${company} appears active around outbound, demand generation, or client acquisition.`,
+        `I noticed ${company} works around outbound or growth.`
       )
     }
 
-    if (/security|compliance|governance|ai|infrastructure|devtools|saas/i.test(humanReason)) {
+    if (/\b(?:security|compliance|governance|ai|infrastructure|devtools|saas)\b/i.test(humanReason)) {
       return compactSentence(
-        `I noticed ${company} appears relevant to AI, security, or infrastructure buyers. In that market, outbound only works when the system behind it feels controlled, auditable, and safe.`,
-        `I noticed ${company} sells into trust-heavy buyers; outbound quality depends on infrastructure control, not just messaging.`
+        `I noticed ${company} appears focused on AI, security, infrastructure, or other trust-heavy buyers.`,
+        `I noticed ${company} sells into trust-heavy buyers.`
       )
     }
 
     return compactSentence(
-      `I noticed ${humanReason}. That is exactly where domain health, follow-up control, and AI data safety either protect pipeline or quietly leak revenue.`,
-      `I noticed ${company} is working around outbound, where domain health and AI data safety can quietly decide reply quality.`
+      `I noticed ${humanReason}.`,
+      `I noticed ${company} is working around a relevant business motion.`
     )
   }
 
   if (offerType === 'agency') {
-    return `I noticed ${company} serves growth or RevOps clients; when client campaigns miss replies because domains degrade or AI handling feels risky, the agency gets blamed before the tool stack does.`
+    return `I noticed ${company} serves growth, RevOps, or client acquisition teams.`
   }
 
-  return `I noticed ${company} is a fit for outbound-led growth; when domain health drops or AI workflows touch sensitive data, pipeline cost rises before the team sees the root cause.`
+  return `I noticed ${company} appears to have a communication-heavy go-to-market motion.`
 }
 
 function escapeHtml(value: string): string {
@@ -981,19 +981,78 @@ function cleanSubject(value: unknown, fallback: string): string {
   return subject
 }
 
-function cleanBody(value: unknown, fallback: string, physicalAddress: string): string {
+function wordCount(value: string): number {
+  return value
+    .replace(/https?:\/\/\S+/g, '')
+    .split(/\s+/)
+    .map((word) => word.trim())
+    .filter(Boolean).length
+}
+
+function companyMentionCount(body: string, company: string): number {
+  const normalizedCompany = company.trim()
+  if (!normalizedCompany || normalizedCompany === 'the company' || normalizedCompany === 'your team') {
+    return 1
+  }
+  const pattern = new RegExp(`\\b${escapeRegExp(normalizedCompany)}\\b`, 'gi')
+  return body.match(pattern)?.length ?? 0
+}
+
+function questionCount(body: string): number {
+  return (body.match(/\?/g) ?? []).length
+}
+
+function productWordShare(body: string): number {
+  const paragraphs = body.split(/\n{2,}/).map((paragraph) => paragraph.trim()).filter(Boolean)
+  const total = Math.max(wordCount(body), 1)
+  const productWords = paragraphs
+    .filter((paragraph) => /\b(?:xavira|control stack|sovereign shield|sovereign engine)\b/i.test(paragraph))
+    .reduce((sum, paragraph) => sum + wordCount(paragraph), 0)
+  return productWords / total
+}
+
+function hasForbiddenColdEmailLanguage(body: string): boolean {
+  return /\b(?:revolutionary|disruptive|cutting-edge|game-changing|best-in-class|ai-powered platform)\b/i.test(body) ||
+    /\b(?:£40,000|£160,000|40k|160k|pricing|reseller rights|commercial rights|license recovery)\b/i.test(body) ||
+    /\b(?:book|schedule|hop on|jump on|demo|walkthrough|calendar|cal\.com)\b/i.test(body)
+}
+
+function hasGenericColdEmailLanguage(body: string): boolean {
+  return /\b(?:hope you'?re well|i came across your company|your company caught my eye|touching base|checking in|quick intro)\b/i.test(body) ||
+    /\b(?:increase revenue|grow your business|generate more leads|scale your sales)\b/i.test(body)
+}
+
+function passesColdConversationQuality(body: string, company: string): boolean {
+  const words = wordCount(body)
+  if (words < 80 || words > 170) return false
+  if (questionCount(body) !== 1) return false
+  if (productWordShare(body) > 0.32) return false
+  if (hasForbiddenColdEmailLanguage(body)) return false
+  if (hasGenericColdEmailLanguage(body)) return false
+  if (companyMentionCount(body, company) < 2) return false
+  if (!/\bBest,\s*\nVishnu\s*\nFounder\s*\nXavira Tech Labs\b/i.test(body)) return false
+  if (!/\bIf not relevant, no worries\./i.test(body)) return false
+  return true
+}
+
+function cleanBody(
+  value: unknown,
+  fallback: string,
+  physicalAddress: string,
+  options: { includeBookingCta?: boolean } = {}
+): string {
   let body = String(value ?? '')
     .replace(/\r\n/g, '\n')
     .replace(/\n{3,}/g, '\n\n')
     .trim()
 
   if (!body || body.length < 120 || body.length > 2_400) return fallback
-  if (!/vishnu/i.test(body)) body += '\n\nBest regards,\nVishnu\nXavira Tech Labs'
-  body = withSovereignBookingCta(body)
-  if (!body.includes(physicalAddress)) body += `\n${physicalAddress}`
-  if (!/reply\s+"?no"?|do not follow up|not relevant/i.test(body)) {
-    body += '\n\nIf this isn\'t relevant, just reply "no" and I won\'t follow up.'
+  if (!/vishnu/i.test(body)) body += '\n\nBest,\nVishnu\nFounder\nXavira Tech Labs'
+  if (options.includeBookingCta) body = withSovereignBookingCta(body)
+  if (!/If not relevant, no worries\./i.test(body)) {
+    body += '\n\nIf not relevant, no worries.'
   }
+  if (!body.includes(physicalAddress)) body += `\n${physicalAddress}`
 
   return body
 }
@@ -1007,6 +1066,7 @@ export async function buildSovereignCopyForLead(
     useXaviraAi?: boolean
     useOpenRouter?: boolean
     ragContext?: SovereignCopyRagContext
+    includeBookingCta?: boolean
   }
 ): Promise<SovereignRenderedCopy> {
   const fallbackSubject = options.subjectOverride || sovereignSubjectForLead(lead)
@@ -1026,7 +1086,7 @@ export async function buildSovereignCopyForLead(
       ))
 
   if (!shouldUseXaviraAi) {
-    const text = withSovereignBookingCta(fallbackText)
+    const text = options.includeBookingCta ? withSovereignBookingCta(fallbackText) : fallbackText.trim()
     return {
       subject: fallbackSubject,
       text,
@@ -1098,32 +1158,44 @@ export async function buildSovereignCopyForLead(
       'commercial rights',
       'license recovery',
       '3-4 deployments',
+      'booking links',
+      'meeting asks',
     ],
-    requiredSignature: ['Best regards', 'Vishnu', 'Xavira Tech Labs', 'Xavira Control Stack'],
+    requiredSignature: ['Best', 'Vishnu', 'Founder', 'Xavira Tech Labs', 'If not relevant, no worries.'],
     physicalAddress: options.physicalAddress,
     fallbackSubject,
     writingRules: [
+      'You are Xavira AI, an elite B2B outbound research and email strategist.',
+      'Goal: start a relevant business conversation, not pitch immediately.',
+      'Paragraph 1: start with the prospect and one specific verified observation from research. Never start with Xavira.',
+      'Paragraph 2: create a reasonable business hypothesis tied to that observation.',
+      'Paragraph 3: mention Xavira briefly in business language only.',
+      'Paragraph 4: ask one thoughtful diagnostic question.',
+      'Signature must be exactly: Best, Vishnu, Founder, Xavira Tech Labs, then "If not relevant, no worries."',
+      'Keep the body between 80 and 140 words before the physical address.',
+      'Mention the prospect company at least twice naturally.',
+      'More than 25% of the email must not talk about Xavira.',
       'Start directly with the most specific verified context available. Avoid "hope you are well" and generic intros.',
       'Use retrieved database facts first; deterministic template language is only fallback inspiration.',
       'Do not say "I came across" unless the retrieved context proves where the lead came from.',
       'Use a lower-case, short subject when possible; no salesy words, no excessive punctuation, no spam-trigger wording.',
       'Use at most one evidence-backed personalization line.',
-      'Answer the buyer question clearly: why buy, what profit or risk reduction they should expect, and why this matters now.',
-      'Optimize for client generation, not lead generation: the email should make a qualified buyer think "this could become an audit or licensing conversation."',
+      'Focus on business pains: lost opportunities, poor visibility, client reporting issues, deliverability uncertainty, follow-up gaps, duplicate outreach, scaling operations, and data protection concerns.',
+      'Avoid technical jargon such as queue discipline, suppression architecture, governance layer, and internal platform terminology.',
+      'Optimize for client generation, not lead generation: the email should make a qualified buyer think "this person actually looked at my company."',
       `Treat ${SOVEREIGN_CLIENT_GENERATION_TARGET.dailyQualifiedConversationsMin}-${SOVEREIGN_CLIENT_GENERATION_TARGET.dailyQualifiedConversationsMax} qualified conversations per day as the operating target, not a promise.`,
       'Do not mention GBP pricing, £40,000, £160,000, reseller rights, commercial rights, license recovery, or deployment economics in cold first-touch/follow-up copy. Pricing belongs only after the buyer asks or a call is booked.',
-      'Lead with the company pain before mentioning the product.',
-      'Make the ask feel helpful: a 20-minute audit that maps risks and gives a 3-step action plan.',
+      'Do not ask for a meeting, call, demo, walkthrough, or calendar booking in first-touch copy.',
       'If researchContext has LinkedIn or social context, use it naturally in one sentence.',
       'If competitorSignal exists, phrase it as a category trend, not as a fake customer claim.',
       'Keep the email short, useful, and human; avoid brochure language.',
-      'Use one clear ask and one booking link only.',
+      'Use one clear question only.',
       'Do not use hype, urgency, discounts, guarantees, or spammy promotional phrasing.',
-      'Explain the product benefit in simple words: owned control, safer outbound, cleaner follow-ups, reduced AI data leak risk, and stronger client trust.',
+      'Explain the product benefit in simple words: better visibility, cleaner follow-ups, reduced communication risk, and stronger client trust.',
     ],
   })
   const aiSystem =
-    'You write compliant B2B enterprise outbound email copy from retrieved database context. Return JSON only with subject and body. This is RAG writing, not a template fill. Use the supplied database facts first, then the Sovereign Sales Brain rules. Position Xavira Tech Labs as a premium infrastructure vendor. Do not invent facts, customer names, revenue claims, urgency, fake personalization, or competitor customer claims. Write like a founder/operator diagnosing a real operational leak: short, specific, plain text, pain-first, and useful. No hype, no emojis, no spam tricks, no bypass language. Keep it under 150 words. Do not mention pricing, GBP amounts, reseller rights, commercial rights, or license recovery in cold first-touch/follow-up copy. Include a polite opt-out line. Structure: retrieved evidence hook, operational pain, why Xavira Control Stack helps, diagnostic audit CTA.'
+    'You are Xavira AI, an elite B2B outbound research and email strategist. Return JSON only with subject and body. Write a cold email that feels manually researched. This is RAG writing, not a template fill: use retrieved facts first and never invent facts. The goal is to start a relevant business conversation, not pitch or ask for a meeting. Structure the body as four short paragraphs: specific observation, business hypothesis, brief Xavira mention in business language, one thoughtful question. Then sign exactly: Best, Vishnu, Founder, Xavira Tech Labs, If not relevant, no worries. Keep body copy 80-140 words before physical address. The company name must appear at least twice. Xavira must be less than 25% of the email. Avoid hype, technical jargon, pricing, booking links, meeting asks, fake personalization, spam tricks, and buzzwords.'
 
   const result = shouldUseXaviraAi
     ? await tryXaviraAiJson<{
@@ -1152,7 +1224,7 @@ export async function buildSovereignCopyForLead(
   }
 
   if (result.source !== 'xavira_ai') {
-    const text = withSovereignBookingCta(fallbackText)
+    const text = options.includeBookingCta ? withSovereignBookingCta(fallbackText) : fallbackText.trim()
     return {
       subject: fallbackSubject,
       text,
@@ -1162,7 +1234,21 @@ export async function buildSovereignCopyForLead(
     }
   }
 
-  const text = cleanBody(result.data.body, fallbackText, options.physicalAddress)
+  const rawAiBody = String(result.data.body ?? '').trim()
+  if (!passesColdConversationQuality(rawAiBody, String(company))) {
+    const text = options.includeBookingCta ? withSovereignBookingCta(fallbackText) : fallbackText.trim()
+    return {
+      subject: fallbackSubject,
+      text,
+      html: renderSovereignHtmlEmail(text),
+      source: 'template',
+      error: 'xavira_ai_quality_rejected',
+    }
+  }
+
+  const text = cleanBody(result.data.body, fallbackText, options.physicalAddress, {
+    includeBookingCta: options.includeBookingCta,
+  })
   return {
     subject: cleanSubject(result.data.subject, fallbackSubject),
     text,
