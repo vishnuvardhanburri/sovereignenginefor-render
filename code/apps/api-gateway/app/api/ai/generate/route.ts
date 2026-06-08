@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { query } from '@/lib/db'
-import { tryOpenRouterJson } from '@/lib/ai/openrouter'
+import { tryXaviraAiJson } from '@/lib/ai/xavira-ai'
 
 function clamp01(value: number) {
   return Math.max(0, Math.min(1, value))
@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
         recommendedContent:
           'Short, relevant, and specific to the recipient. Lead with outbound deliverability or AI compliance risk.',
       }
-      const generated = await tryOpenRouterJson({
+      const generated = await tryXaviraAiJson({
         task: action,
         system:
           'You write compliant B2B outbound personalization for Xavira Control Stack. Return JSON only. Avoid spam claims, bypass language, fake revenue, or unverifiable statements.',
@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
         emergingOpportunities: ['Free infrastructure risk audits', 'Agency master license packaging'],
         recommendedDifferentiators: ['One license for deliverability and AI security', 'Self-hosted audit trail'],
       }
-      const generated = await tryOpenRouterJson({
+      const generated = await tryXaviraAiJson({
         task: action,
         system:
           'You are a B2B revenue infrastructure analyst. Return JSON only. Keep claims conservative and evidence-safe.',
@@ -109,7 +109,7 @@ export async function POST(request: NextRequest) {
         warnings: ['Avoid bypass language', 'Avoid bulk-volume claims', 'Do not claim revenue without proof'],
         nextBestActions: ['Review lead evidence', 'Validate inboxes before send', 'Send only to approved contacts'],
       }
-      const generated = await tryOpenRouterJson({
+      const generated = await tryXaviraAiJson({
         task: action,
         system:
           'You coach compliant B2B outbound. Return JSON only with coaching, suggestions, warnings, and nextBestActions.',

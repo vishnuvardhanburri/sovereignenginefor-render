@@ -76,7 +76,7 @@ type CopyPreviewItem = {
   subject: string
   text: string
   html: string
-  source: 'template' | 'openrouter'
+  source: 'template' | 'xavira_ai'
   error: string | null
 }
 

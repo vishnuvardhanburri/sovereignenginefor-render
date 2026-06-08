@@ -6,6 +6,7 @@ import { query } from '@/lib/db'
 import { resolveClientId } from '@/lib/client-context'
 import { evaluateTlsPolicy } from '@/lib/security/tls-policy'
 import { appEnv } from '@/lib/env'
+import { xaviraAiConfigured, xaviraAiProviderLabel } from '@/lib/ai/xavira-ai'
 import { isHunterFallbackEnabled } from '@/lib/integrations/zerobounce'
 
 function reqEnv(name: string) {
@@ -142,8 +143,11 @@ function emailValidationDiagnostic() {
   const hasHunterKey = Boolean(appEnv.hunterApiKey())
   const hasOpenRouterKey = Boolean(appEnv.openRouterApiKey())
   const hunterFallbackEnabled = isHunterFallbackEnabled()
-  const openRouterCopyEnabled =
-    hasOpenRouterKey && String(process.env.OUTBOUND_OPENROUTER_COPY || 'false').toLowerCase() === 'true'
+  const xaviraAiCopyEnabled =
+    xaviraAiConfigured() &&
+    ['1', 'true', 'yes', 'on'].includes(
+      String(process.env.OUTBOUND_XAVIRA_AI_COPY || process.env.OUTBOUND_OPENROUTER_COPY || 'true').toLowerCase()
+    )
 
   return {
     selected_provider: hasZeroBounceKey ? 'zerobounce' : 'owned',
@@ -151,9 +155,11 @@ function emailValidationDiagnostic() {
     has_hunter_key: hasHunterKey,
     hunter_fallback_enabled: hunterFallbackEnabled,
     owned_validation_enabled: true,
-    ai_copy_provider: openRouterCopyEnabled ? 'openrouter' : 'template',
+    ai_copy_provider: xaviraAiCopyEnabled ? 'xavira_ai' : 'template',
+    xavira_ai_provider: xaviraAiProviderLabel(),
+    xavira_ai_copy_enabled: xaviraAiCopyEnabled,
     has_openrouter_key: hasOpenRouterKey,
-    openrouter_copy_enabled: openRouterCopyEnabled,
+    openrouter_copy_enabled: xaviraAiProviderLabel() === 'openrouter' && xaviraAiCopyEnabled,
     guardrail:
       hasZeroBounceKey
         ? 'ZeroBounce validates risky inboxes; owned public-evidence and MX checks stay active. Hunter is optional.'

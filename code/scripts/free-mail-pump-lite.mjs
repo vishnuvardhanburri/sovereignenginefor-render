@@ -52,15 +52,22 @@ function summarize(body) {
 function appendCommonParams(url, kind, discoverySource = 'both') {
   const safeMode = freeTierSafeMode()
   const clientId = envInt('DEFAULT_CLIENT_ID', 1, 1, 1_000_000)
-  const sendLimit = envInt('FREE_MAIL_PUMP_SEND_LIMIT', 1, 0, safeMode ? 2 : 5)
-  const approveLimit = envInt('FREE_MAIL_PUMP_APPROVE_LIMIT', safeMode ? 2 : 5, 1, safeMode ? 3 : 25)
-  const maxDailyVolume = envInt('FREE_MAIL_PUMP_MAX_DAILY_VOLUME', safeMode ? 20 : 30, 1, 200)
-  const targetDailyVolume = envInt(
+  const sendLimit = envInt('FREE_MAIL_PUMP_SEND_LIMIT', safeMode ? 5 : 5, 0, safeMode ? 10 : 25)
+  const approveLimit = envInt('FREE_MAIL_PUMP_APPROVE_LIMIT', safeMode ? 25 : 25, 1, safeMode ? 50 : 250)
+  const maxDailyVolume = envInt('FREE_MAIL_PUMP_MAX_DAILY_VOLUME', safeMode ? 80 : 120, 1, 800)
+  const configuredTargetDailyVolume = envInt(
     'DAILY_OUTBOUND_TARGET_DAILY_VOLUME',
     envInt('DAILY_OUTBOUND_PROVIDER_MAX_SEND_LIMIT', 800, 1, 1_000_000),
     1,
     1_000_000
   )
+  const providerMaxDailyVolume = envInt(
+    'DAILY_OUTBOUND_PROVIDER_MAX_SEND_LIMIT',
+    envInt('DAILY_OUTBOUND_GROWTH_MAX_SEND_LIMIT', 800, 1, 1_000_000),
+    1,
+    1_000_000
+  )
+  const targetDailyVolume = Math.max(configuredTargetDailyVolume, providerMaxDailyVolume)
 
   url.searchParams.set('client_id', String(clientId))
   url.searchParams.set('compact', '1')
@@ -90,12 +97,12 @@ function appendCommonParams(url, kind, discoverySource = 'both') {
     discoverySource !== 'lead_scout' && envBool('PUBLIC_SEARCH_SOURCE_ENABLED', true)
 
   url.searchParams.set('leadScout', runLeadScout ? '1' : '0')
-  url.searchParams.set('leadScoutLimit', String(envInt('FREE_MAIL_PUMP_LEAD_SCOUT_LIMIT', safeMode ? 1 : 3, 0, safeMode ? 1 : 10)))
+  url.searchParams.set('leadScoutLimit', String(envInt('FREE_MAIL_PUMP_LEAD_SCOUT_LIMIT', safeMode ? 20 : 25, 0, safeMode ? 40 : 250)))
   url.searchParams.set('publicSearch', runPublicSearch ? '1' : '0')
-  url.searchParams.set('publicSearchLimit', String(envInt('FREE_MAIL_PUMP_PUBLIC_SEARCH_LIMIT', safeMode ? 1 : 3, 0, safeMode ? 1 : 10)))
-  url.searchParams.set('evidenceDeadlineMs', String(envInt('FREE_MAIL_PUMP_EVIDENCE_DEADLINE_MS', safeMode ? 2500 : 8000, 800, safeMode ? 3500 : 15000)))
-  url.searchParams.set('evidenceMaxPages', String(envInt('FREE_MAIL_PUMP_EVIDENCE_MAX_PAGES', safeMode ? 1 : 3, 1, safeMode ? 1 : 4)))
-  url.searchParams.set('evidenceRequestTimeoutMs', String(envInt('FREE_MAIL_PUMP_EVIDENCE_REQUEST_TIMEOUT_MS', safeMode ? 800 : 1200, 400, safeMode ? 1000 : 2500)))
+  url.searchParams.set('publicSearchLimit', String(envInt('FREE_MAIL_PUMP_PUBLIC_SEARCH_LIMIT', safeMode ? 5 : 10, 0, safeMode ? 10 : 250)))
+  url.searchParams.set('evidenceDeadlineMs', String(envInt('FREE_MAIL_PUMP_EVIDENCE_DEADLINE_MS', safeMode ? 6000 : 8000, 800, safeMode ? 10000 : 15000)))
+  url.searchParams.set('evidenceMaxPages', String(envInt('FREE_MAIL_PUMP_EVIDENCE_MAX_PAGES', safeMode ? 2 : 3, 1, safeMode ? 3 : 4)))
+  url.searchParams.set('evidenceRequestTimeoutMs', String(envInt('FREE_MAIL_PUMP_EVIDENCE_REQUEST_TIMEOUT_MS', safeMode ? 1200 : 1200, 400, safeMode ? 2000 : 2500)))
 }
 
 async function runCycle(kind, discoverySource = 'both') {
@@ -155,19 +162,19 @@ async function main() {
   const safeMode = freeTierSafeMode()
   const intervalMs = envInt(
     'FREE_MAIL_PUMP_INTERVAL_MS',
-    safeMode ? 30 * 60_000 : 15 * 60_000,
-    safeMode ? 30 * 60_000 : 60_000,
+    safeMode ? 15 * 60_000 : 15 * 60_000,
+    safeMode ? 10 * 60_000 : 60_000,
     60 * 60_000
   )
   const discoveryEveryMs = envInt(
     'FREE_MAIL_PUMP_DISCOVERY_INTERVAL_MS',
-    safeMode ? 12 * 60 * 60_000 : 60 * 60_000,
-    safeMode ? 12 * 60 * 60_000 : 5 * 60_000,
+    safeMode ? 60 * 60_000 : 60 * 60_000,
+    safeMode ? 30 * 60_000 : 5 * 60_000,
     24 * 60 * 60_000
   )
-  const initialDelayMs = envInt('FREE_MAIL_PUMP_INITIAL_DELAY_MS', safeMode ? 120_000 : 45_000, 5_000, 10 * 60_000)
+  const initialDelayMs = envInt('FREE_MAIL_PUMP_INITIAL_DELAY_MS', safeMode ? 60_000 : 45_000, 5_000, 10 * 60_000)
   const discoveryEnabled = envBool('FREE_MAIL_PUMP_DISCOVERY_ENABLED', true)
-  const discoveryOnStart = envBool('FREE_MAIL_PUMP_DISCOVERY_ON_START', !safeMode)
+  const discoveryOnStart = envBool('FREE_MAIL_PUMP_DISCOVERY_ON_START', true)
 
   let running = false
   let lastDiscoveryAt = discoveryOnStart ? 0 : Date.now()
@@ -194,7 +201,7 @@ async function main() {
       const discoveryDue = discoveryEnabled && Date.now() - lastDiscoveryAt >= discoveryEveryMs
       if (discoveryDue) {
         lastDiscoveryAt = Date.now()
-        const sourceMode = String(process.env.FREE_MAIL_PUMP_DISCOVERY_SOURCE_MODE || (safeMode ? 'alternate' : 'both'))
+        const sourceMode = String(process.env.FREE_MAIL_PUMP_DISCOVERY_SOURCE_MODE || (safeMode ? 'lead_scout' : 'both'))
           .trim()
           .toLowerCase()
         const discoverySource =

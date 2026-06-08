@@ -5,6 +5,7 @@ import {
   sovereignDealValueUsd,
   type SovereignCopyLead,
 } from '@/lib/outbound-copy'
+import { xaviraAiConfigured } from '@/lib/ai/xavira-ai'
 import { commercialDealLabel } from '@/lib/commercial-model'
 
 type PreviewLead = SovereignCopyLead & {
@@ -57,7 +58,7 @@ export async function GET(request: NextRequest) {
       sampleLeads.map(async (lead) => {
         const rendered = await buildSovereignCopyForLead(lead, {
           physicalAddress,
-          useOpenRouter: useAiPreview,
+          useXaviraAi: useAiPreview,
         })
         const offerType = inferSovereignOfferType(lead)
 
@@ -82,8 +83,11 @@ export async function GET(request: NextRequest) {
       generatedAt: new Date().toISOString(),
       aiPreview: useAiPreview,
       aiPersonalizationConfigured:
-        (Boolean(process.env.OPENROUTER_API_KEY || process.env.OPEN_ROUTER_API_KEY) &&
-          envEnabled(process.env.OUTBOUND_OPENROUTER_COPY, false)),
+        xaviraAiConfigured() &&
+          envEnabled(
+            process.env.OUTBOUND_XAVIRA_AI_COPY,
+            envEnabled(process.env.OUTBOUND_OPENROUTER_COPY, true)
+          ),
       retentionPolicy:
         'Recent sent-event bodies are retained for operator proof and sales review, then redacted by the outbound retention policy.',
       previews,

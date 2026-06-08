@@ -44,6 +44,7 @@ import {
   balanceSovereignOfferMix,
   inferSovereignOfferType,
   sovereignDealValueUsd,
+  type SovereignCopyRagContext,
 } from '@/lib/outbound-copy'
 import { getSendingCapacityDiagnosis } from '@/lib/sending-capacity-diagnostics'
 
@@ -77,6 +78,7 @@ type ApprovedLead = {
   reason_to_contact: string
   offer_type: 'direct' | 'agency'
   deal_value_usd: number
+  customFields?: Record<string, unknown> | null
 }
 
 type ApprovedContactRow = {
@@ -224,6 +226,160 @@ async function getSentToday(clientId: number): Promise<number> {
 
 function asString(value: unknown): string {
   return typeof value === 'string' ? value.trim() : ''
+}
+
+function compactRagFact(value: unknown, max = 220): string {
+  const text = String(value ?? '').replace(/\s+/g, ' ').trim()
+  if (!text) return ''
+  return text.length > max ? `${text.slice(0, max - 3)}...` : text
+}
+
+function pushRagFact(target: string[], label: string, value: unknown, max?: number) {
+  const fact = compactRagFact(value, max)
+  if (fact) target.push(`${label}: ${fact}`)
+}
+
+type CopyRagContactRow = {
+  id: string
+  email: string
+  email_domain: string | null
+  name: string | null
+  company: string | null
+  company_domain: string | null
+  title: string | null
+  source: string | null
+  reason_to_contact: string | null
+  verification_status: string | null
+  custom_fields: Record<string, unknown> | null
+  created_at: string
+  updated_at: string
+}
+
+type CopyRagEventRow = {
+  contact_id: string | null
+  event_type: string
+  created_at: string
+  metadata: Record<string, unknown> | null
+}
+
+async function loadCopyRagContexts(
+  clientId: number,
+  contactIds: number[]
+): Promise<Map<number, SovereignCopyRagContext>> {
+  const ids = Array.from(new Set(contactIds.filter((id) => Number.isSafeInteger(id))))
+  const contexts = new Map<number, SovereignCopyRagContext>()
+  if (ids.length === 0) return contexts
+
+  const [contacts, events] = await Promise.all([
+    query<CopyRagContactRow>(
+      `SELECT
+         id::text,
+         email,
+         email_domain,
+         name,
+         company,
+         company_domain,
+         title,
+         source,
+         custom_fields->>'reason_to_contact' AS reason_to_contact,
+         verification_status,
+         custom_fields,
+         created_at::text,
+         updated_at::text
+       FROM contacts
+       WHERE client_id = $1
+         AND id = ANY($2::bigint[])`,
+      [clientId, ids]
+    ),
+    query<CopyRagEventRow>(
+      `SELECT
+         contact_id::text,
+         event_type,
+         created_at::text,
+         metadata
+       FROM events
+       WHERE client_id = $1
+         AND contact_id = ANY($2::bigint[])
+       ORDER BY created_at DESC
+       LIMIT 300`,
+      [clientId, ids]
+    ),
+  ])
+
+  const eventsByContact = new Map<number, CopyRagEventRow[]>()
+  for (const event of events.rows) {
+    const contactId = Number(event.contact_id)
+    if (!Number.isSafeInteger(contactId)) continue
+    const bucket = eventsByContact.get(contactId) ?? []
+    bucket.push(event)
+    eventsByContact.set(contactId, bucket)
+  }
+
+  for (const contact of contacts.rows) {
+    const contactId = Number(contact.id)
+    if (!Number.isSafeInteger(contactId)) continue
+
+    const customFields = contact.custom_fields ?? {}
+    const evidenceFacts: string[] = []
+    const accountSignals: string[] = []
+    const riskSignals: string[] = []
+
+    pushRagFact(evidenceFacts, 'reason', contact.reason_to_contact, 260)
+    pushRagFact(evidenceFacts, 'public evidence', customFields.public_evidence_url)
+    pushRagFact(evidenceFacts, 'research evidence', customFields.research_evidence_url)
+    pushRagFact(evidenceFacts, 'linkedin', customFields.linkedin_url || customFields.linkedin_profile_url)
+    pushRagFact(evidenceFacts, 'website', customFields.website || customFields.website_url || contact.company_domain)
+    pushRagFact(accountSignals, 'fit score', customFields.fit_score)
+    pushRagFact(accountSignals, 'email evidence', customFields.email_evidence)
+    pushRagFact(accountSignals, 'validation verdict', customFields.email_validation_verdict || contact.verification_status)
+    pushRagFact(accountSignals, 'source', contact.source)
+    pushRagFact(accountSignals, 'offer path', customFields.offer_type || customFields.commercial_motion)
+    pushRagFact(riskSignals, 'approval blocker', customFields.approval_blocked_reason)
+    pushRagFact(riskSignals, 'queue status', customFields.send_status)
+
+    const eventHistory = (eventsByContact.get(contactId) ?? []).slice(0, 8).map((event) => {
+      const metadata = event.metadata ?? {}
+      const subject = asString(metadata.subject)
+      const offerType = asString(metadata.offer_type)
+      const source = asString(metadata.copy_source)
+      const detail = [subject && `subject=${subject}`, offerType && `offer=${offerType}`, source && `copy=${source}`]
+        .filter(Boolean)
+        .join('; ')
+      return compactRagFact(`${event.created_at} ${event.event_type}${detail ? ` (${detail})` : ''}`, 240)
+    })
+    const replySignals = (eventsByContact.get(contactId) ?? [])
+      .filter((event) => /reply|replied|positive|negative|unsubscribe/i.test(event.event_type))
+      .slice(0, 5)
+      .map((event) => {
+        const metadata = event.metadata ?? {}
+        return compactRagFact(
+          `${event.created_at} ${event.event_type}: ${asString(metadata.intent) || asString(metadata.subject) || asString(metadata.summary)}`,
+          240
+        )
+      })
+
+    contexts.set(contactId, {
+      contactFacts: {
+        email: contact.email,
+        emailDomain: contact.email_domain,
+        name: contact.name,
+        company: contact.company,
+        companyDomain: contact.company_domain,
+        title: contact.title,
+        source: contact.source,
+        verificationStatus: contact.verification_status,
+        createdAt: contact.created_at,
+        updatedAt: contact.updated_at,
+      },
+      evidenceFacts,
+      eventHistory,
+      replySignals,
+      accountSignals,
+      riskSignals,
+    })
+  }
+
+  return contexts
 }
 
 function splitDiscoveryLimit(limit: number): { agency: number; direct: number } {
@@ -2075,6 +2231,10 @@ async function runQueue(input: {
     const physicalAddress = process.env.SENDER_PHYSICAL_ADDRESS || 'Xavira Tech Labs, India'
     const allowCopyOverride = envBool(process.env.OUTBOUND_CRON_ALLOW_COPY_OVERRIDE, false)
     const today = new Date().toISOString().slice(0, 10)
+    const ragContexts = await loadCopyRagContexts(
+      input.clientId,
+      leads.map((lead) => lead.contact_id).filter((id) => Number.isSafeInteger(id)) as number[]
+    )
 
     const jobs = await Promise.all(leads.map(async (lead) => {
       const copy = await buildSovereignCopyForLead(lead, {
@@ -2087,6 +2247,7 @@ async function runQueue(input: {
           allowCopyOverride && process.env.OUTBOUND_CRON_BODY
             ? process.env.OUTBOUND_CRON_BODY
             : undefined,
+        ragContext: lead.contact_id ? ragContexts.get(lead.contact_id) : undefined,
       })
       const idempotencyKey = crypto
         .createHash('sha256')

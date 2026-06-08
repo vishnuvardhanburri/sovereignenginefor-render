@@ -110,6 +110,8 @@ services:
         value: "true"
       - key: DAILY_OUTBOUND_MODE
         value: growth
+      - key: DAILY_OUTBOUND_TARGET_DAILY_VOLUME
+        value: "800"
       - key: DAILY_OUTBOUND_SEND_LIMIT
         value: "800"
       - key: DAILY_OUTBOUND_GROWTH_MAX_SEND_LIMIT
@@ -149,21 +151,23 @@ services:
       - key: WEB_EMBED_FREE_MAIL_PUMP
         value: "true"
       - key: FREE_MAIL_PUMP_INTERVAL_MS
-        value: "1800000"
+        value: "900000"
       - key: FREE_MAIL_PUMP_DISCOVERY_INTERVAL_MS
-        value: "43200000"
+        value: "3600000"
       - key: FREE_MAIL_PUMP_INITIAL_DELAY_MS
-        value: "120000"
+        value: "60000"
       - key: FREE_MAIL_PUMP_DISCOVERY_ON_START
-        value: "false"
+        value: "true"
       - key: FREE_MAIL_PUMP_SEND_LIMIT
-        value: "1"
+        value: "5"
       - key: FREE_MAIL_PUMP_APPROVE_LIMIT
-        value: "2"
+        value: "25"
       - key: FREE_MAIL_PUMP_LEAD_SCOUT_LIMIT
-        value: "1"
+        value: "20"
       - key: FREE_MAIL_PUMP_PUBLIC_SEARCH_LIMIT
-        value: "1"
+        value: "5"
+      - key: FREE_MAIL_PUMP_DISCOVERY_SOURCE_MODE
+        value: lead_scout
       - key: WEB_EMBED_AUTONOMOUS_OPS_WORKER
         value: "false"
       - key: WEB_EMBED_INBOUND_WORKER
@@ -177,17 +181,17 @@ services:
       - key: DAILY_OUTBOUND_SKIP_LEAD_EVIDENCE_VERIFICATION
         value: "true"
       - key: LEAD_SCOUT_DAILY_LIMIT
-        value: "5"
+        value: "40"
       - key: DAILY_OUTBOUND_SMALL_MAX_LEAD_SCOUT_LIMIT
-        value: "1"
+        value: "40"
       - key: PUBLIC_SEARCH_SOURCE_ENABLED
         value: "true"
       - key: DAILY_OUTBOUND_RUN_PUBLIC_SEARCH
         value: "true"
       - key: PUBLIC_SEARCH_DAILY_LIMIT
-        value: "5"
+        value: "10"
       - key: DAILY_OUTBOUND_SMALL_MAX_PUBLIC_SEARCH_LIMIT
-        value: "1"
+        value: "10"
       - key: PUBLIC_SEARCH_TIMEOUT_MS
         value: "12000"
       - key: LEAD_SCOUT_INDUSTRIES
@@ -201,9 +205,9 @@ services:
       - key: DAILY_OUTBOUND_RUN_MAPS
         value: "true"
       - key: GOOGLE_MAPS_DAILY_LIMIT
-        value: "5"
+        value: "2"
       - key: DAILY_OUTBOUND_SMALL_MAX_MAPS_LIMIT
-        value: "5"
+        value: "2"
       - key: GOOGLE_MAPS_SOURCE_ENABLED
         value: "true"
       - key: APIFY_API_TOKEN
@@ -224,6 +228,8 @@ services:
         sync: false   # sk-or-v1-fc9f8d031...
       - key: OPENROUTER_MODEL
         value: meta-llama/llama-3.1-8b-instruct:free
+      - key: OUTBOUND_XAVIRA_AI_COPY
+        value: "true"
       - key: OUTBOUND_OPENROUTER_COPY
         value: "true"
 
@@ -468,6 +474,8 @@ services:
       # Pass-through all outbound parameters
       - key: DAILY_OUTBOUND_MODE
         value: growth
+      - key: DAILY_OUTBOUND_TARGET_DAILY_VOLUME
+        value: "800"
       - key: DAILY_OUTBOUND_SEND_LIMIT
         value: "80"
       - key: DAILY_OUTBOUND_APPROVE_LIMIT

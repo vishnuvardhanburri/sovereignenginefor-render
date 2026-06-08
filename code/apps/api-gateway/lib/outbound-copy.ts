@@ -1,5 +1,4 @@
-import { tryOpenRouterJson } from '@/lib/ai/openrouter'
-import { appEnv } from '@/lib/env'
+import { tryXaviraAiJson, xaviraAiConfigured } from '@/lib/ai/xavira-ai'
 import { buildSalesBrainContext } from '@/lib/sales-brain'
 import { commercialDealValueGbp } from '@/lib/commercial-model'
 
@@ -17,6 +16,15 @@ export type SovereignCopyLead = {
   offer_type?: string | null
   offerType?: string | null
   customFields?: Record<string, unknown> | null
+}
+
+export type SovereignCopyRagContext = {
+  contactFacts?: Record<string, unknown>
+  evidenceFacts?: string[]
+  eventHistory?: string[]
+  replySignals?: string[]
+  accountSignals?: string[]
+  riskSignals?: string[]
 }
 
 export const SOVEREIGN_STACK_DIRECT_SUBJECT =
@@ -108,7 +116,7 @@ export type SovereignRenderedCopy = {
   subject: string
   text: string
   html: string
-  source: 'template' | 'openrouter'
+  source: 'template' | 'xavira_ai'
   error?: string
 }
 
@@ -504,21 +512,21 @@ function hookForCopyDecision(
   persona: SovereignBuyerPersona
 ): string {
   if (industry === 'agency') {
-    return `I came across ${company} while researching agencies building serious outbound, RevOps, or client acquisition operations.`
+    return `I looked at ${company} because agencies running client acquisition usually hit the same hidden problem once volume grows: the campaign looks busy, but sender trust and follow-up control decide whether revenue is actually created.`
   }
   if (industry === 'revops') {
-    return `I came across ${company} while looking at teams responsible for pipeline quality and communication operations.`
+    return `I looked at ${company} because RevOps teams often own the painful gap between activity numbers and real buyer conversations.`
   }
   if (industry === 'cybersecurity' || industry === 'compliance') {
-    return `I came across ${company} while researching trust-heavy teams where outreach, AI governance, and operational proof have to be handled carefully.`
+    return `I looked at ${company} because trust-heavy buyers punish anything that feels uncontrolled: spam placement, messy follow-up, weak audit trails, or loose AI handling.`
   }
   if (industry === 'ai' || industry === 'devtools') {
-    return `I came across ${company} while researching technical teams selling into skeptical buyers where communication has to feel controlled, not automated.`
+    return `I looked at ${company} because technical buyers can ignore even strong products when the outreach layer feels automated, duplicated, or poorly governed.`
   }
   if (persona === 'founder') {
-    return `I came across ${company} while looking at founder-led teams where outbound quality can quietly affect pipeline trust.`
+    return `I looked at ${company} because founder-led teams feel the cost first when outbound burns a domain, loses follow-ups, or spreads deal context across too many tools.`
   }
-  return `I came across ${company} while researching teams that rely on outbound growth and operational communications.`
+  return `I looked at ${company} because outbound problems rarely announce themselves; they show up as silence, weak replies, and operators not knowing which touch actually reached the buyer.`
 }
 
 function painForCopyDecision(industry: SovereignBuyerIndustry): string {
@@ -539,12 +547,12 @@ function painForCopyDecision(industry: SovereignBuyerIndustry): string {
 
 function valueForCopyDecision(offerType: SovereignOfferType, industry: SovereignBuyerIndustry): string {
   if (offerType === 'agency') {
-    return 'Xavira Control Stack is our proven control layer for agencies: domain protection, sender capacity, inbox-placement visibility, queue discipline, suppression governance, reply tracking, delivery proof, audit trails, and Xavira Shield for outreach data.'
+    return 'Xavira Control Stack is built as the control layer around the tools agencies already use: Gmail or SMTP, LinkedIn, CRM, Calendly, sheets, and assistants. It shows sender capacity, spam/promotions risk, suppression, queue discipline, delivery proof, follow-up state, audit trails, and Xavira Shield for client/outreach data.'
   }
   if (industry === 'cybersecurity' || industry === 'compliance') {
-    return 'Xavira Control Stack gives operators one governed layer for domain protection, sender capacity, inbox-placement visibility, suppression, follow-ups, delivery proof, audit trails, and Xavira Shield for communication data.'
+    return 'Xavira Control Stack gives operators one governed layer around existing tools: domain protection, sender capacity, inbox-placement visibility, suppression, follow-ups, delivery proof, audit trails, and Xavira Shield for communication data.'
   }
-  return 'Xavira Control Stack gives operators one governed layer for domain protection, sender capacity, spam/promotions visibility, queue discipline, suppression, follow-up control, delivery proof, audit trails, and Xavira Shield for outreach data.'
+  return 'Xavira Control Stack sits around the existing outreach stack and makes the hidden layer visible: sender capacity, domain burn risk, spam/promotions placement, queue discipline, suppression, follow-up control, delivery proof, audit trails, and Xavira Shield for outreach data.'
 }
 
 function ctaForCopyDecision(
@@ -553,15 +561,15 @@ function ctaForCopyDecision(
   persona: SovereignBuyerPersona
 ): string {
   if (industry === 'agency' || industry === 'revops' || persona === 'partnerships') {
-    return `Is this already a client-delivery or white-label risk inside ${company}?`
+    return `Where does this break first inside ${company}: inbox placement, follow-ups, duplicate touches, suppression, or proving delivery to clients?`
   }
   if (persona === 'founder') {
-    return 'Is domain burn, spam placement, missed follow-up, or outreach-data leakage a real risk for you right now?'
+    return 'If I mapped this in a short audit, would domain burn, spam/promotions placement, missed follow-up, or outreach-data leakage be the most urgent risk?'
   }
   if (persona === 'technical' || persona === 'security') {
-    return 'Is this communication-control layer something your team is actively trying to solve?'
+    return 'Is this communication-control layer already on your risk list, or is it still hidden inside the current tools?'
   }
-  return `Where does ${company} feel this communication-control problem most today?`
+  return `Where does ${company} feel the most leakage today: reach, replies, follow-ups, suppression, or proof?`
 }
 
 function followupObservationForCopyDecision(industry: SovereignBuyerIndustry): string {
@@ -996,7 +1004,9 @@ export async function buildSovereignCopyForLead(
     physicalAddress: string
     subjectOverride?: string
     bodyOverride?: string
+    useXaviraAi?: boolean
     useOpenRouter?: boolean
+    ragContext?: SovereignCopyRagContext
   }
 ): Promise<SovereignRenderedCopy> {
   const fallbackSubject = options.subjectOverride || sovereignSubjectForLead(lead)
@@ -1006,13 +1016,16 @@ export async function buildSovereignCopyForLead(
     lead,
     options.physicalAddress
   )
-  const openRouterApiKey = appEnv.openRouterApiKey()
-  const shouldUseOpenRouter =
+  const shouldUseXaviraAi =
+    options.useXaviraAi ??
     options.useOpenRouter ??
-    (Boolean(openRouterApiKey) &&
-      envEnabled(process.env.OUTBOUND_OPENROUTER_COPY, false))
+    (xaviraAiConfigured() &&
+      envEnabled(
+        process.env.OUTBOUND_XAVIRA_AI_COPY,
+        envEnabled(process.env.OUTBOUND_OPENROUTER_COPY, true)
+      ))
 
-  if (!shouldUseOpenRouter) {
+  if (!shouldUseXaviraAi) {
     const text = withSovereignBookingCta(fallbackText)
     return {
       subject: fallbackSubject,
@@ -1031,9 +1044,21 @@ export async function buildSovereignCopyForLead(
   const firstName = safeGreetingName(lead.first_name || lead.firstName)
   const researchContext = buildLeadResearchContext(lead)
   const copyDecision = buildSovereignCopyDecision(lead)
+  const ragContext = options.ragContext ?? {}
 
   const aiPayload = JSON.stringify({
     salesBrain: buildSalesBrainContext(lead, offerType),
+    retrieval: {
+      method: 'database_rag',
+      instruction:
+        'Use these retrieved database facts as the primary source. Do not write a generic template. If facts are thin, name the likely operational risk and ask a diagnostic question instead of pretending to know more.',
+      contactFacts: ragContext.contactFacts ?? {},
+      evidenceFacts: ragContext.evidenceFacts ?? [],
+      eventHistory: ragContext.eventHistory ?? [],
+      replySignals: ragContext.replySignals ?? [],
+      accountSignals: ragContext.accountSignals ?? [],
+      riskSignals: ragContext.riskSignals ?? [],
+    },
     recipient: {
       firstName,
       company,
@@ -1079,6 +1104,8 @@ export async function buildSovereignCopyForLead(
     fallbackSubject,
     writingRules: [
       'Start directly with the most specific verified context available. Avoid "hope you are well" and generic intros.',
+      'Use retrieved database facts first; deterministic template language is only fallback inspiration.',
+      'Do not say "I came across" unless the retrieved context proves where the lead came from.',
       'Use a lower-case, short subject when possible; no salesy words, no excessive punctuation, no spam-trigger wording.',
       'Use at most one evidence-backed personalization line.',
       'Answer the buyer question clearly: why buy, what profit or risk reduction they should expect, and why this matters now.',
@@ -1096,10 +1123,10 @@ export async function buildSovereignCopyForLead(
     ],
   })
   const aiSystem =
-    'You write compliant B2B enterprise outbound email copy for a legitimate business interest workflow. Return JSON only with subject and body. Use the supplied Sovereign Sales Brain rules. Position Xavira Tech Labs as a premium infrastructure vendor. Do not invent facts, customer names, revenue claims, urgency, fake personalization, or competitor customer claims. Write like a serious operator sending a one-to-one note: short, specific, plain text, pain-first, and useful. No hype, no emojis, no spam tricks, no bypass language. Keep it under 150 words. Do not mention pricing, GBP amounts, reseller rights, commercial rights, or license recovery in cold first-touch/follow-up copy. Include a polite opt-out line. Structure: verified evidence hook, operational pain, why Xavira Control Stack helps, low-friction audit CTA.'
+    'You write compliant B2B enterprise outbound email copy from retrieved database context. Return JSON only with subject and body. This is RAG writing, not a template fill. Use the supplied database facts first, then the Sovereign Sales Brain rules. Position Xavira Tech Labs as a premium infrastructure vendor. Do not invent facts, customer names, revenue claims, urgency, fake personalization, or competitor customer claims. Write like a founder/operator diagnosing a real operational leak: short, specific, plain text, pain-first, and useful. No hype, no emojis, no spam tricks, no bypass language. Keep it under 150 words. Do not mention pricing, GBP amounts, reseller rights, commercial rights, or license recovery in cold first-touch/follow-up copy. Include a polite opt-out line. Structure: retrieved evidence hook, operational pain, why Xavira Control Stack helps, diagnostic audit CTA.'
 
-  const result = shouldUseOpenRouter
-    ? await tryOpenRouterJson<{
+  const result = shouldUseXaviraAi
+    ? await tryXaviraAiJson<{
         subject?: string
         body?: string
         reason?: string
@@ -1112,7 +1139,6 @@ export async function buildSovereignCopyForLead(
           body: fallbackText,
           reason: 'fallback_template',
         },
-        apiKey: openRouterApiKey,
         timeoutMs: 5_000,
       })
     : {
@@ -1120,12 +1146,12 @@ export async function buildSovereignCopyForLead(
         data: {
           subject: fallbackSubject,
           body: fallbackText,
-          reason: 'openrouter_disabled',
+          reason: 'xavira_ai_disabled',
         },
-        error: 'openrouter_disabled',
+        error: 'xavira_ai_disabled',
   }
 
-  if (result.source !== 'openrouter') {
+  if (result.source !== 'xavira_ai') {
     const text = withSovereignBookingCta(fallbackText)
     return {
       subject: fallbackSubject,
@@ -1141,6 +1167,6 @@ export async function buildSovereignCopyForLead(
     subject: cleanSubject(result.data.subject, fallbackSubject),
     text,
     html: renderSovereignHtmlEmail(text),
-    source: 'openrouter',
+    source: 'xavira_ai',
   }
 }
