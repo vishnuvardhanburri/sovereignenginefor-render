@@ -1504,15 +1504,22 @@ function balanceResearchApprovalMix(
     }) === 'agency'
   })
   const direct = ranked.filter((decision) => !agency.includes(decision))
-  const balancedPairs = Math.min(Math.floor(normalizedLimit / 2), agency.length, direct.length)
-  const targetAgency = balancedPairs
-  const targetDirect = balancedPairs
-  const selected = [
-    ...agency.slice(0, targetAgency),
-    ...direct.slice(0, targetDirect),
-  ]
+  const targetAgency = Math.ceil(normalizedLimit / 2)
+  const targetDirect = normalizedLimit - targetAgency
+  const selected: ProspectResearchDecision[] = []
+  const agencySlice = agency.slice(0, targetAgency)
+  const directSlice = direct.slice(0, targetDirect)
+  const maxPairs = Math.max(agencySlice.length, directSlice.length)
 
-  return selected
+  for (let index = 0; index < maxPairs; index += 1) {
+    if (agencySlice[index]) selected.push(agencySlice[index])
+    if (directSlice[index]) selected.push(directSlice[index])
+  }
+
+  const selectedIds = new Set(selected.map((decision) => decision.id))
+  const remainder = ranked.filter((decision) => !selectedIds.has(decision.id))
+
+  return [...selected, ...remainder].slice(0, normalizedLimit)
 }
 
 function decorateProviderValidationUpdate(contact: ProspectResearchContact): ProspectResearchContact {
