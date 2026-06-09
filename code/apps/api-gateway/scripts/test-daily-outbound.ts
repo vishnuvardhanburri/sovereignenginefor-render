@@ -261,6 +261,42 @@ const zeroMapsLimitPlan = buildDailyOutboundPlan({
 assert.equal(zeroMapsLimitPlan.mapsLimit, 0)
 assert.equal(zeroMapsLimitPlan.runMapsImport, false)
 
+const researchInventoryPlan = buildDailyOutboundPlan({
+  approvalWindow: highCapacityWindow,
+  env: {
+    WEB_MEMORY_PROFILE: 'free',
+    WEB_FREE_TIER_SAFE_MODE: 'true',
+    DAILY_OUTBOUND_RESEARCH_UNLIMITED: 'true',
+    DAILY_OUTBOUND_READY_INVENTORY_TARGET: '1600',
+    DAILY_OUTBOUND_RESEARCH_LIMIT: '120',
+    DAILY_OUTBOUND_RESEARCH_APPROVE_LIMIT: '1600',
+    DAILY_OUTBOUND_APPROVE_LIMIT: '25',
+    DAILY_OUTBOUND_SMALL_MAX_LEAD_SCOUT_LIMIT: '120',
+    DAILY_OUTBOUND_SMALL_MAX_PUBLIC_SEARCH_LIMIT: '120',
+    DAILY_OUTBOUND_SMALL_MAX_MAPS_LIMIT: '10',
+    LEAD_SCOUT_ENABLED: 'true',
+    LEAD_SCOUT_DAILY_LIMIT: '40',
+    PUBLIC_SEARCH_SOURCE_ENABLED: 'true',
+    PUBLIC_SEARCH_DAILY_LIMIT: '10',
+    GOOGLE_MAPS_SOURCE_ENABLED: 'true',
+    GOOGLE_MAPS_DAILY_LIMIT: '2',
+    APIFY_API_TOKEN: 'token-only',
+  },
+  query: {
+    leadScoutLimit: '20',
+    publicSearchLimit: '5',
+    mapsLimit: '2',
+  },
+})
+
+assert.equal(researchInventoryPlan.researchUnlimited, true)
+assert.equal(researchInventoryPlan.readyInventoryTarget, 1600)
+assert.equal(researchInventoryPlan.leadScoutLimit, 120)
+assert.equal(researchInventoryPlan.publicSearchLimit, 120)
+assert.equal(researchInventoryPlan.mapsLimit, 10)
+assert.equal(researchInventoryPlan.approveLimit, 1600)
+assert.equal(researchInventoryPlan.sendLimit, 1)
+
 assert.deepEqual(resolveDailyVolumeBand({ env: {} }), {
   minDailyVolume: 125,
   maxDailyVolume: 199,

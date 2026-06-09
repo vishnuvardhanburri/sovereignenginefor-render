@@ -85,6 +85,27 @@ function buildCronUrl() {
   if (process.env.DAILY_OUTBOUND_TARGET_DAILY_VOLUME) {
     url.searchParams.set('targetDailyVolume', process.env.DAILY_OUTBOUND_TARGET_DAILY_VOLUME)
   }
+  if (isEnabled(process.env.DAILY_OUTBOUND_RESEARCH_UNLIMITED)) {
+    url.searchParams.set('researchUnlimited', 'true')
+  }
+  if (process.env.DAILY_OUTBOUND_RESEARCH_LIMIT) {
+    url.searchParams.set('researchLimit', process.env.DAILY_OUTBOUND_RESEARCH_LIMIT)
+  }
+  if (process.env.DAILY_OUTBOUND_READY_INVENTORY_TARGET) {
+    url.searchParams.set('readyInventoryTarget', process.env.DAILY_OUTBOUND_READY_INVENTORY_TARGET)
+  }
+  if (process.env.DAILY_OUTBOUND_RESEARCH_APPROVE_LIMIT) {
+    url.searchParams.set('researchApproveLimit', process.env.DAILY_OUTBOUND_RESEARCH_APPROVE_LIMIT)
+  }
+  if (process.env.LEAD_SCOUT_RESEARCH_LIMIT) {
+    url.searchParams.set('leadScoutResearchLimit', process.env.LEAD_SCOUT_RESEARCH_LIMIT)
+  }
+  if (process.env.PUBLIC_SEARCH_RESEARCH_LIMIT) {
+    url.searchParams.set('publicSearchResearchLimit', process.env.PUBLIC_SEARCH_RESEARCH_LIMIT)
+  }
+  if (process.env.GOOGLE_MAPS_RESEARCH_LIMIT) {
+    url.searchParams.set('mapsResearchLimit', process.env.GOOGLE_MAPS_RESEARCH_LIMIT)
+  }
   if (process.env.GOOGLE_MAPS_DAILY_LIMIT) {
     url.searchParams.set('mapsLimit', process.env.GOOGLE_MAPS_DAILY_LIMIT)
   }

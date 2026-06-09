@@ -2605,6 +2605,13 @@ export async function GET(request: NextRequest) {
         leadScout: params.get('leadScout'),
         leadScoutLimit: params.get('leadScoutLimit'),
         approveLimit: params.get('approveLimit'),
+        researchApproveLimit: params.get('researchApproveLimit'),
+        researchUnlimited: params.get('researchUnlimited') || params.get('research_unlimited'),
+        researchLimit: params.get('researchLimit'),
+        readyInventoryTarget: params.get('readyInventoryTarget') || params.get('ready_inventory_target'),
+        mapsResearchLimit: params.get('mapsResearchLimit'),
+        publicSearchResearchLimit: params.get('publicSearchResearchLimit'),
+        leadScoutResearchLimit: params.get('leadScoutResearchLimit'),
         sendLimit: params.get('sendLimit'),
         mode: params.get('mode'),
         recoveryMode: params.get('recoveryMode'),
@@ -2666,6 +2673,7 @@ export async function GET(request: NextRequest) {
       process.env.GOOGLE_MAPS_APIFY_ACTOR_ID ||
       ''
     let queuedBeforeResearch = false
+    let sendSlotsAlreadyQueued = false
 
     if (!plan.enabled) {
       return NextResponse.json({
@@ -2686,71 +2694,20 @@ export async function GET(request: NextRequest) {
       })
       stages.push(preResearchQueueStage)
 
-      if (getNumericField(preResearchQueueStage.data, 'queued') > 0 || queueOnly) {
-        queuedBeforeResearch = true
-        const skipped = queueOnly ? 'queue_only_fast_path' : 'deferred_after_immediate_queue'
-        stages.push({
-          stage: 'public_search',
-          ok: true,
-          status: 204,
-          skipped,
-        })
-        stages.push({
-          stage: 'lead_scout',
-          ok: true,
-          status: 204,
-          skipped,
-        })
-        stages.push({
-          stage: 'maps_import',
-          ok: true,
-          status: 204,
-          skipped,
-        })
-        stages.push({
-          stage: 'sheet_import',
-          ok: true,
-          status: 204,
-          skipped,
-        })
-        stages.push({
-          stage: 'hunter_domain_search',
-          ok: true,
-          status: 204,
-          skipped,
-        })
-        stages.push({
-          stage: 'research_approval',
-          ok: true,
-          status: 204,
-          skipped,
-        })
+      const preResearchQueued = getNumericField(preResearchQueueStage.data, 'queued')
+      if (preResearchQueued > 0) {
+        sendSlotsAlreadyQueued = true
       }
-    }
 
-    if (!queuedBeforeResearch && plan.runResearchApproval) {
-      const fastApprovalStage = await runResearchApproval({
-        clientId: plan.clientId,
-        dryRun: plan.dryRun,
-        approveLimit: plan.approveLimit,
-        recoveryMode,
-        growthMode: plan.mode === 'growth',
-        evidenceFetchLimit: 0,
-        providerValidationLimit: 0,
-      })
-      stages.push(fastApprovalStage)
-
-      if (plan.runQueue) {
-        const fastQueueStage = await runQueue({
-          clientId: plan.clientId,
-          sendLimit: plan.sendLimit,
-          phase: 'before_research',
-        })
-        stages.push(fastQueueStage)
-
-        if (getNumericField(fastQueueStage.data, 'queued') > 0) {
+      if (preResearchQueued > 0 || queueOnly) {
+        const continueResearchAfterQueue = plan.researchUnlimited && !queueOnly
+        if (continueResearchAfterQueue) {
+          plan.guardrails.push(
+            'This cycle already queued send slots, but autonomous research will continue to build future ready inventory'
+          )
+        } else {
           queuedBeforeResearch = true
-          const skipped = 'deferred_after_fast_approval_queue'
+          const skipped = queueOnly ? 'queue_only_fast_path' : 'deferred_after_immediate_queue'
           stages.push({
             stage: 'public_search',
             ok: true,
@@ -2781,7 +2738,84 @@ export async function GET(request: NextRequest) {
             status: 204,
             skipped,
           })
+          stages.push({
+            stage: 'research_approval',
+            ok: true,
+            status: 204,
+            skipped,
+          })
         }
+      }
+    }
+
+    if (!queuedBeforeResearch && plan.runResearchApproval) {
+      const fastApprovalStage = await runResearchApproval({
+        clientId: plan.clientId,
+        dryRun: plan.dryRun,
+        approveLimit: plan.approveLimit,
+        recoveryMode,
+        growthMode: plan.mode === 'growth',
+        evidenceFetchLimit: 0,
+        providerValidationLimit: 0,
+      })
+      stages.push(fastApprovalStage)
+
+      if (plan.runQueue && !sendSlotsAlreadyQueued) {
+        const fastQueueStage = await runQueue({
+          clientId: plan.clientId,
+          sendLimit: plan.sendLimit,
+          phase: 'before_research',
+        })
+        stages.push(fastQueueStage)
+
+        if (getNumericField(fastQueueStage.data, 'queued') > 0) {
+          sendSlotsAlreadyQueued = true
+          if (plan.researchUnlimited) {
+            plan.guardrails.push(
+              'Fast approval queued send slots, but autonomous research will continue for future inventory'
+            )
+          } else {
+            queuedBeforeResearch = true
+            const skipped = 'deferred_after_fast_approval_queue'
+            stages.push({
+              stage: 'public_search',
+              ok: true,
+              status: 204,
+              skipped,
+            })
+            stages.push({
+              stage: 'lead_scout',
+              ok: true,
+              status: 204,
+              skipped,
+            })
+            stages.push({
+              stage: 'maps_import',
+              ok: true,
+              status: 204,
+              skipped,
+            })
+            stages.push({
+              stage: 'sheet_import',
+              ok: true,
+              status: 204,
+              skipped,
+            })
+            stages.push({
+              stage: 'hunter_domain_search',
+              ok: true,
+              status: 204,
+              skipped,
+            })
+          }
+        }
+      } else if (plan.runQueue && sendSlotsAlreadyQueued) {
+        stages.push({
+          stage: 'queue_outbound',
+          ok: true,
+          status: 204,
+          skipped: 'send_slots_already_queued_research_continues',
+        })
       }
     }
 
@@ -2848,7 +2882,7 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    if (!queuedBeforeResearch && plan.runQueue) {
+    if (!queuedBeforeResearch && plan.runQueue && !sendSlotsAlreadyQueued) {
       const fastQueueStage = await runQueue({
         clientId: plan.clientId,
         sendLimit: plan.sendLimit,
@@ -2856,8 +2890,22 @@ export async function GET(request: NextRequest) {
       })
       stages.push(fastQueueStage)
       if (getNumericField(fastQueueStage.data, 'queued') > 0) {
-        queuedBeforeResearch = true
+        sendSlotsAlreadyQueued = true
+        if (plan.researchUnlimited) {
+          plan.guardrails.push(
+            'Research-stage queue filled send slots, but later discovery sources will still run'
+          )
+        } else {
+          queuedBeforeResearch = true
+        }
       }
+    } else if (!queuedBeforeResearch && plan.runQueue && sendSlotsAlreadyQueued) {
+      stages.push({
+        stage: 'queue_outbound',
+        ok: true,
+        status: 204,
+        skipped: 'send_slots_already_queued_research_continues',
+      })
     }
 
     if (!queuedBeforeResearch && plan.runMapsImport) {
@@ -2974,7 +3022,7 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    if (!queuedBeforeResearch && plan.runQueue) {
+    if (!queuedBeforeResearch && plan.runQueue && !sendSlotsAlreadyQueued) {
       stages.push(
         await runQueue({
           clientId: plan.clientId,
@@ -2982,6 +3030,13 @@ export async function GET(request: NextRequest) {
           phase: 'after_research',
         })
       )
+    } else if (!queuedBeforeResearch && plan.runQueue && sendSlotsAlreadyQueued) {
+      stages.push({
+        stage: 'queue_outbound',
+        ok: true,
+        status: 204,
+        skipped: 'send_slots_already_queued_research_continues',
+      })
     } else if (!queuedBeforeResearch) {
       stages.push({
         stage: 'queue_outbound',
@@ -3136,6 +3191,8 @@ export async function GET(request: NextRequest) {
       dailySentBeforeCycle: volumeAdjustment.sentToday,
       dailyRemainingToFloor: volumeAdjustment.remainingToMin,
       dailyRemainingToCeiling: volumeAdjustment.remainingToMax,
+      researchUnlimited: plan.researchUnlimited,
+      readyInventoryTarget: plan.readyInventoryTarget,
     }
 
     void notifyTelegramEvent({
@@ -3182,6 +3239,8 @@ export async function GET(request: NextRequest) {
           `ceiling=${volumeAdjustment.band.maxDailyVolume}`,
           `sentBefore=${volumeAdjustment.sentToday}`,
           `sendLimit=${plan.sendLimit}`,
+          `researchUnlimited=${plan.researchUnlimited ? 1 : 0}`,
+          `readyTarget=${plan.readyInventoryTarget}`,
         ].join(' '),
         {
           status: hardFailures.length === 0 ? 200 : 207,
@@ -3224,6 +3283,8 @@ export async function GET(request: NextRequest) {
         leadScoutLimit: plan.leadScoutLimit,
         approveLimit: plan.approveLimit,
         sendLimit: plan.sendLimit,
+        researchUnlimited: plan.researchUnlimited,
+        readyInventoryTarget: plan.readyInventoryTarget,
         dailyVolume: {
           floor: volumeAdjustment.band.minDailyVolume,
           ceiling: volumeAdjustment.band.maxDailyVolume,

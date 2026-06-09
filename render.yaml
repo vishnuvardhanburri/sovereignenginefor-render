@@ -120,6 +120,20 @@ services:
         value: "800"
       - key: DAILY_OUTBOUND_APPROVE_LIMIT
         value: "800"
+      - key: DAILY_OUTBOUND_RESEARCH_UNLIMITED
+        value: "true"
+      - key: DAILY_OUTBOUND_READY_INVENTORY_TARGET
+        value: "1600"
+      - key: DAILY_OUTBOUND_RESEARCH_LIMIT
+        value: "120"
+      - key: DAILY_OUTBOUND_RESEARCH_APPROVE_LIMIT
+        value: "1600"
+      - key: LEAD_SCOUT_RESEARCH_LIMIT
+        value: "120"
+      - key: PUBLIC_SEARCH_RESEARCH_LIMIT
+        value: "120"
+      - key: GOOGLE_MAPS_RESEARCH_LIMIT
+        value: "10"
       - key: DAILY_OUTBOUND_PROVIDER_VALIDATION_LIMIT
         value: "1000"
       - key: DAILY_OUTBOUND_RECOVERY_MODE
@@ -162,12 +176,30 @@ services:
         value: "5"
       - key: FREE_MAIL_PUMP_APPROVE_LIMIT
         value: "25"
+      - key: FREE_MAIL_PUMP_RESEARCH_UNLIMITED
+        value: "true"
+      - key: FREE_MAIL_PUMP_RESEARCH_APPROVE_LIMIT
+        value: "200"
+      - key: FREE_MAIL_PUMP_PROVIDER_VALIDATION_LIMIT
+        value: "120"
+      - key: FREE_MAIL_PUMP_EVIDENCE_FETCH_LIMIT
+        value: "10"
+      - key: FREE_MAIL_PUMP_READY_INVENTORY_TARGET
+        value: "1600"
+      - key: FREE_MAIL_PUMP_STARVATION_RECOVERY_ENABLED
+        value: "true"
+      - key: FREE_MAIL_PUMP_STARVATION_RECOVERY_COOLDOWN_MS
+        value: "900000"
+      - key: FREE_MAIL_PUMP_DISCOVERY_FALLBACK_ENABLED
+        value: "true"
+      - key: FREE_MAIL_PUMP_TIMEOUT_MS
+        value: "45000"
       - key: FREE_MAIL_PUMP_LEAD_SCOUT_LIMIT
-        value: "20"
+        value: "80"
       - key: FREE_MAIL_PUMP_PUBLIC_SEARCH_LIMIT
-        value: "5"
+        value: "40"
       - key: FREE_MAIL_PUMP_DISCOVERY_SOURCE_MODE
-        value: lead_scout
+        value: both
       - key: WEB_EMBED_AUTONOMOUS_OPS_WORKER
         value: "false"
       - key: WEB_EMBED_INBOUND_WORKER
@@ -181,17 +213,17 @@ services:
       - key: DAILY_OUTBOUND_SKIP_LEAD_EVIDENCE_VERIFICATION
         value: "true"
       - key: LEAD_SCOUT_DAILY_LIMIT
-        value: "40"
+        value: "120"
       - key: DAILY_OUTBOUND_SMALL_MAX_LEAD_SCOUT_LIMIT
-        value: "40"
+        value: "120"
       - key: PUBLIC_SEARCH_SOURCE_ENABLED
         value: "true"
       - key: DAILY_OUTBOUND_RUN_PUBLIC_SEARCH
         value: "true"
       - key: PUBLIC_SEARCH_DAILY_LIMIT
-        value: "10"
+        value: "80"
       - key: DAILY_OUTBOUND_SMALL_MAX_PUBLIC_SEARCH_LIMIT
-        value: "10"
+        value: "120"
       - key: PUBLIC_SEARCH_TIMEOUT_MS
         value: "12000"
       - key: LEAD_SCOUT_INDUSTRIES
@@ -205,9 +237,9 @@ services:
       - key: DAILY_OUTBOUND_RUN_MAPS
         value: "true"
       - key: GOOGLE_MAPS_DAILY_LIMIT
-        value: "2"
+        value: "10"
       - key: DAILY_OUTBOUND_SMALL_MAX_MAPS_LIMIT
-        value: "2"
+        value: "10"
       - key: GOOGLE_MAPS_SOURCE_ENABLED
         value: "true"
       - key: APIFY_API_TOKEN
@@ -480,6 +512,14 @@ services:
         value: "80"
       - key: DAILY_OUTBOUND_APPROVE_LIMIT
         value: "500"
+      - key: DAILY_OUTBOUND_RESEARCH_UNLIMITED
+        value: "true"
+      - key: DAILY_OUTBOUND_READY_INVENTORY_TARGET
+        value: "1600"
+      - key: DAILY_OUTBOUND_RESEARCH_LIMIT
+        value: "120"
+      - key: DAILY_OUTBOUND_RESEARCH_APPROVE_LIMIT
+        value: "1600"
       - key: DAILY_OUTBOUND_RECOVERY_MODE
         value: "true"
       - key: DAILY_OUTBOUND_PROVIDER_VALIDATION_LIMIT
@@ -493,13 +533,17 @@ services:
       - key: DAILY_OUTBOUND_SKIP_LEAD_EVIDENCE_VERIFICATION
         value: "true"
       - key: LEAD_SCOUT_DAILY_LIMIT
-        value: "40"
+        value: "120"
+      - key: LEAD_SCOUT_RESEARCH_LIMIT
+        value: "120"
       - key: PUBLIC_SEARCH_SOURCE_ENABLED
         value: "true"
       - key: DAILY_OUTBOUND_RUN_PUBLIC_SEARCH
         value: "true"
       - key: PUBLIC_SEARCH_DAILY_LIMIT
-        value: "25"
+        value: "80"
+      - key: PUBLIC_SEARCH_RESEARCH_LIMIT
+        value: "120"
       - key: PUBLIC_SEARCH_TIMEOUT_MS
         value: "12000"
       - key: LEAD_SCOUT_INDUSTRIES
@@ -511,6 +555,8 @@ services:
       - key: DAILY_OUTBOUND_RUN_MAPS
         value: "true"
       - key: GOOGLE_MAPS_DAILY_LIMIT
+        value: "10"
+      - key: GOOGLE_MAPS_RESEARCH_LIMIT
         value: "10"
       - key: APIFY_GOOGLE_MAPS_ACTOR_ID
         value: compass/crawler-google-places

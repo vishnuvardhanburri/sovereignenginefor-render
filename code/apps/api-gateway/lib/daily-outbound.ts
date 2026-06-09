@@ -14,6 +14,8 @@ export type DailyOutboundPlan = {
   leadScoutLimit: number
   approveLimit: number
   sendLimit: number
+  researchUnlimited: boolean
+  readyInventoryTarget: number
   runSheetImport: boolean
   runMapsImport: boolean
   runPublicSearch: boolean
@@ -59,6 +61,13 @@ type PlanInput = {
     leadScout?: string | null
     leadScoutLimit?: string | null
     approveLimit?: string | null
+    researchApproveLimit?: string | null
+    researchUnlimited?: string | null
+    researchLimit?: string | null
+    readyInventoryTarget?: string | null
+    mapsResearchLimit?: string | null
+    publicSearchResearchLimit?: string | null
+    leadScoutResearchLimit?: string | null
     sendLimit?: string | null
     mode?: string | null
     recoveryMode?: string | null
@@ -78,6 +87,11 @@ const MAX_LEAD_SCOUT_LIMIT = 1_000
 const SMALL_MEMORY_MAX_MAPS_LIMIT = 60
 const SMALL_MEMORY_MAX_PUBLIC_SEARCH_LIMIT = 120
 const SMALL_MEMORY_MAX_LEAD_SCOUT_LIMIT = 120
+const DEFAULT_RESEARCH_LIMIT = 250
+const DEFAULT_SMALL_RESEARCH_LIMIT = 80
+const DEFAULT_RESEARCH_MAPS_LIMIT = 50
+const DEFAULT_SMALL_RESEARCH_MAPS_LIMIT = 10
+const DEFAULT_READY_INVENTORY_TARGET = 800
 const MAX_APPROVE_LIMIT = 1_000_000
 const DEFAULT_GROWTH_APPROVAL_FLOOR = 1_000_000
 const CONSERVATIVE_MAX_SEND_LIMIT = 5
@@ -143,6 +157,78 @@ function memoryBudget(input: { env: EnvLike }) {
     ),
     constrained: true,
   }
+}
+
+function resolveResearchUnlimited(input: {
+  query: PlanInput['query']
+  env: EnvLike
+}): boolean {
+  return resolveDailyBoolean(
+    input.query.researchUnlimited ?? input.env.DAILY_OUTBOUND_RESEARCH_UNLIMITED,
+    false
+  )
+}
+
+function resolveReadyInventoryTarget(input: {
+  query: PlanInput['query']
+  env: EnvLike
+}): number {
+  return clampInteger(
+    input.query.readyInventoryTarget ??
+      input.env.DAILY_OUTBOUND_READY_INVENTORY_TARGET ??
+      input.env.DAILY_OUTBOUND_RESEARCH_READY_TARGET,
+    DEFAULT_READY_INVENTORY_TARGET,
+    1,
+    MAX_APPROVE_LIMIT
+  )
+}
+
+function resolveResearchSourceLimit(input: {
+  researchUnlimited: boolean
+  requestedLimit: number
+  specificQuery?: string | null
+  specificEnv?: string
+  genericQuery?: string | null
+  genericEnv?: string
+  fallback: number
+  max: number
+}): number {
+  if (!input.researchUnlimited) return input.requestedLimit
+
+  const researchLimit = clampInteger(
+    input.specificQuery ??
+      input.specificEnv ??
+      input.genericQuery ??
+      input.genericEnv,
+    input.fallback,
+    0,
+    input.max
+  )
+
+  return Math.max(input.requestedLimit, researchLimit)
+}
+
+function resolveResearchApproveLimit(input: {
+  researchUnlimited: boolean
+  baseApproveLimit: number
+  requested?: string | null
+  env: EnvLike
+  readyInventoryTarget: number
+  approvalWindow: SystemApprovalWindow
+}): number {
+  if (!input.researchUnlimited) return input.baseApproveLimit
+
+  const researchApproveLimit = clampInteger(
+    input.requested ?? input.env.DAILY_OUTBOUND_RESEARCH_APPROVE_LIMIT,
+    input.readyInventoryTarget,
+    1,
+    MAX_APPROVE_LIMIT
+  )
+
+  return Math.max(
+    input.baseApproveLimit,
+    Math.min(researchApproveLimit, input.approvalWindow.limit, MAX_APPROVE_LIMIT)
+  )
 }
 
 export function resolveDailySheetUrl(input: {
@@ -498,12 +584,33 @@ export function buildDailyOutboundPlan(input: PlanInput): DailyOutboundPlan {
       ''
   ).trim()
   const budget = memoryBudget({ env: input.env })
-  const mapsLimit = clampInteger(
+  const researchUnlimited = resolveResearchUnlimited({
+    query: input.query,
+    env: input.env,
+  })
+  const readyInventoryTarget = resolveReadyInventoryTarget({
+    query: input.query,
+    env: input.env,
+  })
+  const defaultResearchLimit = budget.constrained
+    ? DEFAULT_SMALL_RESEARCH_LIMIT
+    : DEFAULT_RESEARCH_LIMIT
+  const baseMapsLimit = clampInteger(
     input.query.mapsLimit ?? input.env.GOOGLE_MAPS_DAILY_LIMIT,
     DEFAULT_MAPS_LIMIT,
     0,
     budget.mapsMax
   )
+  const mapsLimit = resolveResearchSourceLimit({
+    researchUnlimited,
+    requestedLimit: baseMapsLimit,
+    specificQuery: input.query.mapsResearchLimit,
+    specificEnv: input.env.GOOGLE_MAPS_RESEARCH_LIMIT ?? input.env.DAILY_OUTBOUND_MAPS_RESEARCH_LIMIT,
+    genericQuery: input.query.researchLimit,
+    genericEnv: input.env.DAILY_OUTBOUND_RESEARCH_LIMIT,
+    fallback: budget.constrained ? DEFAULT_SMALL_RESEARCH_MAPS_LIMIT : DEFAULT_RESEARCH_MAPS_LIMIT,
+    max: budget.mapsMax,
+  })
   const runMapsImport = resolveDailyBoolean(
     input.query.mapsImport ?? input.env.DAILY_OUTBOUND_RUN_MAPS,
     resolveDailyBoolean(
@@ -511,7 +618,7 @@ export function buildDailyOutboundPlan(input: PlanInput): DailyOutboundPlan {
       false
     )
   )
-  const publicSearchLimit = clampInteger(
+  const basePublicSearchLimit = clampInteger(
     input.query.publicSearchLimit ??
       input.query.serpApiLimit ??
       input.env.PUBLIC_SEARCH_DAILY_LIMIT ??
@@ -520,16 +627,37 @@ export function buildDailyOutboundPlan(input: PlanInput): DailyOutboundPlan {
     0,
     budget.publicSearchMax
   )
+  const publicSearchLimit = resolveResearchSourceLimit({
+    researchUnlimited,
+    requestedLimit: basePublicSearchLimit,
+    specificQuery: input.query.publicSearchResearchLimit,
+    specificEnv:
+      input.env.PUBLIC_SEARCH_RESEARCH_LIMIT ?? input.env.DAILY_OUTBOUND_PUBLIC_SEARCH_RESEARCH_LIMIT,
+    genericQuery: input.query.researchLimit,
+    genericEnv: input.env.DAILY_OUTBOUND_RESEARCH_LIMIT,
+    fallback: defaultResearchLimit,
+    max: budget.publicSearchMax,
+  })
   const runPublicSearch = resolveDailyBoolean(
     input.query.publicSearch ?? input.query.serpApi ?? input.env.DAILY_OUTBOUND_RUN_PUBLIC_SEARCH,
     resolveDailyBoolean(input.env.PUBLIC_SEARCH_SOURCE_ENABLED, true)
   )
-  const leadScoutLimit = clampInteger(
+  const baseLeadScoutLimit = clampInteger(
     input.query.leadScoutLimit ?? input.env.LEAD_SCOUT_DAILY_LIMIT,
     DEFAULT_LEAD_SCOUT_LIMIT,
     1,
     budget.leadScoutMax
   )
+  const leadScoutLimit = resolveResearchSourceLimit({
+    researchUnlimited,
+    requestedLimit: baseLeadScoutLimit,
+    specificQuery: input.query.leadScoutResearchLimit,
+    specificEnv: input.env.LEAD_SCOUT_RESEARCH_LIMIT ?? input.env.DAILY_OUTBOUND_LEAD_SCOUT_RESEARCH_LIMIT,
+    genericQuery: input.query.researchLimit,
+    genericEnv: input.env.DAILY_OUTBOUND_RESEARCH_LIMIT,
+    fallback: defaultResearchLimit,
+    max: budget.leadScoutMax,
+  })
   const runLeadScout = resolveDailyBoolean(
     input.query.leadScout ?? input.env.DAILY_OUTBOUND_RUN_LEAD_SCOUT,
     resolveDailyBoolean(input.env.LEAD_SCOUT_ENABLED, false)
@@ -561,11 +689,27 @@ export function buildDailyOutboundPlan(input: PlanInput): DailyOutboundPlan {
       'Small/free-memory deployment batches discovery work so research cannot crash the web process'
     )
   }
-  const approveLimit = resolveApproveLimit({
+  if (researchUnlimited) {
+    guardrails.push(
+      `Research inventory is decoupled from send limits; per-cycle safety caps apply until ready inventory reaches at least ${readyInventoryTarget}`
+    )
+    guardrails.push(
+      'Research may use public sources and owned/authorized private sources; mail sending remains capped separately by domain health'
+    )
+  }
+  const baseApproveLimit = resolveApproveLimit({
     requested: input.query.approveLimit,
     env: input.env,
     approvalWindow: input.approvalWindow,
     mode,
+  })
+  const approveLimit = resolveResearchApproveLimit({
+    researchUnlimited,
+    baseApproveLimit,
+    requested: input.query.researchApproveLimit,
+    env: input.env,
+    readyInventoryTarget,
+    approvalWindow: input.approvalWindow,
   })
   const sendLimit = resolveSendLimit({
     requested: input.query.sendLimit,
@@ -591,6 +735,8 @@ export function buildDailyOutboundPlan(input: PlanInput): DailyOutboundPlan {
       leadScoutLimit,
       approveLimit,
       sendLimit: 0,
+      researchUnlimited,
+      readyInventoryTarget,
       runSheetImport: false,
       runMapsImport: false,
       runPublicSearch: false,
@@ -615,6 +761,8 @@ export function buildDailyOutboundPlan(input: PlanInput): DailyOutboundPlan {
     leadScoutLimit,
     approveLimit,
     sendLimit,
+    researchUnlimited,
+    readyInventoryTarget,
     runSheetImport: Boolean(sheetUrl),
     runMapsImport: Boolean(
       runMapsImport && mapsLimit > 0 && (mapsDatasetId || input.env.APIFY_API_TOKEN)
