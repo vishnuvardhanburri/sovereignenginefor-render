@@ -248,6 +248,19 @@ function getRecordCounts(data: unknown, key: string): Record<string, number> | u
   return Object.keys(counts).length > 0 ? counts : undefined
 }
 
+function mergeRecordCounts(
+  records: Array<Record<string, number> | undefined>
+): Record<string, number> {
+  const merged: Record<string, number> = {}
+  for (const record of records) {
+    if (!record) continue
+    for (const [key, value] of Object.entries(record)) {
+      merged[key] = (merged[key] ?? 0) + value
+    }
+  }
+  return merged
+}
+
 function clampLimit(value: unknown, fallback: number, max: number): number {
   const parsed = Number(value)
   if (!Number.isFinite(parsed)) return fallback
@@ -2039,6 +2052,7 @@ async function loadApprovedContacts(
 ): Promise<{
   leads: ApprovedLead[]
   quarantinedApprovedContacts: number
+  approvedContactBlockerCounts: Record<string, number>
   eligibleAgencyContacts: number
   eligibleDirectContacts: number
   agencyShortfall: number
@@ -2122,6 +2136,12 @@ async function loadApprovedContacts(
     blockers: approvedContactQueueBlockers(approvedRowToResearchContact(row)),
   }))
   const blockedRows = reviewedRows.filter(({ blockers }) => blockers.length > 0)
+  const approvedContactBlockerCounts = blockedRows.reduce<Record<string, number>>((counts, item) => {
+    for (const blocker of item.blockers) {
+      counts[blocker] = (counts[blocker] ?? 0) + 1
+    }
+    return counts
+  }, {})
   const quarantinedApprovedContacts = await quarantineApprovedContacts(clientId, blockedRows)
   const eligibleRows = reviewedRows
     .filter(({ blockers }) => blockers.length === 0)
@@ -2164,6 +2184,7 @@ async function loadApprovedContacts(
   return {
     leads,
     quarantinedApprovedContacts,
+    approvedContactBlockerCounts,
     eligibleAgencyContacts,
     eligibleDirectContacts,
     agencyShortfall: Math.max(0, targetPerSide - eligibleAgencyContacts),
@@ -2286,6 +2307,7 @@ async function runQueue(input: {
     const {
       leads,
       quarantinedApprovedContacts,
+      approvedContactBlockerCounts,
       eligibleAgencyContacts,
       eligibleDirectContacts,
       agencyShortfall,
@@ -2312,6 +2334,7 @@ async function runQueue(input: {
           repairedQueuedContacts,
           repairedOrphanedQueuedContacts,
           quarantinedApprovedContacts,
+          approvedContactBlockerCounts,
           eligibleAgencyContacts,
           eligibleDirectContacts,
           agencyShortfall,
@@ -2481,6 +2504,7 @@ async function runQueue(input: {
         repairedQueuedContacts,
         repairedOrphanedQueuedContacts,
         quarantinedApprovedContacts,
+        approvedContactBlockerCounts,
         eligibleAgencyContacts,
         eligibleDirectContacts,
         agencyShortfall,
@@ -3234,6 +3258,13 @@ export async function GET(request: NextRequest) {
       (total, stage) => total + getNumericField(stage.data, 'directQueued'),
       0
     )
+    const quarantinedApprovedContacts = queueStages.reduce(
+      (total, stage) => total + getNumericField(stage.data, 'quarantinedApprovedContacts'),
+      0
+    )
+    const approvedContactBlockerCounts = mergeRecordCounts(
+      queueStages.map((stage) => getRecordCounts(stage.data, 'approvedContactBlockerCounts'))
+    )
     const agencyShortfall = queueStages.reduce(
       (total, stage) => total + getNumericField(stage.data, 'agencyShortfall'),
       0
@@ -3320,6 +3351,8 @@ export async function GET(request: NextRequest) {
       estimatedPipelineValueUsd,
       agencyQueued,
       directQueued,
+      quarantinedApprovedContacts,
+      approvedContactBlockerCounts,
       agencyShortfall,
       directShortfall,
       providerValidationChecks,
@@ -3387,6 +3420,10 @@ export async function GET(request: NextRequest) {
           `queued=${queued}`,
           `agency=${agencyQueued}`,
           `direct=${directQueued}`,
+          `quarantined=${quarantinedApprovedContacts}`,
+          `queueBlockers=${Object.entries(approvedContactBlockerCounts)
+            .map(([key, value]) => `${key}:${value}`)
+            .join(',') || 'none'}`,
           `agencyShortfall=${agencyShortfall}`,
           `directShortfall=${directShortfall}`,
           `failures=${hardFailures.length}`,
