@@ -253,7 +253,7 @@ Sovereign Engine ships the platform. The client only needs to supply the externa
 - Sending domains, inboxes, and DNS access.
 - SPF, DKIM, DMARC, MX/provider verification, and tracking-domain records where used.
 - SMTP or ESP credentials such as SES, Brevo, Resend, Mailgun, SendGrid, or a managed MTA.
-- Email validation key such as `ZEROBOUNCE_API_KEY`.
+- Xavira-owned validation is built in; external validation keys are not required.
 - Consent-aware contact data, suppression list, unsubscribe policy, and physical mailing address where required.
 
 Everything else is handled by this repo: database schema, Redis queues, adaptive controller, workers, dashboards, health checks, audit chain, mock stress proof, and Docker production orchestration.
@@ -531,7 +531,7 @@ pnpm prod:check
 pnpm prod:check:real
 ```
 
-Use `pnpm prod:check` while staying in mock mode. Use `pnpm prod:check:real` only after live SMTP/ESP credentials, DNS, validation, HTTPS, and secrets are filled.
+Use `pnpm prod:check` while staying in mock mode. Use `pnpm prod:check:real` only after live SMTP/ESP credentials, DNS, HTTPS, secrets, and Xavira-owned validation safeguards are active.
 
 ## Reputation-as-a-Service API
 

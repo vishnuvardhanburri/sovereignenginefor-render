@@ -167,8 +167,7 @@ export const ENVIRONMENT_VARIABLES_OPTIONAL = [
   'TELEGRAM_BOT_TOKEN', // For daily reports
   'TELEGRAM_CHAT_ID', // For Telegram alerts
   'SLACK_WEBHOOK_URL', // For Slack alerts
-  // Required for production safety; keep in optional for older installs but scripts/env-check enforces it.
-  'ZEROBOUNCE_API_KEY', // For email verification
+  'ZEROBOUNCE_API_KEY', // External enrichment only; Xavira-owned validation is built in.
   'APOLLO_API_KEY', // For contact enrichment
   'CLEARBIT_API_KEY', // For company enrichment
   'SMTP_TEST_MODE', // For testing without sending

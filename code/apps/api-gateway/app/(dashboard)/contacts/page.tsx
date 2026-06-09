@@ -164,7 +164,7 @@ export default function ContactsPage() {
       <div className="flex justify-between items-start">
         <div>
           <h1 className="text-3xl font-bold">Prospects</h1>
-          <p className="text-muted-foreground">Hunter-style approval cockpit: confidence, proof, mailbox quality, and buyer fit before sending.</p>
+          <p className="text-muted-foreground">Xavira-owned approval cockpit: confidence, proof, mailbox quality, and buyer fit before sending.</p>
         </div>
         <div className="flex gap-2">
           <Button

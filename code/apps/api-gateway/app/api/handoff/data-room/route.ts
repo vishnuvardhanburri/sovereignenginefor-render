@@ -161,7 +161,7 @@ export async function GET(request: NextRequest) {
           '',
           'Sovereign Engine is packaged as a demo-safe deliverability operating system with a dashboard, adaptive reputation lanes, worker heartbeats, audit trails, Docker orchestration, and production setup checks.',
           '',
-          'Safe buyer posture: demo-ready immediately, production-ready after the buyer connects their own DNS, SMTP/ESP, validation key, and compliance assets.',
+          'Safe buyer posture: demo-ready immediately, production-ready after the buyer connects their own DNS, SMTP/ESP, and compliance assets. Xavira-owned validation is built in.',
         ]),
       },
       {
@@ -191,7 +191,7 @@ export async function GET(request: NextRequest) {
           '- Dashboard domain with HTTPS.',
           '- Sending domains and DNS access.',
           '- SMTP or ESP credentials from a compliant provider.',
-          '- Email validation key for production imports.',
+          '- Xavira-owned validation is built in; external validation keys are not required.',
           '- Consent-aware contact data and suppression policy.',
           '- Physical mailing address and unsubscribe policy where required.',
         ]),

@@ -34,26 +34,21 @@ export async function GET(request: NextRequest) {
       if (!hasEnv(name)) reasons.push(`Missing ${name}`)
     }
 
-    if (!hasEnv('ZEROBOUNCE_API_KEY')) {
-      reasons.push('Missing ZEROBOUNCE_API_KEY; owned syntax/MX checks remain active but higher-volume production sending needs validator hygiene')
-    }
     if (envValue('MOCK_SMTP') !== 'false') reasons.push('MOCK_SMTP is enabled; production sending remains locked')
-    if (looksPlaceholder(`${envValue('SMTP_HOST')} ${envValue('SMTP_USER')} ${envValue('ZEROBOUNCE_API_KEY')}`)) {
-      reasons.push('SMTP or validator credentials still look like placeholders')
+    if (looksPlaceholder(`${envValue('SMTP_HOST')} ${envValue('SMTP_USER')}`)) {
+      reasons.push('SMTP credentials still look like placeholders')
     }
     if (!hasEnv('SENDER_PHYSICAL_ADDRESS')) reasons.push('SENDER_PHYSICAL_ADDRESS is missing for compliance footer policy')
     if (report.status === 'BLOCKED') reasons.push('Readiness report has DNS/environment blockers')
 
     const dnsReasons = report.nextActions.filter((action) => /dns|spf|dkim|dmarc|domain/i.test(action))
-    let status: 'PRODUCTION_READY' | 'DEMO_READY' | 'NEEDS_DNS' | 'NEEDS_SMTP' | 'NEEDS_VALIDATOR' | 'BLOCKED'
+    let status: 'PRODUCTION_READY' | 'DEMO_READY' | 'NEEDS_DNS' | 'NEEDS_SMTP' | 'BLOCKED'
     if (!reasons.length) {
       status = 'PRODUCTION_READY'
     } else if (reasons.some((reason) => /SMTP|MOCK_SMTP/i.test(reason))) {
       status = 'NEEDS_SMTP'
     } else if (dnsReasons.length) {
       status = 'NEEDS_DNS'
-    } else if (reasons.some((reason) => /ZEROBOUNCE|validator/i.test(reason))) {
-      status = 'NEEDS_VALIDATOR'
     } else if (report.score >= 70) {
       status = 'DEMO_READY'
     } else {
@@ -76,7 +71,7 @@ export async function GET(request: NextRequest) {
       message:
         status === 'PRODUCTION_READY'
           ? 'Production gate is open.'
-          : 'Production sending is locked until buyer-owned credentials, DNS, validation, and compliance inputs are connected.',
+          : 'Production sending is locked until buyer-owned credentials, DNS, Xavira-owned validation safeguards, and compliance inputs are connected.',
     })
   } catch (error) {
     console.error('[api/production/gate] failed', error)

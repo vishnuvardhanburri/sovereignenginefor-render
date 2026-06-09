@@ -7,7 +7,7 @@ const operatorNeeds = [
   'A VPS or container host with Docker enabled.',
   'A sending domain the operator controls for DNS records.',
   'SMTP or ESP credentials from a compliant provider.',
-  'Optional validation and enrichment API keys for production hygiene.',
+  'Xavira-owned validation is built in; external validation keys are not required.',
   'A first admin user and production secrets generated during setup.',
 ]
 

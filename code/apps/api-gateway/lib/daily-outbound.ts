@@ -251,16 +251,24 @@ function resolveDailyMode(input: { requested?: string | null; env: EnvLike }): D
   return value === 'growth' ? 'growth' : 'conservative'
 }
 
+function hasOutboundValidationLayer(env: EnvLike): boolean {
+  const ownedValidationEnabled = resolveDailyBoolean(
+    env.DAILY_OUTBOUND_ALLOW_OWNED_VALIDATION ?? env.OWNED_VALIDATION_ENABLED,
+    true
+  )
+  return ownedValidationEnabled || Boolean(env.ZEROBOUNCE_API_KEY || env.HUNTER_API_KEY)
+}
+
 function resolveRecoveryMode(input: {
   requested?: string | null
   env: EnvLike
 }): boolean {
-  const hasValidationProvider = Boolean(input.env.ZEROBOUNCE_API_KEY || input.env.HUNTER_API_KEY)
+  const hasValidationLayer = hasOutboundValidationLayer(input.env)
   if (resolveDailyBoolean(input.env.DAILY_OUTBOUND_RECOVERY_FORCE_OFF, false)) return false
   if (String(input.requested ?? '').trim()) {
-    return resolveDailyBoolean(input.requested, hasValidationProvider)
+    return resolveDailyBoolean(input.requested, hasValidationLayer)
   }
-  if (hasValidationProvider) return true
+  if (hasValidationLayer) return true
   return resolveDailyBoolean(
     input.env.DAILY_OUTBOUND_RECOVERY_MODE ?? input.env.DOMAIN_RECOVERY_CAP_ENABLED,
     false
@@ -308,13 +316,13 @@ function resolveSendLimit(input: {
     input.approvalWindow.eligibleSenderIdentities ??
     (senderRemainingCapacity > 0 ? 1 : 0)
   const effectiveCapacity = Math.min(input.approvalWindow.remainingCapacity, senderRemainingCapacity)
-  const hasValidationProvider = Boolean(input.env.ZEROBOUNCE_API_KEY || input.env.HUNTER_API_KEY)
+  const hasValidationLayer = hasOutboundValidationLayer(input.env)
   const recoveryTrickleLimit = clampInteger(
     input.env.DAILY_OUTBOUND_RECOVERY_TRICKLE_LIMIT ||
       input.env.DOMAIN_RECOVERY_DAILY_CAP,
-    hasValidationProvider ? 50 : 1,
+    hasValidationLayer ? 50 : 1,
     0,
-    hasValidationProvider ? 100 : 3
+    hasValidationLayer ? 100 : 3
   )
   const recoveryTrickleEnabled =
     input.recoveryMode &&

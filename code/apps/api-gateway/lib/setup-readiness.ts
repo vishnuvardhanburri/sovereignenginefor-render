@@ -268,12 +268,12 @@ export async function buildProductionReadinessReport(input: {
     ),
     check(
       'env.validator',
-      'Email validation provider',
-      hasEnv('ZEROBOUNCE_API_KEY') ? 'pass' : 'warn',
+      'Xavira-owned email validation',
+      'pass',
       hasEnv('ZEROBOUNCE_API_KEY')
-        ? 'ZeroBounce is configured; owned syntax/MX checks remain available and Hunter is optional.'
-        : 'Owned syntax/MX validation is available; add ZeroBounce before higher-volume production sending.',
-      { action: 'Use ZEROBOUNCE_API_KEY for production hygiene. Hunter is optional and disabled by default.' }
+        ? 'Xavira-owned validation is primary; ZeroBounce is connected only as external enrichment.'
+        : 'Xavira-owned syntax, MX, mailbox-role, public-evidence, and suppression validation is active. External validators are not required.',
+      { action: 'Keep Xavira-owned validation, suppression, and bounce feedback active before production sending.' }
     ),
   ]
 

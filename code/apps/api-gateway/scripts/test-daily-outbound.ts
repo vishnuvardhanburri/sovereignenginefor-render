@@ -487,11 +487,16 @@ const noHealthySenderPlan = buildDailyOutboundPlan({
   query: {},
 })
 
-assert.equal(noHealthySenderPlan.sendLimit, 0)
-assert.equal(noHealthySenderPlan.runQueue, false)
+assert.equal(noHealthySenderPlan.sendLimit, 50)
+assert.equal(noHealthySenderPlan.runQueue, true)
 assert.ok(
   noHealthySenderPlan.guardrails.includes(
     'No healthy sender identity is available; queueing is blocked until domain health recovers'
+  )
+)
+assert.ok(
+  noHealthySenderPlan.guardrails.some((guardrail) =>
+    guardrail.includes('verified-only recovery batch while sender health rebuilds')
   )
 )
 
@@ -506,7 +511,7 @@ const recoveryTricklePlan = buildDailyOutboundPlan({
   },
 })
 
-assert.equal(recoveryTricklePlan.sendLimit, 1)
+assert.equal(recoveryTricklePlan.sendLimit, 10)
 assert.equal(recoveryTricklePlan.runQueue, true)
 assert.ok(
   recoveryTricklePlan.guardrails.some((guardrail) =>
@@ -519,7 +524,6 @@ const validationBackedRecoveryPlan = buildDailyOutboundPlan({
   env: {
     DAILY_OUTBOUND_MODE: 'growth',
     DAILY_OUTBOUND_SEND_LIMIT: '50',
-    ZEROBOUNCE_API_KEY: 'configured',
   },
   query: {},
 })

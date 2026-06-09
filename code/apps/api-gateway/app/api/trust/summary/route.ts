@@ -36,7 +36,7 @@ export async function GET(request: Request) {
     buyerInputsRequired: [
       'Buyer-owned domains and DNS access.',
       'SMTP/ESP credentials and verified sender identities.',
-      'Production secrets, HTTPS dashboard domain, validation key, and legal sending details.',
+      'Production secrets, HTTPS dashboard domain, Xavira-owned validation safeguards, and legal sending details.',
       'Consent-aware contact source and suppression policy.',
     ],
     proofEndpoints: [

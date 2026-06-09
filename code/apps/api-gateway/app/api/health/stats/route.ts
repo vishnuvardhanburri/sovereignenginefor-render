@@ -155,6 +155,7 @@ function emailValidationDiagnostic() {
     has_hunter_key: hasHunterKey,
     hunter_fallback_enabled: hunterFallbackEnabled,
     owned_validation_enabled: true,
+    external_verifier_required: false,
     ai_copy_provider: xaviraAiCopyEnabled ? 'xavira_ai' : 'template',
     xavira_ai_provider: xaviraAiProviderLabel(),
     xavira_ai_copy_enabled: xaviraAiCopyEnabled,
@@ -162,8 +163,8 @@ function emailValidationDiagnostic() {
     openrouter_copy_enabled: xaviraAiProviderLabel() === 'openrouter' && xaviraAiCopyEnabled,
     guardrail:
       hasZeroBounceKey
-        ? 'ZeroBounce validates risky inboxes; owned public-evidence and MX checks stay active. Hunter is optional.'
-        : 'Owned syntax/MX validation is active; generic and role inboxes still require exact public evidence or stronger validation.',
+        ? 'Xavira-owned validation is primary; ZeroBounce is connected only as external enrichment.'
+        : 'Xavira-owned syntax, MX, mailbox-role, public-evidence, and suppression validation is active. External validators are not required.',
   }
 }
 

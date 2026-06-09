@@ -26,6 +26,13 @@ function envInteger(name: string, fallback: number, min: number, max: number): n
   return Math.max(min, Math.min(Math.trunc(parsed), max))
 }
 
+function hasOutboundValidationLayer(): boolean {
+  return (
+    envFlag('DAILY_OUTBOUND_ALLOW_OWNED_VALIDATION', envFlag('OWNED_VALIDATION_ENABLED', true)) ||
+    Boolean(process.env.ZEROBOUNCE_API_KEY || process.env.HUNTER_API_KEY)
+  )
+}
+
 function numeric(value: unknown, fallback = 0): number {
   const parsed = Number(value)
   return Number.isFinite(parsed) ? parsed : fallback
@@ -98,13 +105,13 @@ export function shouldEnableRecoveryTrickle(
 export async function refreshDomainRiskLimits(clientId?: number) {
   const params: unknown[] = []
   let where = ''
-  const hasValidationProvider = Boolean(process.env.ZEROBOUNCE_API_KEY || process.env.HUNTER_API_KEY)
-  const recoveryCapMax = hasValidationProvider ? 100 : 3
+  const hasValidationLayer = hasOutboundValidationLayer()
+  const recoveryCapMax = hasValidationLayer ? 100 : 3
   const recoveryCap = envInteger(
     'DOMAIN_RECOVERY_DAILY_CAP',
     envInteger(
       'DAILY_OUTBOUND_RECOVERY_TRICKLE_LIMIT',
-      hasValidationProvider ? 50 : 1,
+      hasValidationLayer ? 50 : 1,
       0,
       recoveryCapMax
     ),
@@ -115,7 +122,7 @@ export async function refreshDomainRiskLimits(clientId?: number) {
     recoveryCap > 0 &&
     envFlag(
       'DOMAIN_RECOVERY_CAP_ENABLED',
-      envFlag('DAILY_OUTBOUND_RECOVERY_MODE', Boolean(process.env.ZEROBOUNCE_API_KEY))
+      envFlag('DAILY_OUTBOUND_RECOVERY_MODE', hasValidationLayer)
     )
   const recoveryMinHealth = envInteger('DOMAIN_RECOVERY_MIN_HEALTH', 30, 0, 100)
   const recoveryMaxBounceRate = envInteger('DOMAIN_RECOVERY_MAX_BOUNCE_RATE', 35, 0, 100)
