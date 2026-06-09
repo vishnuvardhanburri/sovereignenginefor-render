@@ -416,8 +416,9 @@ assert.deepEqual(
       ? {
           email_evidence: 'public_mailto_match',
           public_evidence_url: exactEvidenceGenericInbox.evidenceUrl,
+          fit_score: 95,
         }
-      : { email_evidence: 'public_mailto_match' },
+      : { email_evidence: 'public_mailto_match', fit_score: 95 },
   }),
   []
 )
@@ -581,6 +582,103 @@ assert.equal(
   'provider_validated'
 )
 
+process.env.SEND_ALLOW_UNKNOWN_VALIDATION = 'false'
+process.env.DAILY_OUTBOUND_ALLOW_OWNED_VALIDATION = 'true'
+process.env.DAILY_OUTBOUND_OWNED_VALIDATION_MIN_SCORE = '0.78'
+
+const ownedValidatedSales = await enrichProspectWithProviderValidation(
+  {
+    id: 111,
+    email: 'sales@ownedagency.com',
+    email_domain: 'ownedagency.com',
+    company: 'Owned Agency',
+    company_domain: 'ownedagency.com',
+    source: 'google_sheet_import',
+    status: 'active',
+    verification_status: 'pending',
+    custom_fields: {
+      sheet_import: true,
+      auto_approval_eligible: true,
+      public_evidence_url: 'https://ownedagency.com/contact',
+      reason_to_contact: 'Agency with public growth and demand generation signals.',
+      fit_score: 92,
+    },
+  },
+  {
+    verifyEmail: async () => ({
+      provider: 'owned',
+      verdict: 'unknown',
+      score: 0.82,
+      catchAll: false,
+      raw: {
+        mx: true,
+        mx_provider: 'google_workspace',
+        mailbox_role: 'commercial_role',
+        owned_confidence: 0.82,
+      },
+    }),
+  }
+)
+
+assert.equal(ownedValidatedSales.checked, true)
+assert.equal(ownedValidatedSales.contact.custom_fields?.email_validation_provider, 'owned')
+assert.equal(ownedValidatedSales.contact.custom_fields?.email_validation_mx, true)
+assert.equal(
+  scoreProspectForResearchApproval(ownedValidatedSales.contact).approved,
+  true,
+  'owned MX + commercial role validation should approve research without paid validators'
+)
+assert.equal(
+  scoreProspectForResearchApproval(ownedValidatedSales.contact).verificationLabel,
+  'likely'
+)
+assert.deepEqual(approvedContactQueueBlockers(ownedValidatedSales.contact), [])
+
+const ownedWeakGeneric = await enrichProspectWithProviderValidation(
+  {
+    id: 112,
+    email: 'hello@ownedagency.com',
+    email_domain: 'ownedagency.com',
+    company: 'Owned Agency',
+    company_domain: 'ownedagency.com',
+    source: 'google_sheet_import',
+    status: 'active',
+    verification_status: 'pending',
+    custom_fields: {
+      sheet_import: true,
+      auto_approval_eligible: true,
+      public_evidence_url: 'https://ownedagency.com/contact',
+      reason_to_contact: 'Agency with public growth and demand generation signals.',
+      fit_score: 92,
+    },
+  },
+  {
+    verifyEmail: async () => ({
+      provider: 'owned',
+      verdict: 'unknown',
+      score: 0.72,
+      catchAll: false,
+      raw: {
+        mx: true,
+        mx_provider: 'google_workspace',
+        mailbox_role: 'weak_generic',
+        owned_confidence: 0.72,
+      },
+    }),
+  }
+)
+
+assert.equal(
+  scoreProspectForResearchApproval(ownedWeakGeneric.contact).approved,
+  false,
+  'weak generic owned validation still needs harder public evidence'
+)
+assert.ok(
+  approvedContactQueueBlockers(ownedWeakGeneric.contact).includes(
+    'weak_generic_inbox_requires_verification_or_public_proof'
+  )
+)
+
 const validMapsLead = scoreProspectForResearchApproval({
   id: 104,
   email: 'sales@mappedagency.com',
@@ -685,6 +783,7 @@ assert.deepEqual(
       send_status: 'approved',
       email_evidence: 'public_domain_email',
       public_evidence_url: 'https://realagency.com/contact',
+      fit_score: 95,
     },
   }),
   [],
@@ -706,6 +805,7 @@ assert.deepEqual(
       email_evidence: 'maps_public_business_domain_match',
       public_evidence_url: 'https://mapsagency.com/contact',
       maps_import: true,
+      fit_score: 95,
     },
   }),
   []

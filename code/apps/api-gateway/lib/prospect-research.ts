@@ -486,6 +486,11 @@ function envBool(name: string, fallback: boolean): boolean {
   return ['1', 'true', 'yes', 'on'].includes(value.trim().toLowerCase())
 }
 
+function envNumber(name: string, fallback: number): number {
+  const parsed = Number(process.env[name])
+  return Number.isFinite(parsed) ? parsed : fallback
+}
+
 function requireExactPublicEmailEvidence(): boolean {
   return envBool('DAILY_OUTBOUND_REQUIRE_EXACT_PUBLIC_EMAIL_EVIDENCE', false)
 }
@@ -505,7 +510,39 @@ function allowUnknownProviderValidation(): boolean {
   )
 }
 
+function allowOwnedProviderValidation(): boolean {
+  return envBool('DAILY_OUTBOUND_ALLOW_OWNED_VALIDATION', true)
+}
+
+function ownedProviderValidationMinScore(): number {
+  return Math.max(
+    0.65,
+    Math.min(
+      envNumber(
+        'DAILY_OUTBOUND_OWNED_VALIDATION_MIN_SCORE',
+        envNumber('OWNED_VALIDATION_MIN_SCORE', 0.78)
+      ),
+      0.9
+    )
+  )
+}
+
+function hasAcceptedOwnedValidationFallback(customFields: Record<string, unknown>): boolean {
+  if (!allowOwnedProviderValidation()) return false
+  if (asString(customFields.email_validation_provider) !== 'owned') return false
+  const verdict = asString(customFields.email_validation_verdict)
+  if (!['unknown', 'risky'].includes(verdict)) return false
+  if (!asBool(customFields.email_validation_mx)) return false
+
+  const mailboxRole = asString(customFields.email_validation_mailbox_role)
+  if (!['commercial_role', 'safe_role'].includes(mailboxRole)) return false
+
+  const score = scoreNumber(customFields.email_validation_score)
+  return score >= ownedProviderValidationMinScore()
+}
+
 function hasAcceptedProviderValidationFallback(customFields: Record<string, unknown>): boolean {
+  if (hasAcceptedOwnedValidationFallback(customFields)) return true
   if (!allowUnknownProviderValidation()) return false
   const provider = asString(customFields.email_validation_provider)
   const verdict = asString(customFields.email_validation_verdict)
@@ -593,6 +630,7 @@ function verificationLabelFor(
   if (verificationStatus === 'valid' || hasExactPublicEmailEvidence(customFields.email_evidence)) {
     return 'verified'
   }
+  if (hasAcceptedOwnedValidationFallback(customFields)) return 'likely'
   if (hasAcceptedBusinessRoleFallback(customFields, prefix)) return 'likely'
   if (['invalid', 'do_not_mail'].includes(verificationStatus)) return 'risky'
   if (hasAcceptedProviderValidationFallback(customFields)) return 'risky'
@@ -684,6 +722,9 @@ function sourceStrengthFor(
     return 'exact_public'
   }
   if (verificationStatus === 'valid' || evidence === 'provider_validated' || validationVerdict === 'valid') {
+    return 'provider_validated'
+  }
+  if (hasAcceptedOwnedValidationFallback(customFields)) {
     return 'provider_validated'
   }
   if (
@@ -1028,6 +1069,8 @@ export async function enrichProspectWithProviderValidation(
     ? await options.verifyEmail(email)
     : await verifyEmailWithConfiguredProvider(email)
   const checkedAt = (options?.now?.() ?? new Date()).toISOString()
+  const raw = result.raw ?? {}
+  const ownedConfidence = scoreNumber(raw.owned_confidence)
   const validationFields = {
     ...customFields,
     email_validation_provider: result.provider,
@@ -1035,6 +1078,10 @@ export async function enrichProspectWithProviderValidation(
     email_validation_checked_at: checkedAt,
     email_validation_verdict: result.verdict,
     email_validation_error: result.error ?? null,
+    email_validation_mx: raw.mx === true ? true : raw.mx === false ? false : null,
+    email_validation_mx_provider: asString(raw.mx_provider) || null,
+    email_validation_mailbox_role: asString(raw.mailbox_role) || null,
+    email_validation_owned_confidence: ownedConfidence > 0 ? ownedConfidence : null,
   }
 
   if (result.verdict === 'valid' && result.score >= 0.75) {

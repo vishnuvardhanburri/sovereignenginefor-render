@@ -57,6 +57,127 @@ function scoreOwnedResult(status: VerificationStatus): number {
   return 0
 }
 
+const OWNED_PERSONAL_EMAIL_DOMAINS = new Set([
+  'aol.com',
+  'gmail.com',
+  'googlemail.com',
+  'hotmail.com',
+  'icloud.com',
+  'live.com',
+  'mail.com',
+  'msn.com',
+  'outlook.com',
+  'proton.me',
+  'protonmail.com',
+  'yahoo.com',
+  'yandex.com',
+])
+
+const OWNED_BLOCKED_PREFIXES = new Set([
+  'abuse',
+  'admin',
+  'billing',
+  'career',
+  'careers',
+  'compliance',
+  'donotreply',
+  'help',
+  'hr',
+  'jobs',
+  'legal',
+  'noreply',
+  'postmaster',
+  'privacy',
+  'security',
+  'support',
+  'test',
+  'webmaster',
+])
+
+const OWNED_COMMERCIAL_PREFIXES = new Set([
+  'bd',
+  'business',
+  'growth',
+  'marketing',
+  'opportunities',
+  'opportunity',
+  'sales',
+])
+
+const OWNED_SAFE_PREFIXES = new Set([
+  'contact',
+  'hello',
+  'hi',
+  'inquiries',
+  'inquiry',
+  'info',
+  'mail',
+  'partner',
+  'partners',
+  'partnership',
+  'partnerships',
+  'team',
+])
+
+const OWNED_WEAK_GENERIC_PREFIXES = new Set(['contact', 'hello', 'hi', 'info', 'mail', 'team'])
+
+type OwnedMailboxRole =
+  | 'blocked_role'
+  | 'commercial_role'
+  | 'safe_role'
+  | 'weak_generic'
+  | 'person_like'
+  | 'unknown_role'
+
+function classifyOwnedMailboxRole(localPart: string): OwnedMailboxRole {
+  const normalized = localPart.trim().toLowerCase().split('+')[0] ?? ''
+  if (!normalized || OWNED_BLOCKED_PREFIXES.has(normalized)) return 'blocked_role'
+  if (OWNED_COMMERCIAL_PREFIXES.has(normalized)) return 'commercial_role'
+  if (OWNED_WEAK_GENERIC_PREFIXES.has(normalized)) return 'weak_generic'
+  if (OWNED_SAFE_PREFIXES.has(normalized)) return 'safe_role'
+  if (normalized.includes('.') || /^[a-z]+[._-][a-z]+$/.test(normalized)) return 'person_like'
+  return 'unknown_role'
+}
+
+function inferMxProvider(mxHosts: string[]): string {
+  const joined = mxHosts.map((host) => host.toLowerCase()).join(' ')
+  if (/googlemail|google\.com|aspmx\.l\.google/.test(joined)) return 'google_workspace'
+  if (/mail\.protection\.outlook|outlook\.com|office365|microsoft/.test(joined)) return 'microsoft_365'
+  if (/zoho/.test(joined)) return 'zoho'
+  if (/protonmail|proton\.ch|proton\.me/.test(joined)) return 'proton'
+  if (/titan\.email|hostinger/.test(joined)) return 'hostinger_titan'
+  if (/secureserver|godaddy/.test(joined)) return 'godaddy'
+  if (/mimecast/.test(joined)) return 'mimecast'
+  if (/pphosted|proofpoint/.test(joined)) return 'proofpoint'
+  if (/amazonses|awsapps|workmail/.test(joined)) return 'aws_mail'
+  if (/mailgun/.test(joined)) return 'mailgun'
+  if (/sendgrid/.test(joined)) return 'sendgrid'
+  if (/mailchannels/.test(joined)) return 'mailchannels'
+  return 'unknown_mx'
+}
+
+function scoreOwnedMxConfidence(input: {
+  domain: string
+  localPart: string
+  mailboxRole: OwnedMailboxRole
+  mxProvider: string
+}): number {
+  if (OWNED_PERSONAL_EMAIL_DOMAINS.has(input.domain)) return 0.15
+  if (input.mailboxRole === 'blocked_role') return 0.2
+
+  let score = 0.55
+  if (input.mxProvider !== 'unknown_mx') score += 0.04
+
+  if (input.mailboxRole === 'commercial_role') score += 0.23
+  else if (input.mailboxRole === 'safe_role') score += 0.2
+  else if (input.mailboxRole === 'weak_generic') score += 0.12
+  else if (input.mailboxRole === 'person_like') score += 0.05
+
+  if (input.localPart.includes('+')) score -= 0.08
+
+  return Math.max(0.05, Math.min(Number(score.toFixed(2)), 0.84))
+}
+
 async function withTimeout<T>(promise: Promise<T>, ms: number, code: string): Promise<T> {
   let timeout: NodeJS.Timeout | undefined
   const timer = new Promise<never>((_, reject) => {
@@ -84,7 +205,7 @@ export async function verifyEmailWithOwnedSignals(email: string): Promise<Verifi
     }
   }
 
-  const domain = normalized.split('@')[1]
+  const [localPart = '', domain = ''] = normalized.split('@')
   if (!domain) {
     return {
       status: 'invalid',
@@ -110,21 +231,34 @@ export async function verifyEmailWithOwnedSignals(email: string): Promise<Verifi
       }
     }
 
+    const mxHosts = liveMxRecords
+      .sort((a, b) => a.priority - b.priority)
+      .slice(0, 3)
+      .map((record) => record.exchange)
+    const mxProvider = inferMxProvider(mxHosts)
+    const mailboxRole = classifyOwnedMailboxRole(localPart)
+    const ownedConfidence = scoreOwnedMxConfidence({
+      domain,
+      localPart,
+      mailboxRole,
+      mxProvider,
+    })
+
     return {
       status: 'unknown',
       subStatus: 'mx_present_unverified',
       provider: 'owned',
-      score: scoreOwnedResult('unknown'),
+      score: ownedConfidence,
       raw: {
         provider: 'owned',
         checks: ['syntax', 'mx'],
         syntax: true,
         mx: true,
         domain,
-        mx_hosts: liveMxRecords
-          .sort((a, b) => a.priority - b.priority)
-          .slice(0, 3)
-          .map((record) => record.exchange),
+        mx_hosts: mxHosts,
+        mx_provider: mxProvider,
+        mailbox_role: mailboxRole,
+        owned_confidence: ownedConfidence,
       },
     }
   } catch (error) {

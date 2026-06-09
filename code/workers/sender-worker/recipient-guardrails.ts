@@ -96,10 +96,20 @@ function asString(value: unknown): string {
   return String(value ?? '').trim().toLowerCase()
 }
 
+function asBool(value: unknown): boolean {
+  if (typeof value === 'boolean') return value
+  return ['1', 'true', 'yes', 'on'].includes(String(value ?? '').trim().toLowerCase())
+}
+
 function envBool(name: string, fallback: boolean): boolean {
   const value = process.env[name]
   if (value === undefined || value === null || value === '') return fallback
   return ['1', 'true', 'yes', 'on'].includes(value.trim().toLowerCase())
+}
+
+function envNumber(name: string, fallback: number): number {
+  const parsed = Number(process.env[name])
+  return Number.isFinite(parsed) ? parsed : fallback
 }
 
 function allowUnknownProviderValidation(): boolean {
@@ -109,11 +119,45 @@ function allowUnknownProviderValidation(): boolean {
   )
 }
 
+function allowOwnedProviderValidation(): boolean {
+  return envBool('DAILY_OUTBOUND_ALLOW_OWNED_VALIDATION', true)
+}
+
+function ownedProviderValidationMinScore(): number {
+  return Math.max(
+    0.65,
+    Math.min(
+      envNumber(
+        'DAILY_OUTBOUND_OWNED_VALIDATION_MIN_SCORE',
+        envNumber('OWNED_VALIDATION_MIN_SCORE', 0.78)
+      ),
+      0.9
+    )
+  )
+}
+
+function hasAcceptedOwnedValidationFallback(customFields: Record<string, unknown>): boolean {
+  if (!allowOwnedProviderValidation()) return false
+  if (asString(customFields.email_validation_provider) !== 'owned') return false
+  const verdict = asString(customFields.email_validation_verdict)
+  if (!['unknown', 'risky'].includes(verdict)) return false
+  if (!asBool(customFields.email_validation_mx)) return false
+  if (!['commercial_role', 'safe_role'].includes(asString(customFields.email_validation_mailbox_role))) {
+    return false
+  }
+  return numberField(customFields.email_validation_score) >= ownedProviderValidationMinScore()
+}
+
 function hasAcceptedProviderValidationFallback(customFields: Record<string, unknown>): boolean {
+  if (hasAcceptedOwnedValidationFallback(customFields)) return true
   if (!allowUnknownProviderValidation()) return false
   const provider = asString(customFields.email_validation_provider)
   const verdict = asString(customFields.email_validation_verdict)
-  return Boolean(provider) && ['unknown', 'risky'].includes(verdict)
+  const score = numberField(customFields.email_validation_score)
+  if (!provider) return false
+  if (verdict === 'risky') return score >= 0.65
+  if (verdict === 'unknown') return score >= 0.75
+  return false
 }
 
 function numberField(value: unknown): number {
@@ -181,7 +225,7 @@ export function recipientApprovalBlockers(
     blockers.push('generic_inbox_requires_email_validation_or_exact_evidence')
   }
 
-  if (RISKY_GUESSED_ROLE_PREFIXES.has(prefix) && !isValid && !hasExactEvidence) {
+  if (RISKY_GUESSED_ROLE_PREFIXES.has(prefix) && !isValid && !hasExactEvidence && !acceptedProviderFallback) {
     blockers.push('risky_role_requires_exact_public_email_evidence')
   }
 

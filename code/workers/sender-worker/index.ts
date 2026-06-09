@@ -1446,7 +1446,46 @@ async function bootstrapFromSnapshots() {
   }
 }
 
-async function lookupValidation(email: string): Promise<{ verdict: ValidationVerdict; score: number; catchAll?: boolean }> {
+function contactFieldString(value: unknown): string {
+  return String(value ?? '').trim().toLowerCase()
+}
+
+function contactFieldBool(value: unknown): boolean {
+  if (typeof value === 'boolean') return value
+  return ['1', 'true', 'yes', 'on'].includes(String(value ?? '').trim().toLowerCase())
+}
+
+function contactFieldNumber(value: unknown): number {
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : 0
+}
+
+function ownedValidationMinScore(): number {
+  const parsed = Number(
+    process.env.DAILY_OUTBOUND_OWNED_VALIDATION_MIN_SCORE ??
+      process.env.OWNED_VALIDATION_MIN_SCORE ??
+      0.78
+  )
+  return Math.max(0.65, Math.min(Number.isFinite(parsed) ? parsed : 0.78, 0.9))
+}
+
+function hasAcceptedOwnedContactValidation(customFields: Record<string, unknown> | null | undefined): boolean {
+  const fields = customFields ?? {}
+  if (!envBool('DAILY_OUTBOUND_ALLOW_OWNED_VALIDATION', true)) return false
+  if (contactFieldString(fields.email_validation_provider) !== 'owned') return false
+  if (!['unknown', 'risky'].includes(contactFieldString(fields.email_validation_verdict))) return false
+  if (!contactFieldBool(fields.email_validation_mx)) return false
+  if (!['commercial_role', 'safe_role'].includes(contactFieldString(fields.email_validation_mailbox_role))) {
+    return false
+  }
+  return contactFieldNumber(fields.email_validation_score) >= ownedValidationMinScore()
+}
+
+async function lookupValidation(
+  email: string,
+  clientId?: number,
+  contactId?: number
+): Promise<{ verdict: ValidationVerdict; score: number; catchAll?: boolean }> {
   const normalized = String(email || '').trim().toLowerCase()
   const res = await db<{ verdict: ValidationVerdict; score: string | number; catch_all: any }>(
     `SELECT verdict, score, catch_all
@@ -1457,9 +1496,39 @@ async function lookupValidation(email: string): Promise<{ verdict: ValidationVer
     [normalized]
   )
   const row = res.rows[0]
-  if (!row) return { verdict: 'unknown', score: 0.5 }
-  const catchAll = Boolean((row as any).catch_all?.isCatchAll ?? (row as any).catch_all?.catchAll)
-  return { verdict: row.verdict, score: Number(row.score ?? 0), catchAll }
+  if (row) {
+    const catchAll = Boolean((row as any).catch_all?.isCatchAll ?? (row as any).catch_all?.catchAll)
+    return { verdict: row.verdict, score: Number(row.score ?? 0), catchAll }
+  }
+
+  if (clientId && contactId) {
+    const contact = await db<{
+      verification_status: string | null
+      custom_fields: Record<string, unknown> | null
+    }>(
+      `SELECT verification_status, custom_fields
+       FROM contacts
+       WHERE client_id = $1 AND id = $2 AND lower(email) = $3
+       LIMIT 1`,
+      [clientId, contactId, normalized]
+    )
+    const contactRow = contact.rows[0]
+    const fields = contactRow?.custom_fields ?? {}
+    const fieldVerdict = contactFieldString(fields.email_validation_verdict)
+    const fieldScore = contactFieldNumber(fields.email_validation_score)
+
+    if (contactFieldString(contactRow?.verification_status) === 'valid') {
+      return { verdict: 'valid', score: Math.max(fieldScore, 0.85) }
+    }
+    if (fieldVerdict === 'valid' && fieldScore >= 0.75) {
+      return { verdict: 'valid', score: fieldScore }
+    }
+    if (hasAcceptedOwnedContactValidation(fields)) {
+      return { verdict: 'risky', score: Math.max(fieldScore, 0.65) }
+    }
+  }
+
+  return { verdict: 'unknown', score: 0.5 }
 }
 
 async function loadRecipientGuardrailBlockers(job: SendJob): Promise<string[]> {
@@ -1905,7 +1974,7 @@ async function runSend(job: SendJob, bull?: Pick<Job<SendJob>, 'id' | 'attemptsM
 
     const validation = MOCK_SMTP_FASTLANE
       ? { verdict: 'valid' as const, score: 0.99, catchAll: false }
-      : await lookupValidation(job.toEmail)
+      : await lookupValidation(job.toEmail, job.clientId, job.contactId)
     // Local/demo safety: if validator has not run yet, don't stall sending forever.
     // Treat unknown as risky and route to a conservative lane.
     const effectiveValidation =

@@ -104,6 +104,10 @@ services:
         value: "true"
       - key: SEND_ALLOW_UNKNOWN_VALIDATION
         value: "false"
+      - key: DAILY_OUTBOUND_ALLOW_OWNED_VALIDATION
+        value: "true"
+      - key: DAILY_OUTBOUND_OWNED_VALIDATION_MIN_SCORE
+        value: "0.78"
 
       # ── Outbound volume / mode ────────────────────────────────────────────────
       - key: DAILY_OUTBOUND_ENABLED
@@ -374,6 +378,10 @@ services:
         value: "false"
       - key: SEND_ALLOW_UNKNOWN_VALIDATION
         value: "false"
+      - key: DAILY_OUTBOUND_ALLOW_OWNED_VALIDATION
+        value: "true"
+      - key: DAILY_OUTBOUND_OWNED_VALIDATION_MIN_SCORE
+        value: "0.78"
       - key: GLOBAL_SENDS_PER_MINUTE
         value: "30"
       - key: GLOBAL_SHAPER_RATE_PER_SEC
