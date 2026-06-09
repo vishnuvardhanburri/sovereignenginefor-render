@@ -473,9 +473,9 @@ function buildLinkedInDmText(lead: SovereignCopyLead, offerType: SovereignOfferT
 function buildLinkedInFollowUpText(lead: SovereignCopyLead, offerType: SovereignOfferType): string {
   const company = asString(lead.company, 'your team')
   if (offerType === 'agency') {
-    return `Quick follow-up. The reason I thought of ${company}: agencies usually win on execution, but client trust depends on proving what is actually causing low replies. Is that mostly a lead-quality issue, deliverability issue, or reporting issue for your team?`
+    return `The reason I thought of ${company}: agencies usually win on execution, but client trust depends on proving what is actually causing low replies. Is this worth diagnosing now, or not a priority right now?`
   }
-  return `Quick follow-up. I am not sure if outbound campaign diagnosis is a priority for ${company} right now. When campaigns underperform, do you usually blame lead quality, message fit, or inbox placement first?`
+  return `I am not sure if outbound campaign diagnosis is a priority for ${company} right now. When campaigns underperform, do you usually blame lead quality, message fit, or inbox placement first?`
 }
 
 function buildEmailText(lead: SovereignCopyLead, offerType: SovereignOfferType): { subject: string; text: string } {

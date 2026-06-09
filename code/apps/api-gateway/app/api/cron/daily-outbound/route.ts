@@ -46,6 +46,7 @@ import {
   sovereignDealValueUsd,
   type SovereignCopyRagContext,
 } from '@/lib/outbound-copy'
+import { agencyTargetCount, directFallbackTargetCount } from '@/lib/xavira-gtm-motion'
 import { getSendingCapacityDiagnosis } from '@/lib/sending-capacity-diagnostics'
 
 type StageResult = {
@@ -468,9 +469,10 @@ async function loadCopyRagContexts(
 
 function splitDiscoveryLimit(limit: number): { agency: number; direct: number } {
   const normalized = Math.max(0, Math.trunc(limit))
-  if (normalized <= 1) return { agency: normalized, direct: 0 }
-  const agency = Math.ceil(normalized / 2)
-  return { agency, direct: normalized - agency }
+  return {
+    agency: agencyTargetCount(normalized),
+    direct: directFallbackTargetCount(normalized),
+  }
 }
 
 function resolveDirectDiscoveryIndustry(): string {
@@ -499,7 +501,7 @@ function combineDiscoveryStages(
     error: firstError,
     data: {
       balancedDiscovery: true,
-      mixPolicy: 'target_50_50_source_supply',
+      mixPolicy: 'agency_first_source_supply',
       limit: input.limit,
       agencyIndustry: 'agency',
       directIndustry: input.directIndustry,
@@ -2101,31 +2103,6 @@ async function loadApprovedContacts(
   agencyShortfall: number
   directShortfall: number
 }> {
-  const recentMixResult = await query<{ agency_sent: string; direct_sent: string }>(
-    `SELECT
-       COUNT(*) FILTER (
-         WHERE e.event_type = 'sent'
-           AND e.created_at >= NOW() - INTERVAL '24 hours'
-           AND COALESCE(e.metadata->>'offer_type','') = 'agency'
-       )::text AS agency_sent,
-       COUNT(*) FILTER (
-         WHERE e.event_type = 'sent'
-           AND e.created_at >= NOW() - INTERVAL '24 hours'
-           AND COALESCE(e.metadata->>'offer_type','direct') <> 'agency'
-       )::text AS direct_sent
-     FROM events e
-     WHERE e.client_id = $1`,
-    [clientId]
-  )
-  const agencySent24h = Number(recentMixResult.rows[0]?.agency_sent ?? 0)
-  const directSent24h = Number(recentMixResult.rows[0]?.direct_sent ?? 0)
-  const preferredOfferType =
-    agencySent24h < directSent24h
-      ? 'agency'
-      : directSent24h < agencySent24h
-        ? 'direct'
-        : undefined
-  const preferredSlots = Math.abs(agencySent24h - directSent24h)
   const scanLimit = Math.min(Math.max(limit * 50, 500), 10_000)
   const result = await query<ApprovedContactRow>(
     `SELECT
@@ -2217,11 +2194,13 @@ async function loadApprovedContacts(
     })
   const eligibleAgencyContacts = preparedLeads.filter((lead) => lead.offer_type === 'agency').length
   const eligibleDirectContacts = preparedLeads.length - eligibleAgencyContacts
-  const targetPerSide = Math.floor(Math.max(0, Math.trunc(limit)) / 2)
+  const normalizedLimit = Math.max(0, Math.trunc(limit))
+  const targetAgency = agencyTargetCount(normalizedLimit)
+  const targetDirect = directFallbackTargetCount(normalizedLimit)
   const leads = balanceSovereignOfferMix(preparedLeads, limit, {
     allowRemainderFill: true,
-    preferredOfferType,
-    preferredSlots,
+    preferredOfferType: 'agency',
+    preferredSlots: targetAgency,
   })
 
   return {
@@ -2230,8 +2209,8 @@ async function loadApprovedContacts(
     approvedContactBlockerCounts,
     eligibleAgencyContacts,
     eligibleDirectContacts,
-    agencyShortfall: Math.max(0, targetPerSide - eligibleAgencyContacts),
-    directShortfall: Math.max(0, targetPerSide - eligibleDirectContacts),
+    agencyShortfall: Math.max(0, targetAgency - eligibleAgencyContacts),
+    directShortfall: Math.max(0, targetDirect - eligibleDirectContacts),
   }
 }
 
@@ -2382,7 +2361,7 @@ async function runQueue(input: {
           eligibleDirectContacts,
           agencyShortfall,
           directShortfall,
-          mixPolicy: 'target_50_50_fill_best_available',
+          mixPolicy: 'agency_first_fill_best_available',
           phase: input.phase || 'after_research',
         },
       }
@@ -2552,7 +2531,7 @@ async function runQueue(input: {
         eligibleDirectContacts,
         agencyShortfall,
         directShortfall,
-        mixPolicy: 'target_50_50_fill_best_available',
+        mixPolicy: 'agency_first_fill_best_available',
         phase: input.phase || 'after_research',
       },
     }

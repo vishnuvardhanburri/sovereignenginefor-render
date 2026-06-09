@@ -76,9 +76,9 @@ export interface SequenceTemplate {
 // Default sequence templates
 const DEFAULT_SEQUENCES: SequenceTemplate[] = [
   {
-    id: 'cold-outreach-7-day',
-    name: 'Cold Outreach (7 Days)',
-    description: 'Standard cold email sequence with 3 touches over 7 days',
+    id: 'agency-rescue-8-day',
+    name: 'Agency Rescue (8 Days)',
+    description: 'Agency-first diagnostic sequence with decision-frame follow-ups',
     category: 'cold-outreach',
     isActive: true,
     createdAt: new Date(),
@@ -88,13 +88,17 @@ const DEFAULT_SEQUENCES: SequenceTemplate[] = [
         delayDays: 0,
         emailTemplate: {
           id: 'initial-value-prop',
-          name: 'Initial Value Proposition',
-          subject: 'Quick question about {{company}}',
+          name: 'Client Campaign Diagnosis',
+          subject: 'client campaign proof',
           body: `Hi {{firstName}},
 
-I noticed {{company}} is doing great work in {{industry}}. I'm reaching out because [value proposition].
+I noticed {{company}} works around client acquisition, outbound, or revenue operations.
 
-Would you be open to a quick 15-minute call next week?
+When a client campaign underperforms, the hard part is usually proving what actually broke: lead quality, deliverability, follow-up ownership, or reporting.
+
+Xavira was built around that diagnosis layer.
+
+When this happens at {{company}}, what do clients usually blame first?
 
 Best,
 {{senderName}}`,
@@ -111,13 +115,13 @@ Best,
         delayDays: 3,
         emailTemplate: {
           id: 'follow-up-value',
-          name: 'Follow-up with Social Proof',
-          subject: 'Following up on my previous email',
+          name: 'Decision Clarity',
+          subject: 're: client campaign proof',
           body: `Hi {{firstName}},
 
-I wanted to follow up on my previous email. We've helped [similar companies] achieve [results].
+The reason I asked is simple: underperforming campaigns usually get misdiagnosed from surface metrics.
 
-Would you be interested in learning more about how we could help {{company}}?
+Worth diagnosing now, or not a priority for {{company}}?
 
 Best,
 {{senderName}}`,
@@ -130,18 +134,40 @@ Best,
       },
       {
         stepNumber: 3,
-        delayDays: 4,
+        delayDays: 2,
         emailTemplate: {
           id: 'final-value-breakthrough',
-          name: 'Final Breakthrough Email',
-          subject: '{{firstName}}, one more thing...',
+          name: 'Priority Check',
+          subject: 'is this a priority?',
           body: `Hi {{firstName}},
 
-This will be my final email. I completely understand if you're not interested.
+Usually when campaign underperformance sits, the same leak keeps compounding.
 
-However, if you're open to it, I'd love to share how we've helped [specific result] for companies like {{company}}.
+It might be lead quality. It might be inbox placement. It might be follow-up ownership or reporting proof.
 
-No pressure either way.
+Is this a priority right now for {{company}}, or should I close this for now?
+
+Best,
+{{senderName}}`,
+          variables: {
+            firstName: '',
+            company: '',
+            senderName: ''
+          }
+        }
+      },
+      {
+        stepNumber: 4,
+        delayDays: 3,
+        emailTemplate: {
+          id: 'close-loop',
+          name: 'Close Loop',
+          subject: 'closing the loop',
+          body: `Hi {{firstName}},
+
+Seems like timing may not be right.
+
+I will close this for now. If {{company}} needs to separate lead quality, deliverability, follow-up, and reporting problems later, we can revisit.
 
 Best,
 {{senderName}}`,

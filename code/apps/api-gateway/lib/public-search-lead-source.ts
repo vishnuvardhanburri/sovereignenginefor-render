@@ -6,6 +6,7 @@ import {
   normalizePayingMarketRegion,
   targetMarketScoreBonus,
 } from '@/lib/target-market'
+import { agencyDiscoveryQueries } from '@/lib/xavira-gtm-motion'
 
 type PublicSearchProvider = 'serpapi' | 'bing_html' | 'duckduckgo_html'
 
@@ -302,14 +303,9 @@ function rootEvidenceUrl(rawUrl: string): string {
 }
 
 function defaultQueries(industry: string, region: string): string[] {
+  if (industry === 'agency') return agencyDiscoveryQueries(region)
+
   const queryGroups: Record<string, string[]> = {
-    agency: [
-      '"lead generation agency" "contact" "B2B"',
-      '"outbound sales agency" "contact" "B2B"',
-      '"appointment setting agency" "contact" "B2B"',
-      '"RevOps agency" "contact" "sales operations"',
-      '"B2B demand generation agency" "contact"',
-    ],
     cybersecurity: [
       '"cybersecurity platform" "contact sales"',
       '"AI security" "enterprise" "contact"',
@@ -336,8 +332,8 @@ function defaultQueries(industry: string, region: string): string[] {
     ],
   }
 
-  const selected = queryGroups[industry] ?? queryGroups.agency
-  return selected.map((query) => `${query} ${region}`)
+  const selected = queryGroups[industry] ?? agencyDiscoveryQueries(region)
+  return selected.map((query) => (query.includes(region) ? query : `${query} ${region}`))
 }
 
 function scoreResult(result: SerpApiOrganicResult, industry: string): number {

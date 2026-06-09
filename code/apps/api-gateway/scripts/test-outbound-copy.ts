@@ -67,25 +67,32 @@ assert(
 )
 assert(
   SOVEREIGN_CLIENT_GENERATION_TARGET.operatingSendFloor === 125 &&
-    SOVEREIGN_CLIENT_GENERATION_TARGET.operatingSendCeiling === 199,
+    SOVEREIGN_CLIENT_GENERATION_TARGET.operatingSendCeiling === 199 &&
+    SOVEREIGN_CLIENT_GENERATION_TARGET.idealAgencySharePct === 80,
   'client-generation operating range should be explicit'
 )
 const balanced = balanceSovereignOfferMix(
   [
     { ...agencyLead, company: 'Agency A', customFields: { fit_score: 99 } },
     { ...agencyLead, company: 'Agency B', customFields: { fit_score: 98 } },
+    { ...agencyLead, company: 'Agency C', customFields: { fit_score: 97 } },
+    { ...agencyLead, company: 'Agency D', customFields: { fit_score: 96 } },
+    { ...agencyLead, company: 'Agency E', customFields: { fit_score: 95 } },
+    { ...agencyLead, company: 'Agency F', customFields: { fit_score: 94 } },
+    { ...agencyLead, company: 'Agency G', customFields: { fit_score: 93 } },
+    { ...agencyLead, company: 'Agency H', customFields: { fit_score: 92 } },
     { ...directLead, company: 'Direct A', customFields: { fit_score: 97 } },
     { ...directLead, company: 'Direct B', customFields: { fit_score: 96 } },
   ],
-  4
+  10
 )
 assert(
-  balanced.filter((lead) => inferSovereignOfferType(lead) === 'agency').length === 2,
-  'balanced queue should reserve about half for agency offers'
+  balanced.filter((lead) => inferSovereignOfferType(lead) === 'agency').length === 8,
+  'agency-first queue should reserve about 80% for agency rescue prospects'
 )
 assert(
   balanced.filter((lead) => inferSovereignOfferType(lead) === 'direct').length === 2,
-  'balanced queue should reserve about half for direct offers'
+  'agency-first queue should keep direct prospects as the fallback lane'
 )
 const directHeavyBalanced = balanceSovereignOfferMix(
   [
@@ -98,11 +105,10 @@ const directHeavyBalanced = balanceSovereignOfferMix(
   6
 )
 assert(
-  directHeavyBalanced.filter((lead) => inferSovereignOfferType(lead) === 'agency').length ===
-    directHeavyBalanced.filter((lead) => inferSovereignOfferType(lead) === 'direct').length,
-  'direct-heavy pools must not fill missing agency slots'
+  directHeavyBalanced.every((lead) => inferSovereignOfferType(lead) === 'agency'),
+  'strict agency-first pools must not fill missing agency slots with direct leads'
 )
-assert(directHeavyBalanced.length === 2, 'strict mix should expose agency inventory shortfall')
+assert(directHeavyBalanced.length === 1, 'strict agency-first mix should expose agency inventory shortfall')
 const directHeavyFilled = balanceSovereignOfferMix(
   [
     { ...agencyLead, company: 'Only Agency', customFields: { fit_score: 99 } },
@@ -116,7 +122,7 @@ const directHeavyFilled = balanceSovereignOfferMix(
 )
 assert(
   directHeavyFilled.length === 5,
-  'target 50/50 mode should keep sending with best available inventory instead of freezing'
+  'agency-first mode should keep sending with best available fallback inventory instead of freezing'
 )
 const debtAwareAgencyRepair = balanceSovereignOfferMix(
   [
@@ -133,8 +139,8 @@ assert(
   'debt-aware mix should use agency inventory to repair a direct-heavy day instead of freezing queueing'
 )
 assert(
-  SOVEREIGN_STACK_DIRECT_SEQUENCE_STEPS.map((step) => step.day).join(',') === '0,3,6,10',
-  'default sequence should use Day 1, Day 3, Day 6, Day 10 cadence'
+  SOVEREIGN_STACK_DIRECT_SEQUENCE_STEPS.map((step) => step.day).join(',') === '0,3,5,8',
+  'default sequence should use Day 1, Day 3, Day 5, Day 8 decision-frame cadence'
 )
 assert(
   SOVEREIGN_STACK_DIRECT_SEQUENCE_STEPS.at(-1)?.subject === 'closing the loop',
@@ -227,6 +233,15 @@ assert(
 assert(
   !/reseller rights|commercial rights|3-4 serious client/i.test(coldSequenceText),
   'cold sequence should not mention license economics'
+)
+assert(
+  !/just following up|any updates|no pressure|let me know your thoughts/i.test(coldSequenceText),
+  'cold sequence should avoid needy follow-up language'
+)
+assert(
+  /Worth diagnosing now, or not a priority/.test(coldSequenceText) &&
+    /should I close this for now/.test(coldSequenceText),
+  'cold sequence should use decision-frame follow-up language'
 )
 
 const previousBookingUrl = process.env.SOVEREIGN_BOOKING_URL

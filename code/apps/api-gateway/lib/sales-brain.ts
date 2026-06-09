@@ -1,7 +1,8 @@
 import type { SovereignOfferType, SovereignCopyLead } from './outbound-copy'
 import { XAVIRA_COMMERCIAL_MODEL } from './commercial-model'
+import { XAVIRA_AGENCY_GTM_MOTION } from './xavira-gtm-motion'
 
-export const SOVEREIGN_SALES_BRAIN_VERSION = '2026-06-campaign-rescue-v1'
+export const SOVEREIGN_SALES_BRAIN_VERSION = XAVIRA_AGENCY_GTM_MOTION.version
 
 export const SOVEREIGN_SALES_BRAIN_SOURCES = [
   'MILLION-DOLLAR SALES FRAMEWORK',
@@ -19,10 +20,11 @@ export const SOVEREIGN_SALES_BRAIN_SOURCES = [
 
 const CORE_RULES = [
   'Position Xavira Tech Labs as a founder-led campaign rescue and control partner, not a cold email tool or generic agency.',
+  `Primary ICP for the next 30 days: ${XAVIRA_AGENCY_GTM_MOTION.primaryIcp}`,
   'Lead with the buyer question: why buy this, what risk or profit does it affect, and why now.',
   'Lead with pain before product: low replies, client blame, inbox placement doubt, weak follow-up ownership, poor reporting proof, and sender/domain risk.',
-  'Make one clear entry offer: Xavira Campaign Rescue Sprint reviews one live campaign and returns practical fixes before any larger platform discussion.',
-  'Keep the ask low-friction: ask one diagnostic question about what breaks first when a campaign underperforms.',
+  `Make one clear entry offer after interest: ${XAVIRA_AGENCY_GTM_MOTION.entryOffer} reviews one live agency/client campaign and returns practical fixes before any larger platform discussion.`,
+  `Keep the ask low-friction: ask this diagnostic question or a close variant: "${XAVIRA_AGENCY_GTM_MOTION.discoveryQuestion}"`,
   'Use proof language over hype: one campaign, real evidence, practical rewrite, simple client-facing summary, no fake customer claims.',
   'Write like a founder/operator: short sentences, specific business pain, calm confidence, no buzzword pileups, no AI-sounding filler.',
   'Preferred language: campaign proof, reply blockers, inbox placement, follow-up ownership, client reporting, sender risk, simple diagnosis, campaign rescue.',
@@ -37,6 +39,7 @@ const CORE_RULES = [
 
 const DIRECT_RULES = [
   `Direct offer after interest: ${XAVIRA_COMMERCIAL_MODEL.campaignRescueSprint.label} GBP Campaign Rescue Sprint.`,
+  'Direct non-agency prospects are fallback only; do not let them crowd out agency owners.',
   'Frame ROI as finding why replies are low, reducing wasted follow-ups, improving proof, and clarifying whether lead quality or delivery is the real blocker.',
   'Mention Xavira once in plain business language only.',
   'Best CTA after curiosity: review one real campaign, not a generic demo.',
@@ -51,9 +54,10 @@ const AGENCY_RULES = [
 ]
 
 const FOLLOW_UP_RULES = [
-  'Sequence steps: Day 1 initial outreach, Day 3 stability follow-up, Day 5 operational visibility follow-up, Day 8 soft breakup.',
+  'Sequence steps: Day 1 specific observation, Day 3 binary decision clarity, Day 5 priority/cost-of-delay check, Day 8 close-the-loop detachment.',
   'Stop follow-ups on replies, bounces, unsubscribes, invalid validation, or suppression match.',
-  'Follow-ups should add clarity, not pressure; never guilt or threaten.',
+  'Never say "just checking in", "any updates", "no pressure", or "let me know your thoughts".',
+  'Follow-ups should direct the process calmly without guilt, begging, fake scarcity, or threats.',
 ]
 
 export function buildSalesBrainContext(
@@ -90,6 +94,9 @@ export function buildSalesBrainContext(
     ...CORE_RULES.map((rule) => `- ${rule}`),
     'Offer rules:',
     ...rules.map((rule) => `- ${rule}`),
+    'Agency motion:',
+    `- Target mix: ${XAVIRA_AGENCY_GTM_MOTION.idealAgencySharePct}% agency rescue prospects / ${XAVIRA_AGENCY_GTM_MOTION.directFallbackSharePct}% direct fallback.`,
+    `- First customer target: ${XAVIRA_AGENCY_GTM_MOTION.firstCustomerTarget} paid rescue sprints.`,
     'Follow-up rules:',
     ...FOLLOW_UP_RULES.map((rule) => `- ${rule}`),
   ].join('\n')

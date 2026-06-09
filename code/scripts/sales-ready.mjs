@@ -35,11 +35,11 @@ async function healthStatus() {
 }
 
 const dealTrackerCsv = `deal_name,target_amount,buyer_segment,buyer_name,company,status,next_action,deadline,notes
-Rescue Sprint 1,500,Lead generation agency,,,lead_needed,send 20 targeted messages,today,Close first paid campaign rescue
-Rescue Sprint 2,500,RevOps agency,,,lead_needed,book 2 rescue intakes,this_week,Second paid proof deal
-Control Partner A,1500,Lead generation agency,,,lead_needed,send partner follow-up after sprint,this_month,Only discuss after rescue proof
-Control Partner B,1500,RevOps agency,,,lead_needed,share client-facing proof after sprint,this_month,Monthly support path after value is proven
-Control Partner C,1500,Outbound agency,,,lead_needed,start monthly partner discussion,next_14_days,Do not pitch before campaign pain is clear
+Rescue Sprint 1,5000,Lead generation agency,,,lead_needed,send 20 targeted messages,today,Close first paid campaign rescue
+Rescue Sprint 2,5000,RevOps agency,,,lead_needed,book 2 rescue intakes,this_week,Second paid proof deal
+Control Partner A,3000,Lead generation agency,,,lead_needed,send partner follow-up after sprint,this_month,Only discuss after rescue proof
+Control Partner B,3000,RevOps agency,,,lead_needed,share client-facing proof after sprint,this_month,Monthly support path after value is proven
+Control Partner C,3000,Outbound agency,,,lead_needed,start monthly partner discussion,next_14_days,Do not pitch before campaign pain is clear
 `
 
 const leadListCsv = `company,website,buyer_name,buyer_role,buyer_email,linkedin,segment,deal_target,reason_to_buy,status,next_action,last_contacted_at,notes
@@ -72,11 +72,9 @@ When a campaign underperforms, what do clients usually blame first?
 
 ## Follow-Up
 
-Quick follow-up, {{first_name}}.
-
 The reason I asked is that campaign problems are often misdiagnosed from surface metrics alone.
 
-Is the hardest part for {{company}} usually lead quality, deliverability, follow-up ownership, or reporting proof?
+Worth diagnosing now, or not a priority for {{company}}?
 `
 
 const controlPartnerMessage = `# £3,000/month Control Partner Messages

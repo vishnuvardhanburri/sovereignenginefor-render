@@ -208,7 +208,7 @@ export default function SentMailPage() {
       <div className="min-w-0">
         <h1 className="text-3xl font-bold">Sent Mail</h1>
         <p className="max-w-3xl text-muted-foreground">
-          Client-generation proof — qualified conversations, 50/50 offer mix, and delivery health
+          Client-generation proof — agency rescue conversations, direct fallback, and delivery health
         </p>
       </div>
 
@@ -259,14 +259,14 @@ export default function SentMailPage() {
             icon={<Mail className="w-4 h-4" />}
             label="Agency partner (24h)"
             value={s.agencySent24h}
-            sub="£3,000/month after proof · 50% target"
+            sub="£5,000 sprint first · £3,000/month after proof · 80% target"
             accent="purple"
           />
           <StatCard
             icon={<Mail className="w-4 h-4" />}
             label="Direct rescue (24h)"
             value={s.directSent24h}
-            sub="£5,000 Campaign Rescue Sprint · 50% target"
+            sub="£5,000 Campaign Rescue Sprint · fallback lane"
             accent="blue"
           />
           <StatCard

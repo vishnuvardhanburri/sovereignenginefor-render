@@ -10,6 +10,9 @@ const SPAM_TERMS = [
   'double your',
 ]
 
+const DEFAULT_DIAGNOSTIC_QUESTION =
+  'When a client campaign underperforms, what gets blamed first: lead quality, deliverability, follow-ups, or reporting?'
+
 function toTitleCase(value: string) {
   return value
     .split(/[\s_-]+/)
@@ -97,7 +100,7 @@ export function ensureQuestionEnding(body: string) {
     .filter(Boolean)
 
   if (lines.length === 0) {
-    return 'Would you be open to a quick chat?'
+    return DEFAULT_DIAGNOSTIC_QUESTION
   }
 
   const lastIndex = lines.length - 1
@@ -105,7 +108,7 @@ export function ensureQuestionEnding(body: string) {
 
   if (!lastLine.endsWith('?')) {
     lastLine = lastLine.replace(/[.!]+$/g, '').trim()
-    lines[lastIndex] = `${lastLine || 'Would you be open to a quick chat'}?`
+    lines[lastIndex] = `${lastLine || DEFAULT_DIAGNOSTIC_QUESTION.replace(/\?$/g, '')}?`
   }
 
   return lines.join('\n')

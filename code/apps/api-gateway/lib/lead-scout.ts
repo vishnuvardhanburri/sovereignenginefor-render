@@ -257,12 +257,12 @@ function withTimeout<T>(promise: Promise<T>, timeoutMs: number, fallback: T): Pr
 }
 
 function normalizeIndustry(input?: string): LeadScoutIndustry {
-  const value = String(input || 'saas').trim().toLowerCase()
+  const value = String(input || 'agency').trim().toLowerCase()
   if (value in INDUSTRY_ALIASES) return INDUSTRY_ALIASES[value]
   if (['saas', 'agency', 'cybersecurity', 'ai', 'devtools', 'ecommerce', 'fintech', 'automotive'].includes(value)) {
     return value as LeadScoutIndustry
   }
-  return 'saas'
+  return 'agency'
 }
 
 function normalizePersona(input?: string): LeadScoutPersona {

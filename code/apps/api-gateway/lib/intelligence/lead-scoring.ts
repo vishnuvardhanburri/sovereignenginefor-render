@@ -1,4 +1,5 @@
 import type { NormalizedLeadRecord } from '@/lib/ingestion/normalize-record'
+import { isAgencyRescueMotionText } from '@/lib/xavira-gtm-motion'
 
 export type PriorityLane = 'agency_white_label' | 'enterprise_internal' | 'standard' | 'nurture' | 'suppress'
 
@@ -40,7 +41,7 @@ function textFor(record: NormalizedLeadRecord): string {
 export function scoreLeadIntelligence(record: NormalizedLeadRecord): LeadScore {
   const text = textFor(record)
   const localPart = record.email.split('@')[0]
-  const isAgency = containsAny(text, AGENCY_TERMS)
+  const isAgency = containsAny(text, AGENCY_TERMS) || isAgencyRescueMotionText(text)
   const isAiGovernance = containsAny(text, AI_GOVERNANCE_TERMS)
   const isExecutive = containsAny(record.title ?? '', EXECUTIVE_TERMS)
   const employeeCount = record.employeeCount ?? 0
@@ -51,7 +52,7 @@ export function scoreLeadIntelligence(record: NormalizedLeadRecord): LeadScore {
       (record.emailDomain === record.companyDomain ? 0 : 10) +
       (record.emailDomain.includes('gmail.') || record.emailDomain.includes('outlook.') ? 12 : 0)
   )
-  const agencyFitScore = clampScore((isAgency ? 58 : 12) + targetSizeFit + (isExecutive ? 12 : 0))
+  const agencyFitScore = clampScore((isAgency ? 68 : 6) + targetSizeFit + (isExecutive ? 14 : 0))
   const aiGovernanceScore = clampScore((isAiGovernance ? 48 : 10) + (text.includes('enterprise') ? 14 : 0) + targetSizeFit)
   const infrastructureScore = clampScore(
     24 +
@@ -62,7 +63,9 @@ export function scoreLeadIntelligence(record: NormalizedLeadRecord): LeadScore {
   )
   const outboundMaturityScore = clampScore((isAgency ? 50 : 15) + (text.includes('sales') ? 10 : 0) + targetSizeFit)
   const enterpriseValueScore = clampScore(
-    Math.max(agencyFitScore, aiGovernanceScore, infrastructureScore) + (isExecutive ? 8 : 0) - deliverabilityRiskScore * 0.18
+    Math.max(agencyFitScore, isAgency ? aiGovernanceScore : aiGovernanceScore * 0.45, isAgency ? infrastructureScore : infrastructureScore * 0.45) +
+      (isExecutive ? 8 : 0) -
+      deliverabilityRiskScore * 0.18
   )
   const licensingProbabilityScore = clampScore(
     agencyFitScore * 0.36 + aiGovernanceScore * 0.22 + infrastructureScore * 0.22 + roleScore * 0.2 - deliverabilityRiskScore * 0.12
@@ -72,7 +75,7 @@ export function scoreLeadIntelligence(record: NormalizedLeadRecord): LeadScore {
   )
 
   const reasons = [
-    isAgency ? 'agency/reseller language detected' : 'non-agency target',
+    isAgency ? 'agency/client-campaign rescue fit detected' : 'non-agency fallback target',
     isAiGovernance ? 'AI/security/governance fit detected' : 'limited AI governance signal',
     isExecutive ? 'executive/operator title' : 'non-executive or unknown title',
     deliverabilityRiskScore >= 40 ? 'role inbox or risky local part' : 'acceptable deliverability risk',
@@ -81,9 +84,9 @@ export function scoreLeadIntelligence(record: NormalizedLeadRecord): LeadScore {
   const priorityLane: PriorityLane =
     deliverabilityRiskScore >= 70
       ? 'suppress'
-      : agencyFitScore >= 65 && priorityScore >= 55
+      : agencyFitScore >= 70 && priorityScore >= 55
         ? 'agency_white_label'
-        : enterpriseValueScore >= 55 || aiGovernanceScore >= 55
+        : isAgency && (enterpriseValueScore >= 55 || aiGovernanceScore >= 55)
           ? 'enterprise_internal'
           : priorityScore >= 40
             ? 'standard'

@@ -1,6 +1,12 @@
 import { tryXaviraAiJson, xaviraAiConfigured } from '@/lib/ai/xavira-ai'
 import { buildSalesBrainContext } from '@/lib/sales-brain'
 import { commercialDealValueGbp } from '@/lib/commercial-model'
+import {
+  XAVIRA_AGENCY_GTM_MOTION,
+  agencyTargetCount,
+  directFallbackTargetCount,
+  isAgencyRescueMotionText,
+} from '@/lib/xavira-gtm-motion'
 
 export type SovereignOfferType = 'direct' | 'agency'
 
@@ -40,7 +46,7 @@ export const SOVEREIGN_CLIENT_GENERATION_TARGET = {
   dailyQualifiedConversationsMax: 2,
   operatingSendFloor: 125,
   operatingSendCeiling: 199,
-  idealAgencySharePct: 50,
+  idealAgencySharePct: XAVIRA_AGENCY_GTM_MOTION.idealAgencySharePct,
 } as const
 
 function allowedBookingDomains(): string[] {
@@ -213,11 +219,7 @@ export function inferSovereignOfferType(input: SovereignCopyLead): SovereignOffe
     .map((value) => String(value ?? '').toLowerCase())
     .join(' ')
 
-  if (
-    /\bagency\b|\bagencies\b|lead generation|lead-gen|outbound agency|outbound operator|appointment setting|sales development|sdr as a service|revops|revenue operations|demand generation|demand gen|go-to-market|gtm|marketing agency|performance marketing|digital marketing|growth marketing|seo agency|paid acquisition/.test(
-      text
-    )
-  ) {
+  if (isAgencyRescueMotionText(text)) {
     return 'agency'
   }
 
@@ -267,27 +269,15 @@ export function sovereignClientIntentScore(input: SovereignCopyLead): number {
 
   let score = Math.min(Math.max(numericFitScore(input), 0), 100) * 0.62
 
-  if (offerType === 'agency') score += 10
+  if (offerType === 'agency') score += 18
+  else score -= 10
   if (custom.public_evidence_url || custom.research_evidence_url || custom.source_url) score += 8
   if (custom.linkedin_url || custom.linkedin_post_url || custom.recent_linkedin_post_url) score += 5
   if (custom.email_validation_verdict === 'valid' || custom.verification_status === 'valid') score += 6
   if (custom.auto_approval_eligible === true || custom.auto_approval_eligible === 'true') score += 4
 
-  if (
-    hasAnySignal(text, [
-      /\boutbound\b/,
-      /\blead[- ]?gen(?:eration)?\b/,
-      /\bappointment setting\b/,
-      /\bsdr\b/,
-      /\brevops\b/,
-      /\bdemand gen(?:eration)?\b/,
-      /\bgrowth agency\b/,
-      /\bdeliverability\b/,
-      /\binbox placement\b/,
-    ])
-  ) {
-    score += 14
-  }
+  if (isAgencyRescueMotionText(text)) score += 20
+  if (hasAnySignal(text, [/\bdeliverability\b/, /\binbox placement\b/, /\bfollow[- ]?up\b/, /\bclient reporting\b/])) score += 12
 
   if (
     hasAnySignal(text, [
@@ -304,20 +294,7 @@ export function sovereignClientIntentScore(input: SovereignCopyLead): number {
     score += 10
   }
 
-  if (
-    hasAnySignal(text, [
-      /\bai\b/,
-      /\bsecurity\b/,
-      /\bcybersecurity\b/,
-      /\bcompliance\b/,
-      /\bgovernance\b/,
-      /\binfrastructure\b/,
-      /\bdevtools\b/,
-      /\bsaas\b/,
-    ])
-  ) {
-    score += 7
-  }
+  if (hasAnySignal(text, [/\bsaas\b/, /\bsecurity\b/, /\bai\b/, /\bdevtools\b/]) && offerType !== 'agency') score += 2
 
   if (
     [
@@ -399,16 +376,11 @@ export function balanceSovereignOfferMix<T extends SovereignCopyLead>(
     return [...selected, ...repairRemainder].slice(0, normalizedLimit)
   }
 
-  const pairSlots = Math.floor(normalizedLimit / 2)
-  const balancedPairs = options.allowRemainderFill
-    ? pairSlots
-    : Math.min(pairSlots, agency.length, direct.length)
-  const targetAgency = options.allowRemainderFill
-    ? Math.ceil(normalizedLimit / 2)
-    : balancedPairs
-  const targetDirect = options.allowRemainderFill
-    ? normalizedLimit - targetAgency
-    : balancedPairs
+  const targetAgency = Math.min(agencyTargetCount(normalizedLimit), agency.length)
+  const agencyTargetSatisfied = agency.length >= agencyTargetCount(normalizedLimit)
+  const targetDirect = options.allowRemainderFill || agencyTargetSatisfied
+    ? Math.min(directFallbackTargetCount(normalizedLimit), direct.length)
+    : 0
   const selected: T[] = []
   const agencySlice = agency.slice(0, targetAgency)
   const directSlice = direct.slice(0, targetDirect)
@@ -643,9 +615,7 @@ export function detectSovereignBuyerIndustry(lead: SovereignCopyLead): Sovereign
   const offerType = inferSovereignOfferType(lead)
   if (
     offerType === 'agency' ||
-    /\bagency\b|\bagencies\b|lead[- ]?gen|outbound agency|appointment setting|demand gen|growth marketing|performance marketing|client acquisition/.test(
-      text
-    )
+    isAgencyRescueMotionText(text)
   ) {
     if (/\brevops\b|revenue operations|pipeline operations|gtm ops|go[- ]?to[- ]?market operations/.test(text)) {
       return 'revops'
@@ -839,7 +809,7 @@ function ctaForCopyDecision(
   persona: SovereignBuyerPersona
 ): string {
   if (industry === 'agency' || industry === 'revops' || persona === 'partnerships') {
-    return `Where does this become hardest inside ${company}: reply visibility, follow-up ownership, client reporting, or duplicate outreach?`
+    return `When a client campaign underperforms at ${company}, what gets blamed first: lead quality, deliverability, follow-ups, or reporting?`
   }
   if (persona === 'founder') {
     return 'What tends to break first for you as communication volume grows?'
@@ -946,11 +916,9 @@ export const SOVEREIGN_STACK_DIRECT_SEQUENCE_STEPS = [
     subject: 're: campaign reply visibility',
     body: `Hi {{FirstName}},
 
-Just following up on my earlier note.
-
 {{agent_followup_observation}}
 
-The thing I am trying to understand is usually simple: when a campaign underperforms, is the issue lead quality, inbox placement, follow-up ownership, or the way results are reported back?
+Worth diagnosing now, or not a priority for {{Company}}?
 
 Best,
 Vishnu
@@ -964,15 +932,15 @@ If not relevant, no worries.
   },
   {
     id: 'sovereign-stack-step-3',
-    day: 6,
-    subject: 'what breaks first?',
+    day: 5,
+    subject: 'is this a priority?',
     body: `Hi {{FirstName}},
 
-One reason I asked is that campaign problems often get blamed on the wrong thing.
+Usually when campaign underperformance sits, the same leak keeps compounding.
 
-Sometimes the list is weak. Sometimes emails land outside the inbox. Sometimes the follow-up path is inconsistent. Sometimes the reporting does not show enough proof for the client or internal team.
+It might be lead quality. It might be inbox placement. It might be follow-up ownership or reporting proof.
 
-Which one tends to create the most friction for {{Company}}?
+Is this a priority right now for {{Company}}, or should I close this for now?
 
 Best,
 Vishnu
@@ -986,17 +954,13 @@ If not relevant, no worries.
   },
   {
     id: 'sovereign-stack-step-4',
-    day: 10,
+    day: 8,
     subject: 'closing the loop',
     body: `Hi {{FirstName}},
 
-I will close the loop after this message.
+Seems like timing may not be right.
 
-The reason I reached out is that campaign issues can be hard to diagnose from surface metrics alone.
-
-If {{Company}} ever needs to separate lead quality, deliverability, follow-up, and reporting problems cleanly, I am happy to compare notes.
-
-Wishing you and the team continued success.
+I will close this for now. If {{Company}} needs to separate lead quality, deliverability, follow-up, and reporting problems later, we can revisit.
 
 Best,
 Vishnu

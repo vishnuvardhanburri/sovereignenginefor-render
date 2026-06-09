@@ -14,6 +14,7 @@ import {
   inferSovereignOfferType,
   type SovereignOfferType,
 } from '@/lib/outbound-copy'
+import { agencyTargetCount, directFallbackTargetCount } from '@/lib/xavira-gtm-motion'
 
 function clampLimit(value: unknown, fallback: number): number {
   const parsed = Number(value)
@@ -105,13 +106,12 @@ function balanceResearchApprovalCandidates(
   const direct = approved.filter(
     (decision) => offerTypeForResearchContact(contactById.get(decision.id)) === 'direct'
   )
-  const targetPairs = Math.floor(limit / 2)
-  const pairCount = Math.min(targetPairs, agency.length, direct.length)
+  const targetAgency = agencyTargetCount(limit)
+  const targetDirect = directFallbackTargetCount(limit)
   const candidates: ProspectResearchDecision[] = []
 
-  for (let index = 0; index < pairCount; index += 1) {
-    candidates.push(agency[index], direct[index])
-  }
+  candidates.push(...agency.slice(0, targetAgency))
+  candidates.push(...direct.slice(0, targetDirect))
 
   const selectedIds = new Set(candidates.map((candidate) => candidate.id))
   const remainingSlots = Math.max(0, limit - candidates.length)
@@ -131,9 +131,9 @@ function balanceResearchApprovalCandidates(
     directReady: direct.length,
     agencySelected,
     directSelected,
-    agencyShortfall: Math.max(0, targetPairs - agency.length),
-    directShortfall: Math.max(0, targetPairs - direct.length),
-    mixPolicy: 'target_50_50_fill_best_available' as const,
+    agencyShortfall: Math.max(0, targetAgency - agency.length),
+    directShortfall: Math.max(0, targetDirect - direct.length),
+    mixPolicy: 'agency_first_fill_best_available' as const,
   }
 }
 
@@ -202,7 +202,7 @@ async function researchApproval(request: NextRequest, apply: boolean) {
       guardrails: [
         'Approves business inboxes only',
         'Requires source quality, domain fit, and provider-safe evidence',
-        'Enforces strict 50/50 agency/direct approval balance',
+        'Enforces agency-first approval balance with direct prospects as fallback',
         'Requires email and company domain alignment',
         'Blocks personal, support, legal, security, bounced, and unsubscribed contacts',
         'Approval does not send email; cron queues approved contacts separately',
@@ -318,7 +318,7 @@ async function researchApproval(request: NextRequest, apply: boolean) {
          'approval_required', false,
          'approved_at', to_char(CURRENT_TIMESTAMP AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),
          'approved_by', 'research_approval_gate',
-         'approval_batch', 'research_verified_best_target_50_50_fill',
+         'approval_batch', 'research_verified_agency_first_fill',
          'research_score', scores.score,
          'research_reasons', scores.reasons,
          'hunter_confidence', scores.confidence,
@@ -392,7 +392,7 @@ async function researchApproval(request: NextRequest, apply: boolean) {
   void notifyTelegramEvent({
     type: 'contacts_approved',
     approved,
-    mode: 'research_verified_best_target_50_50_fill',
+    mode: 'research_verified_agency_first_fill',
   })
 
   return NextResponse.json({
