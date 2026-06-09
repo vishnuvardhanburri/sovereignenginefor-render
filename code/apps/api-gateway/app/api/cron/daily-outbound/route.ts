@@ -906,7 +906,7 @@ async function runBalancedLeadScoutStage(input: DiscoveryStageInput): Promise<St
   const stages = [await runLeadScoutStage({ ...input, limit: limits.agency, industry: 'agency' })]
   if (limits.direct > 0) {
     stages.push(
-      input.cycleDeadlineAt && !hasCycleBudget(input.cycleDeadlineAt, 2_500)
+      input.cycleDeadlineAt && !hasCycleBudget(input.cycleDeadlineAt, 7_500)
         ? skipCycleDeadlineStage('lead_scout')
         : await runLeadScoutStage({ ...input, limit: limits.direct, industry: directIndustry })
     )
@@ -1036,7 +1036,7 @@ async function runBalancedPublicSearchStage(
   const stages = [await runPublicSearchStage({ ...input, limit: limits.agency, industry: 'agency' })]
   if (limits.direct > 0) {
     stages.push(
-      input.cycleDeadlineAt && !hasCycleBudget(input.cycleDeadlineAt, 2_500)
+      input.cycleDeadlineAt && !hasCycleBudget(input.cycleDeadlineAt, 7_500)
         ? skipCycleDeadlineStage('public_search')
         : await runPublicSearchStage({ ...input, limit: limits.direct, industry: directIndustry })
     )
@@ -2986,18 +2986,18 @@ export async function GET(request: NextRequest) {
       if (!hasCycleBudget(cycleDeadlineAt, 1_500)) {
         stages.push(skipCycleDeadlineStage('research_approval'))
       } else {
-      stages.push(
-        await runResearchApproval({
-          clientId: plan.clientId,
-          dryRun: plan.dryRun,
-          approveLimit: plan.approveLimit,
-          recoveryMode,
-          growthMode: plan.mode === 'growth',
-          evidenceFetchLimit: 0,
-          providerValidationLimit: 0,
-          networkDeadlineMs: Math.max(500, cycleRemainingMs(cycleDeadlineAt) - 500),
-        })
-      )
+        stages.push(
+          await runResearchApproval({
+            clientId: plan.clientId,
+            dryRun: plan.dryRun,
+            approveLimit: plan.approveLimit,
+            recoveryMode,
+            growthMode: plan.mode === 'growth',
+            evidenceFetchLimit: 0,
+            providerValidationLimit: 0,
+            networkDeadlineMs: Math.max(500, cycleRemainingMs(cycleDeadlineAt) - 500),
+          })
+        )
       }
     }
 
@@ -3132,29 +3132,33 @@ export async function GET(request: NextRequest) {
     }
 
     if (!queuedBeforeResearch && plan.runResearchApproval) {
-      if (!hasCycleBudget(cycleDeadlineAt, 1_500)) {
+      if (!hasCycleBudget(cycleDeadlineAt, 5_000)) {
         stages.push(skipCycleDeadlineStage('research_approval'))
       } else {
-      stages.push(
-        await runResearchApproval({
-          clientId: plan.clientId,
-          dryRun: plan.dryRun,
-          approveLimit: plan.approveLimit,
-          recoveryMode,
-          growthMode: plan.mode === 'growth',
-          evidenceFetchLimit: params.has('evidenceFetchLimit')
-            ? clampLimit(params.get('evidenceFetchLimit'), 0, recoveryMode ? 40 : 20)
-            : undefined,
-          providerValidationLimit: params.has('providerValidationLimit')
-            ? clampLimit(
-                params.get('providerValidationLimit'),
-                0,
-                recoveryMode || plan.mode === 'growth' ? 250 : 20
-              )
-            : undefined,
-          networkDeadlineMs: Math.max(500, cycleRemainingMs(cycleDeadlineAt) - 500),
-        })
-      )
+        const finalResearchNetworkBudgetMs = Math.max(
+          500,
+          Math.min(cycleRemainingMs(cycleDeadlineAt) - 1_500, 8_000)
+        )
+        stages.push(
+          await runResearchApproval({
+            clientId: plan.clientId,
+            dryRun: plan.dryRun,
+            approveLimit: plan.approveLimit,
+            recoveryMode,
+            growthMode: plan.mode === 'growth',
+            evidenceFetchLimit: params.has('evidenceFetchLimit')
+              ? clampLimit(params.get('evidenceFetchLimit'), 0, recoveryMode ? 40 : 20)
+              : undefined,
+            providerValidationLimit: params.has('providerValidationLimit')
+              ? clampLimit(
+                  params.get('providerValidationLimit'),
+                  0,
+                  recoveryMode || plan.mode === 'growth' ? 250 : 20
+                )
+              : undefined,
+            networkDeadlineMs: finalResearchNetworkBudgetMs,
+          })
+        )
       }
     }
 

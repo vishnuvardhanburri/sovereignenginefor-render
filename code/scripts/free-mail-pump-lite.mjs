@@ -208,11 +208,11 @@ function appendCommonParams(url, kind, discoverySource = 'both') {
   )
   url.searchParams.set(
     'providerValidationLimit',
-    String(envInt('FREE_MAIL_PUMP_PROVIDER_VALIDATION_LIMIT', safeMode ? 25 : 250, 0, safeMode ? 80 : 1_000))
+    String(envInt('FREE_MAIL_PUMP_PROVIDER_VALIDATION_LIMIT', safeMode ? 5 : 250, 0, safeMode ? 20 : 1_000))
   )
   url.searchParams.set(
     'evidenceFetchLimit',
-    String(envInt('FREE_MAIL_PUMP_EVIDENCE_FETCH_LIMIT', safeMode ? 4 : 20, 0, safeMode ? 8 : 100))
+    String(envInt('FREE_MAIL_PUMP_EVIDENCE_FETCH_LIMIT', safeMode ? 2 : 20, 0, safeMode ? 5 : 100))
   )
   const runLeadScout =
     discoverySource !== 'public_search' && envBool('LEAD_SCOUT_ENABLED', true)
@@ -220,9 +220,9 @@ function appendCommonParams(url, kind, discoverySource = 'both') {
     discoverySource !== 'lead_scout' && envBool('PUBLIC_SEARCH_SOURCE_ENABLED', true)
 
   url.searchParams.set('leadScout', runLeadScout ? '1' : '0')
-  url.searchParams.set('leadScoutLimit', String(envInt('FREE_MAIL_PUMP_LEAD_SCOUT_LIMIT', safeMode ? 10 : 100, 0, safeMode ? 40 : 1_000)))
+  url.searchParams.set('leadScoutLimit', String(envInt('FREE_MAIL_PUMP_LEAD_SCOUT_LIMIT', safeMode ? 2 : 100, 0, safeMode ? 10 : 1_000)))
   url.searchParams.set('publicSearch', runPublicSearch ? '1' : '0')
-  url.searchParams.set('publicSearchLimit', String(envInt('FREE_MAIL_PUMP_PUBLIC_SEARCH_LIMIT', safeMode ? 8 : 100, 0, safeMode ? 30 : 1_000)))
+  url.searchParams.set('publicSearchLimit', String(envInt('FREE_MAIL_PUMP_PUBLIC_SEARCH_LIMIT', safeMode ? 2 : 100, 0, safeMode ? 10 : 1_000)))
   url.searchParams.set('evidenceDeadlineMs', String(envInt('FREE_MAIL_PUMP_EVIDENCE_DEADLINE_MS', safeMode ? 3500 : 8000, 800, safeMode ? 6000 : 15000)))
   url.searchParams.set('evidenceMaxPages', String(envInt('FREE_MAIL_PUMP_EVIDENCE_MAX_PAGES', safeMode ? 2 : 3, 1, safeMode ? 3 : 4)))
   url.searchParams.set('evidenceRequestTimeoutMs', String(envInt('FREE_MAIL_PUMP_EVIDENCE_REQUEST_TIMEOUT_MS', safeMode ? 1200 : 1200, 400, safeMode ? 2000 : 2500)))
