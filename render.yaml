@@ -31,7 +31,7 @@ services:
       - key: APP_PROTOCOL
         value: https
       - key: APP_DOMAIN
-        value: sovereign-engine-api.onrender.com
+        value: sovereignenginefor-render-d80m.onrender.com
       - key: NODE_ENV
         value: production
       - key: WEB_MEMORY_PROFILE
@@ -169,7 +169,9 @@ services:
       - key: FREE_MAIL_PUMP_DISCOVERY_INTERVAL_MS
         value: "3600000"
       - key: FREE_MAIL_PUMP_INITIAL_DELAY_MS
-        value: "60000"
+        value: "120000"
+      - key: FREE_MAIL_PUMP_FALLBACK_BASE_URL
+        value: https://sovereignenginefor-render-d80m.onrender.com
       - key: FREE_MAIL_PUMP_DISCOVERY_ON_START
         value: "true"
       - key: FREE_MAIL_PUMP_SEND_LIMIT

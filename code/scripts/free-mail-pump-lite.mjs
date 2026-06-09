@@ -29,6 +29,25 @@ function localBaseUrl() {
   return `http://127.0.0.1:${process.env.PORT || '10000'}`
 }
 
+function fallbackBaseUrls() {
+  return [
+    process.env.FREE_MAIL_PUMP_FALLBACK_BASE_URL,
+    process.env.RENDER_EXTERNAL_URL,
+    process.env.OUTBOUND_CRON_API_URL,
+    process.env.APP_BASE_URL,
+    process.env.APP_DOMAIN
+      ? `${process.env.APP_PROTOCOL || 'https'}://${process.env.APP_DOMAIN}`
+      : '',
+  ]
+    .map((value) => String(value || '').trim())
+    .filter(Boolean)
+    .map((value) => value.replace(/\/+$/, ''))
+}
+
+function baseUrlCandidates() {
+  return Array.from(new Set([localBaseUrl(), ...fallbackBaseUrls()]))
+}
+
 function summarizeParsed(parsed) {
   const stages = Array.isArray(parsed.stages) ? parsed.stages : []
   const queueStage = stages.find((stage) => stage?.stage === 'queue_outbound')
@@ -211,54 +230,70 @@ async function runCycle(kind, discoverySource = 'both') {
     return { ok: false, skipped: 'missing_cron_secret' }
   }
 
-  const url = new URL('/api/cron/daily-outbound', localBaseUrl())
-  appendCommonParams(url, kind, discoverySource)
-
   const safeMode = freeTierSafeMode()
-  const controller = new AbortController()
-  const timeout = setTimeout(
-    () => controller.abort(),
-    envInt('FREE_MAIL_PUMP_TIMEOUT_MS', kind === 'queue' ? 35000 : safeMode ? 18000 : 90000, 5000, safeMode ? 45000 : 120000)
-  )
   const startedAt = Date.now()
+  const candidates = baseUrlCandidates()
+  let lastError
 
-  try {
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'x-cron-secret': secret,
-        'user-agent': `Sovereign-Free-Mail-Pump-Lite/${kind}`,
-      },
-      cache: 'no-store',
-      signal: controller.signal,
-    })
-    const body = await response.text()
-    const { summary } = parseCycleBody(body)
-    console.log('[free-mail-pump-lite] cycle completed', {
-      kind,
-      discoverySource: kind === 'discovery' ? discoverySource : undefined,
-      status: response.status,
-      elapsedMs: Date.now() - startedAt,
-      ...summary,
-    })
-    return {
-      status: response.status,
-      elapsedMs: Date.now() - startedAt,
-      responseOk: response.ok,
-      ...summary,
+  for (const baseUrl of candidates) {
+    const url = new URL('/api/cron/daily-outbound', baseUrl)
+    appendCommonParams(url, kind, discoverySource)
+
+    const controller = new AbortController()
+    const timeout = setTimeout(
+      () => controller.abort(),
+      envInt('FREE_MAIL_PUMP_TIMEOUT_MS', kind === 'queue' ? 35000 : safeMode ? 18000 : 90000, 5000, safeMode ? 45000 : 120000)
+    )
+
+    try {
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'x-cron-secret': secret,
+          'user-agent': `Sovereign-Free-Mail-Pump-Lite/${kind}`,
+        },
+        cache: 'no-store',
+        signal: controller.signal,
+      })
+      const body = await response.text()
+      const { summary } = parseCycleBody(body)
+      console.log('[free-mail-pump-lite] cycle completed', {
+        kind,
+        discoverySource: kind === 'discovery' ? discoverySource : undefined,
+        baseUrl,
+        status: response.status,
+        elapsedMs: Date.now() - startedAt,
+        ...summary,
+      })
+      return {
+        status: response.status,
+        elapsedMs: Date.now() - startedAt,
+        responseOk: response.ok,
+        baseUrl,
+        ...summary,
+      }
+    } catch (error) {
+      lastError = error
+      console.warn('[free-mail-pump-lite] cycle transport failed', {
+        kind,
+        discoverySource: kind === 'discovery' ? discoverySource : undefined,
+        baseUrl,
+        elapsedMs: Date.now() - startedAt,
+        error: error instanceof Error ? error.message : String(error),
+      })
+    } finally {
+      clearTimeout(timeout)
     }
-  } catch (error) {
-    const result = {
-      kind,
-      discoverySource: kind === 'discovery' ? discoverySource : undefined,
-      elapsedMs: Date.now() - startedAt,
-      error: error instanceof Error ? error.message : String(error),
-    }
-    console.error('[free-mail-pump-lite] cycle failed', result)
-    return { ok: false, ...result }
-  } finally {
-    clearTimeout(timeout)
   }
+
+  const result = {
+    kind,
+    discoverySource: kind === 'discovery' ? discoverySource : undefined,
+    elapsedMs: Date.now() - startedAt,
+    error: lastError instanceof Error ? lastError.message : String(lastError || 'fetch failed'),
+  }
+  console.error('[free-mail-pump-lite] cycle failed', result)
+  return { ok: false, transportFailed: true, ...result }
 }
 
 function discoverySourceSequence(sourceMode, discoveryRuns, allowFallback) {
@@ -284,6 +319,7 @@ async function runDiscoverySequence(sourceMode, discoveryRuns, allowFallback) {
 
 function shouldRecoverStarvedQueue(queueResult, safeMode) {
   if (!envBool('FREE_MAIL_PUMP_STARVATION_RECOVERY_ENABLED', true)) return false
+  if (!queueResult || queueResult.transportFailed || queueResult.responseOk === false) return false
   const queued = resultQueued(queueResult)
   const sentToday = resultSentToday(queueResult)
   const minSentToday = envInt('FREE_MAIL_PUMP_STARVATION_MIN_SENT_TODAY', safeMode ? 1 : 1, 0, 800)
@@ -342,6 +378,10 @@ async function main() {
     running = true
     try {
       const queueResult = await runCycle('queue')
+      if (queueResult?.transportFailed) {
+        console.warn('[free-mail-pump-lite] local API unavailable; discovery postponed until API is reachable')
+        return
+      }
       const discoveryDue = discoveryEnabled && Date.now() - lastDiscoveryAt >= discoveryEveryMs
       const starvationDue =
         discoveryEnabled &&
