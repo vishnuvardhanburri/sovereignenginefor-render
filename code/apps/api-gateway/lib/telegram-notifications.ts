@@ -398,11 +398,11 @@ export function formatTelegramNotification(input: TelegramNotification, options?
       const agencyShare = mixTotal > 0 ? Math.round((agencySent24h / mixTotal) * 100) : 0
       const mixAction =
         mixTotal === 0
-          ? 'Build both white-label and internal inventory.'
+          ? 'Build both agency and direct rescue inventory.'
           : agencyShare < 45
-            ? 'Prioritize agency / white-label buyers next cycle.'
+            ? 'Prioritize agency owners with client campaign pain next cycle.'
             : agencyShare > 55
-              ? 'Prioritize internal-license buyers next cycle.'
+              ? 'Prioritize direct campaign rescue buyers next cycle.'
               : '50/50 offer mix is on track.'
       const blocker = input.primaryBlocker
       const topFailure = input.topFailureReason
@@ -431,7 +431,7 @@ export function formatTelegramNotification(input: TelegramNotification, options?
         `Client conversations: ${replies} replies / ${sent24h} sent = ${rr}% ${percentBar(input.replyRate24h ?? 0)}`,
         `Target: ${SOVEREIGN_CLIENT_GENERATION_TARGET.dailyQualifiedConversationsMin}-${SOVEREIGN_CLIENT_GENERATION_TARGET.dailyQualifiedConversationsMax} qualified conversations/day`,
         '━━━━━━━━━━━━━━━━━━━━━━━',
-        `Offer mix 24h: ${agencySent24h} white-label ${XAVIRA_COMMERCIAL_MODEL.whiteLabelCommercialLicense.label} / ${directSent24h} internal ${XAVIRA_COMMERCIAL_MODEL.internalEnterpriseLicense.label}`,
+        `Offer mix 24h: ${agencySent24h} agency follow-on ${XAVIRA_COMMERCIAL_MODEL.controlPartnerMonthly.label} / ${directSent24h} rescue sprint ${XAVIRA_COMMERCIAL_MODEL.campaignRescueSprint.label}`,
         `Ready inventory: ${agencyReady} agency / ${directReady} direct`,
         `Mix action: ${mixAction}`,
         pipeline
@@ -460,7 +460,7 @@ export function formatTelegramNotification(input: TelegramNotification, options?
         ? `Pipeline value: ${formatGbp(input.estimatedPipelineValueUsd)}`
         : null,
       input.agencyQueued || input.directQueued
-        ? `Mix: ${input.agencyQueued ?? 0} agency (${XAVIRA_COMMERCIAL_MODEL.whiteLabelCommercialLicense.label}) / ${input.directQueued ?? 0} direct (${XAVIRA_COMMERCIAL_MODEL.internalEnterpriseLicense.label})`
+        ? `Mix: ${input.agencyQueued ?? 0} agency (${XAVIRA_COMMERCIAL_MODEL.controlPartnerMonthly.label} after proof) / ${input.directQueued ?? 0} direct (${XAVIRA_COMMERCIAL_MODEL.campaignRescueSprint.label})`
         : null,
       input.targetDailyVolume ? `Target/day: ${input.targetDailyVolume}` : null,
       input.primaryBlocker ? `Blocker: ${clip(input.primaryBlocker, 140)}` : null,

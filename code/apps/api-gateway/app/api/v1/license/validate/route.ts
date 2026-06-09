@@ -6,28 +6,28 @@ export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 const plans = {
-  internal_enterprise: {
-    name: XAVIRA_COMMERCIAL_MODEL.internalEnterpriseLicense.name,
-    price: XAVIRA_COMMERCIAL_MODEL.internalEnterpriseLicense.label,
+  campaign_rescue: {
+    name: XAVIRA_COMMERCIAL_MODEL.campaignRescueSprint.name,
+    price: XAVIRA_COMMERCIAL_MODEL.campaignRescueSprint.label,
     currency: XAVIRA_COMMERCIAL_MODEL.currency,
-    rights: ['internal_operational_usage'],
-    restrictions: ['no_reseller_rights', 'no_white_label_rights', 'no_commercial_redistribution_rights'],
-    limits: { domains: 25, apiRequestsPerDay: 100000, dailyControlPlaneVolume: 200000, simulatedEventsPerRun: 10000 },
+    rights: ['one_campaign_review', 'copy_rewrite', 'follow_up_rewrite', 'client_facing_summary'],
+    restrictions: ['one_live_campaign', 'no_bulk_sending_promise', 'no_platform_transfer'],
+    limits: { campaigns: 1, apiRequestsPerDay: 100000, dailyControlPlaneVolume: 200000, simulatedEventsPerRun: 10000 },
   },
-  white_label_commercial: {
-    name: XAVIRA_COMMERCIAL_MODEL.whiteLabelCommercialLicense.name,
-    price: XAVIRA_COMMERCIAL_MODEL.whiteLabelCommercialLicense.label,
+  control_partner: {
+    name: XAVIRA_COMMERCIAL_MODEL.controlPartnerMonthly.name,
+    price: XAVIRA_COMMERCIAL_MODEL.controlPartnerMonthly.label,
     currency: XAVIRA_COMMERCIAL_MODEL.currency,
-    rights: ['white_label', 'reseller', 'commercial_deployment', 'multi_client_operations', 'branding_customization'],
-    restrictions: [],
+    rights: ['weekly_campaign_review', 'reply_learning', 'client_reporting_support', 'campaign_control_support'],
+    restrictions: ['requires_rescue_sprint_or_clear_campaign_evidence'],
     limits: { domains: 250, apiRequestsPerDay: 500000, dailyControlPlaneVolume: 1000000, simulatedEventsPerRun: 10000 },
   },
-  operations_maintenance: {
+  custom_platform_support: {
     name: XAVIRA_COMMERCIAL_MODEL.operationsMaintenance.name,
     price: XAVIRA_COMMERCIAL_MODEL.operationsMaintenance.label,
     currency: XAVIRA_COMMERCIAL_MODEL.currency,
-    rights: ['technical_support', 'platform_updates', 'infrastructure_guidance', 'monitoring_support', 'governance_support'],
-    restrictions: ['requires_active_license'],
+    rights: ['technical_support', 'platform_updates', 'infrastructure_guidance', 'monitoring_support'],
+    restrictions: ['requires_active_rescue_or_partner_engagement'],
     limits: { domains: 250, apiRequestsPerDay: 500000, dailyControlPlaneVolume: 1000000, simulatedEventsPerRun: 10000 },
   },
 }
@@ -45,9 +45,9 @@ function configuredLicenses() {
 }
 
 function resolvePlan(key: string) {
-  if (/white|commercial|reseller|agency/i.test(key)) return plans.white_label_commercial
-  if (/maintenance|support|operations/i.test(key)) return plans.operations_maintenance
-  return plans.internal_enterprise
+  if (/partner|white|commercial|reseller|agency/i.test(key)) return plans.control_partner
+  if (/maintenance|support|operations|platform/i.test(key)) return plans.custom_platform_support
+  return plans.campaign_rescue
 }
 
 export async function POST(request: NextRequest) {
@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
       ok: true,
       active,
       product: XAVIRA_COMMERCIAL_MODEL.productName,
-      positioning: 'Enterprise Communication Operations Platform and communication governance infrastructure',
+      positioning: 'Campaign rescue and outbound control support for teams that need better reply diagnosis and client-facing proof',
       plan,
       license: {
         fingerprint: licenseKey ? hash(licenseKey).slice(0, 16) : null,
@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
         expires_at: active ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() : null,
       },
       acquisitionNote:
-        'Demo licenses are for acquisition validation only. Production buyers should configure SOVEREIGN_LICENSE_KEYS or replace this endpoint with their billing provider.',
+        'Demo keys are for validation only. The current entry offer is the £500 Campaign Rescue Sprint.',
     },
     { status: active ? 200 : 401 }
   )
@@ -99,9 +99,9 @@ export async function GET() {
     ],
     pricing: {
       currency: XAVIRA_COMMERCIAL_MODEL.currency,
-      internalEnterpriseLicense: plans.internal_enterprise.price,
-      whiteLabelCommercialLicense: plans.white_label_commercial.price,
-      operationsMaintenance: plans.operations_maintenance.price,
+      campaignRescueSprint: plans.campaign_rescue.price,
+      controlPartnerMonthly: plans.control_partner.price,
+      customPlatformSupport: plans.custom_platform_support.price,
     },
   })
 }

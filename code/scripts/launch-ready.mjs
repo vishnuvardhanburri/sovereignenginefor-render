@@ -387,7 +387,7 @@ async function main() {
 
     await fetchStep('Health oracle API', '/api/health/stats?client_id=1', ({ json }) => json?.ok === true)
     await fetchStep('Demo metrics API', '/demo/metrics', ({ json }) => json?.summary?.simulatedEventsProcessed === 10000)
-    await fetchStep('Pricing page', '/pricing', ({ body }) => body.includes('£40,000') && body.includes('£160,000') && body.includes('£3,000/month'))
+    await fetchStep('Pricing page', '/pricing', ({ body }) => body.includes('Campaign Rescue Sprint') && body.includes('£500') && body.includes('£1,500/month'))
     await fetchStep('Trust certificate API', '/api/trust/summary?domain=sovereign-demo.example', ({ json }) => json?.ok === true)
     await fetchStep('Production gate API', '/api/production/gate?domain=sovereign-demo.example', ({ json }) => json?.ok === true && json?.realSendingAllowed === false)
 

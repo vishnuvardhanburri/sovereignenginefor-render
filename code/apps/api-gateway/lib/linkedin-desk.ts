@@ -1,11 +1,9 @@
 import type { Contact } from '@/lib/db/types'
 import { validateBusinessEmailSyntax } from '@/lib/email-address'
 import {
-  buildSovereignCopyDecision,
   inferSovereignOfferType,
   renderSovereignTemplate,
   sovereignBodyForLead,
-  sovereignBookingUrl,
   sovereignClientIntentScore,
   sovereignDealValueGbp,
   sovereignSubjectForLead,
@@ -131,7 +129,7 @@ const HIGH_VALUE_LINK_RE =
   /\b(?:contact|contact-us|get-in-touch|sales|demo|book-a-demo|about|team|people|leadership|company|solutions|services|partners?|partnerships?|customers?|case-stud(?:y|ies)|work|pricing)\b/i
 const PUBLIC_SIGNAL_PATTERNS: Array<[RegExp, string]> = [
   [/\b(?:enterprise|mid-market|b2b|revenue operations|revops|go-to-market|gtm)\b/i, 'B2B revenue motion'],
-  [/\b(?:white[-\s]?label|agency|client services|managed service|done[-\s]?for[-\s]?you)\b/i, 'white-label or agency motion'],
+  [/\b(?:white[-\s]?label|agency|client services|managed service|done[-\s]?for[-\s]?you)\b/i, 'agency client campaign motion'],
   [/\b(?:ai governance|governance|compliance|audit|soc 2|iso 27001|security)\b/i, 'governance/security proof'],
   [/\b(?:outbound|cold email|sales development|sdr|appointment setting|lead generation)\b/i, 'outbound or pipeline ops'],
   [/\b(?:deliverability|sender reputation|inbox|email infrastructure|domain health)\b/i, 'email infrastructure pain'],
@@ -163,27 +161,27 @@ const PERSONAL_EMAIL_DOMAINS = new Set([
 ])
 
 const TIER_ONE_LINKEDIN_CLOSE_SEEDS: TierOneLinkedInCloseSeed[] = [
-  seed('Directive Consulting', 'directiveconsulting.com', 'partnerships', 'https://www.linkedin.com/company/directive-consulting/', 'agency', 'RevOps / demand generation leadership', 'United States', ['B2B revenue motion', 'white-label or agency motion', 'outbound or pipeline ops']),
-  seed('KlientBoost', 'klientboost.com', 'sales', 'https://www.linkedin.com/company/klientboost/', 'agency', 'growth marketing leadership', 'United States', ['B2B revenue motion', 'white-label or agency motion']),
-  seed('Power Digital', 'powerdigitalmarketing.com', 'partnerships', 'https://www.linkedin.com/company/power-digital-marketing/', 'agency', 'client services leadership', 'United States', ['white-label or agency motion', 'public proof available']),
-  seed('SmartBug Media', 'smartbugmedia.com', 'sales', 'https://www.linkedin.com/company/smartbug-media/', 'agency', 'RevOps / HubSpot agency leadership', 'United States', ['B2B revenue motion', 'white-label or agency motion']),
-  seed('Ignite Visibility', 'ignitevisibility.com', 'sales', 'https://www.linkedin.com/company/ignite-visibility/', 'agency', 'performance marketing leadership', 'United States', ['white-label or agency motion', 'public proof available']),
-  seed('WebFX', 'webfx.com', 'sales', 'https://www.linkedin.com/company/webfxinc/', 'agency', 'enterprise client acquisition leadership', 'United States', ['B2B revenue motion', 'white-label or agency motion']),
-  seed('Single Grain', 'singlegrain.com', 'growth', 'https://www.linkedin.com/company/single-grain-llc/', 'agency', 'growth agency leadership', 'United States', ['white-label or agency motion', 'outbound or pipeline ops']),
-  seed('Belkins', 'belkins.io', 'sales', 'https://www.linkedin.com/company/belkins/', 'agency', 'B2B appointment-setting leadership', 'United States', ['outbound or pipeline ops', 'white-label or agency motion']),
-  seed('Martal Group', 'martal.ca', 'sales', 'https://www.linkedin.com/company/martal-group/', 'agency', 'B2B lead generation leadership', 'Canada', ['outbound or pipeline ops', 'white-label or agency motion']),
+  seed('Directive Consulting', 'directiveconsulting.com', 'partnerships', 'https://www.linkedin.com/company/directive-consulting/', 'agency', 'RevOps / demand generation leadership', 'United States', ['B2B revenue motion', 'agency client campaign motion', 'outbound or pipeline ops']),
+  seed('KlientBoost', 'klientboost.com', 'sales', 'https://www.linkedin.com/company/klientboost/', 'agency', 'growth marketing leadership', 'United States', ['B2B revenue motion', 'agency client campaign motion']),
+  seed('Power Digital', 'powerdigitalmarketing.com', 'partnerships', 'https://www.linkedin.com/company/power-digital-marketing/', 'agency', 'client services leadership', 'United States', ['agency client campaign motion', 'public proof available']),
+  seed('SmartBug Media', 'smartbugmedia.com', 'sales', 'https://www.linkedin.com/company/smartbug-media/', 'agency', 'RevOps / HubSpot agency leadership', 'United States', ['B2B revenue motion', 'agency client campaign motion']),
+  seed('Ignite Visibility', 'ignitevisibility.com', 'sales', 'https://www.linkedin.com/company/ignite-visibility/', 'agency', 'performance marketing leadership', 'United States', ['agency client campaign motion', 'public proof available']),
+  seed('WebFX', 'webfx.com', 'sales', 'https://www.linkedin.com/company/webfxinc/', 'agency', 'enterprise client acquisition leadership', 'United States', ['B2B revenue motion', 'agency client campaign motion']),
+  seed('Single Grain', 'singlegrain.com', 'growth', 'https://www.linkedin.com/company/single-grain-llc/', 'agency', 'growth agency leadership', 'United States', ['agency client campaign motion', 'outbound or pipeline ops']),
+  seed('Belkins', 'belkins.io', 'sales', 'https://www.linkedin.com/company/belkins/', 'agency', 'B2B appointment-setting leadership', 'United States', ['outbound or pipeline ops', 'agency client campaign motion']),
+  seed('Martal Group', 'martal.ca', 'sales', 'https://www.linkedin.com/company/martal-group/', 'agency', 'B2B lead generation leadership', 'Canada', ['outbound or pipeline ops', 'agency client campaign motion']),
   seed('SalesRoads', 'salesroads.com', 'sales', 'https://www.linkedin.com/company/salesroads/', 'agency', 'sales development leadership', 'United States', ['outbound or pipeline ops', 'B2B revenue motion']),
-  seed('EBQ', 'ebq.com', 'sales', 'https://www.linkedin.com/company/ebq/', 'agency', 'outsourced sales leadership', 'United States', ['outbound or pipeline ops', 'white-label or agency motion']),
+  seed('EBQ', 'ebq.com', 'sales', 'https://www.linkedin.com/company/ebq/', 'agency', 'outsourced sales leadership', 'United States', ['outbound or pipeline ops', 'agency client campaign motion']),
   seed('memoryBlue', 'memoryblue.com', 'sales', 'https://www.linkedin.com/company/memoryblue/', 'agency', 'sales development leadership', 'United States', ['outbound or pipeline ops', 'B2B revenue motion']),
   seed('Operatix', 'operatix.net', 'sales', 'https://www.linkedin.com/company/operatix/', 'agency', 'B2B technology sales acceleration leadership', 'United Kingdom', ['outbound or pipeline ops', 'B2B revenue motion']),
-  seed('CIENCE', 'cience.com', 'sales', 'https://www.linkedin.com/company/cience/', 'agency', 'outbound operations leadership', 'United States', ['outbound or pipeline ops', 'white-label or agency motion']),
+  seed('CIENCE', 'cience.com', 'sales', 'https://www.linkedin.com/company/cience/', 'agency', 'outbound operations leadership', 'United States', ['outbound or pipeline ops', 'agency client campaign motion']),
   seed('Leadium', 'leadium.com', 'sales', 'https://www.linkedin.com/company/leadium/', 'agency', 'B2B outbound leadership', 'United States', ['outbound or pipeline ops', 'B2B revenue motion']),
   seed('RevBoss', 'revboss.com', 'sales', 'https://www.linkedin.com/company/revboss/', 'agency', 'sales pipeline leadership', 'United States', ['outbound or pipeline ops', 'B2B revenue motion']),
-  seed('Callbox', 'callboxinc.com', 'sales', 'https://www.linkedin.com/company/callbox-inc/', 'agency', 'B2B lead generation leadership', 'United States', ['outbound or pipeline ops', 'white-label or agency motion']),
-  seed('MarketOne', 'marketone.com', 'sales', 'https://www.linkedin.com/company/marketone-international/', 'agency', 'demand generation leadership', 'United Kingdom', ['B2B revenue motion', 'white-label or agency motion']),
-  seed('DemandZEN', 'demandzen.com', 'sales', 'https://www.linkedin.com/company/demandzen/', 'agency', 'demand generation leadership', 'United States', ['outbound or pipeline ops', 'white-label or agency motion']),
+  seed('Callbox', 'callboxinc.com', 'sales', 'https://www.linkedin.com/company/callbox-inc/', 'agency', 'B2B lead generation leadership', 'United States', ['outbound or pipeline ops', 'agency client campaign motion']),
+  seed('MarketOne', 'marketone.com', 'sales', 'https://www.linkedin.com/company/marketone-international/', 'agency', 'demand generation leadership', 'United Kingdom', ['B2B revenue motion', 'agency client campaign motion']),
+  seed('DemandZEN', 'demandzen.com', 'sales', 'https://www.linkedin.com/company/demandzen/', 'agency', 'demand generation leadership', 'United States', ['outbound or pipeline ops', 'agency client campaign motion']),
   seed('SalesHive', 'saleshive.com', 'sales', 'https://www.linkedin.com/company/saleshive/', 'agency', 'sales development leadership', 'United States', ['outbound or pipeline ops', 'B2B revenue motion']),
-  seed('Cleverly', 'cleverly.co', 'sales', 'https://www.linkedin.com/company/cleverlyagency/', 'agency', 'LinkedIn outreach agency leadership', 'United States', ['outbound or pipeline ops', 'white-label or agency motion']),
+  seed('Cleverly', 'cleverly.co', 'sales', 'https://www.linkedin.com/company/cleverlyagency/', 'agency', 'LinkedIn outreach agency leadership', 'United States', ['outbound or pipeline ops', 'agency client campaign motion']),
   seed('Gong', 'gong.io', 'sales', 'https://www.linkedin.com/company/gong-io/', 'direct', 'revenue intelligence operations leadership', 'United States', ['B2B revenue motion', 'governance/security proof']),
   seed('Salesloft', 'salesloft.com', 'sales', 'https://www.linkedin.com/company/salesloft/', 'direct', 'sales engagement leadership', 'United States', ['outbound or pipeline ops', 'B2B revenue motion']),
   seed('Outreach', 'outreach.io', 'sales', 'https://www.linkedin.com/company/outreach-saas/', 'direct', 'sales execution platform leadership', 'United States', ['outbound or pipeline ops', 'B2B revenue motion']),
@@ -413,7 +411,7 @@ function contactToLead(contact: Contact): SovereignCopyLead {
 }
 
 function offerLabel(offerType: SovereignOfferType): string {
-  return offerType === 'agency' ? '£160,000 White-label' : '£40,000 Internal'
+  return offerType === 'agency' ? 'Agency partner after proof' : '£500 rescue sprint'
 }
 
 function linkedinUrlForContact(contact: Contact): string {
@@ -449,36 +447,35 @@ function closingReason(contact: Contact, offerType: SovereignOfferType, closeSco
   const custom = contactCustom(contact)
   const sourceReason = pickCustom(custom, 'hunter_decision_summary', 'reason_to_contact', 'research_summary')
   if (sourceReason) return sourceReason
-  if (offerType === 'agency') return `White-label fit. Ranked ${closeScore}/100 because agency, RevOps, growth, or client-service signals are stronger.`
-  return `Internal fit. Ranked ${closeScore}/100 because the contact looks closer to an operator or founder buying for their own team.`
+  if (offerType === 'agency') return `Agency fit. Ranked ${closeScore}/100 because agency, RevOps, growth, or client-service campaign signals are stronger.`
+  return `Rescue sprint fit. Ranked ${closeScore}/100 because the contact looks closer to an operator or founder with one campaign to diagnose.`
 }
 
 function buildLinkedInDmText(lead: SovereignCopyLead, offerType: SovereignOfferType): string {
-  const decision = buildSovereignCopyDecision({ ...lead, offer_type: offerType })
   const firstName = asString(lead.first_name ?? lead.firstName, 'there')
-  const bookingUrl = sovereignBookingUrl()
+  const company = asString(lead.company, 'your team')
 
   if (offerType === 'agency') {
     return [
-      `Hi ${firstName}, I came across ${asString(lead.company, 'your team')} while looking at agencies/RevOps teams that could package communication operations for clients.`,
-      'Xavira Control Stack gives a white-label layer for sender health, delivery proof, suppression, follow-ups, and AI governance.',
-      `${decision.cta} ${bookingUrl}`,
+      `Hi ${firstName}, noticed ${company} sits close to client acquisition and campaign delivery.`,
+      'When an outbound campaign underperforms, agencies often have to separate lead quality, inbox placement, follow-up ownership, and client reporting without much clean proof.',
+      `Where does that usually get hardest for ${company}?`,
     ].join('\n\n')
   }
 
   return [
-    `Hi ${firstName}, I came across ${asString(lead.company, 'your team')} while looking at teams where outbound quality, AI governance, and operational proof matter before the demo.`,
-    'Xavira Control Stack gives operators one governed layer for sender health, queue discipline, suppression, follow-ups, delivery proof, and AI governance.',
-    `${decision.cta} ${bookingUrl}`,
+    `Hi ${firstName}, noticed ${company} appears to rely on outbound or partner communication to create pipeline.`,
+    'When replies are low, it is often unclear whether the issue is the list, the message, inbox placement, or follow-up timing.',
+    `Which one tends to break first for ${company}?`,
   ].join('\n\n')
 }
 
 function buildLinkedInFollowUpText(lead: SovereignCopyLead, offerType: SovereignOfferType): string {
   const company = asString(lead.company, 'your team')
   if (offerType === 'agency') {
-    return `Quick follow-up. The reason I thought of ${company}: agencies usually win campaigns on execution, but client trust is protected by the infrastructure layer behind the campaign. Worth comparing if a white-label control stack fits?`
+    return `Quick follow-up. The reason I thought of ${company}: agencies usually win on execution, but client trust depends on proving what is actually causing low replies. Is that mostly a lead-quality issue, deliverability issue, or reporting issue for your team?`
   }
-  return `Quick follow-up. I am not sure if communication infrastructure or AI governance is a priority for ${company} right now. Worth a short compare, or should I close the loop?`
+  return `Quick follow-up. I am not sure if outbound campaign diagnosis is a priority for ${company} right now. When campaigns underperform, do you usually blame lead quality, message fit, or inbox placement first?`
 }
 
 function buildEmailText(lead: SovereignCopyLead, offerType: SovereignOfferType): { subject: string; text: string } {
@@ -608,10 +605,10 @@ export function buildLinkedInDeskQueue(
       topMotion,
       topMotionLabel:
         topMotion === 'white_label_first'
-          ? 'Highest expected value: push £160k white-label first'
+          ? 'Highest expected value: rescue an agency campaign first'
           : topMotion === 'internal_first'
-            ? 'Fastest close path today: push £40k internal first'
-            : 'Balanced close motion: work both offers today',
+            ? 'Fastest close path today: push £500 rescue sprint first'
+            : 'Balanced close motion: work both rescue paths today',
     },
   }
 }

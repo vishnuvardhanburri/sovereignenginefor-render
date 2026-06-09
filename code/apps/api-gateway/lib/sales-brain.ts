@@ -1,7 +1,7 @@
 import type { SovereignOfferType, SovereignCopyLead } from './outbound-copy'
 import { XAVIRA_COMMERCIAL_MODEL } from './commercial-model'
 
-export const SOVEREIGN_SALES_BRAIN_VERSION = '2026-05-xavira-control-stack-v2'
+export const SOVEREIGN_SALES_BRAIN_VERSION = '2026-06-campaign-rescue-v1'
 
 export const SOVEREIGN_SALES_BRAIN_SOURCES = [
   'MILLION-DOLLAR SALES FRAMEWORK',
@@ -18,35 +18,36 @@ export const SOVEREIGN_SALES_BRAIN_SOURCES = [
 ]
 
 const CORE_RULES = [
-  'Position Xavira Tech Labs as an enterprise infrastructure vendor, not a cold email tool or agency.',
+  'Position Xavira Tech Labs as a founder-led campaign rescue and control partner, not a cold email tool or generic agency.',
   'Lead with the buyer question: why buy this, what risk or profit does it affect, and why now.',
-  'Lead with pain before product: domain burn, inbox placement drops, AI PII leakage, prompt injection, compliance exposure, stalled follow-ups, and weak operator visibility.',
-  'Make one clear offer: Xavira Control Stack combines Sovereign Engine and Sovereign Shield in one deployment.',
-  'Keep the ask low-friction: offer a short operational risk walkthrough after curiosity is established.',
-  'Use proof language over hype: self-hosted, audit-ready, deployment-ready, operator-controlled, works above existing outbound tools, no fake customer claims.',
-  'Write like a serious infrastructure operator: short sentences, specific business pain, calm confidence, no buzzword pileups, no AI-sounding filler.',
-  'Preferred language: operational infrastructure, deliverability operations, provider-aware monitoring, infrastructure governance, realtime operational visibility, reputation monitoring, outbound reliability, AI governance systems, infrastructure intelligence.',
+  'Lead with pain before product: low replies, client blame, inbox placement doubt, weak follow-up ownership, poor reporting proof, and sender/domain risk.',
+  'Make one clear entry offer: Xavira Campaign Rescue Sprint reviews one live campaign and returns practical fixes before any larger platform discussion.',
+  'Keep the ask low-friction: ask one diagnostic question about what breaks first when a campaign underperforms.',
+  'Use proof language over hype: one campaign, real evidence, practical rewrite, simple client-facing summary, no fake customer claims.',
+  'Write like a founder/operator: short sentences, specific business pain, calm confidence, no buzzword pileups, no AI-sounding filler.',
+  'Preferred language: campaign proof, reply blockers, inbox placement, follow-up ownership, client reporting, sender risk, simple diagnosis, campaign rescue.',
   'Avoid language that sounds like spam or hype: bulk email software, mass blasting, unlimited emails, growth hacks, AI spam system, send millions, scale instantly, buy today, limited time.',
-  `Preserve deal value: internal enterprise license is ${XAVIRA_COMMERCIAL_MODEL.internalEnterpriseLicense.label} GBP; white-label commercial license is ${XAVIRA_COMMERCIAL_MODEL.whiteLabelCommercialLicense.label} GBP; operations and maintenance is ${XAVIRA_COMMERCIAL_MODEL.operationsMaintenance.label} GBP.`,
-  'Use payment-plan language only as a conversion aid, never as the headline.',
+  `Preserve entry value: the Campaign Rescue Sprint is ${XAVIRA_COMMERCIAL_MODEL.campaignRescueSprint.label} GBP one-time; the optional Control Partner follow-on is ${XAVIRA_COMMERCIAL_MODEL.controlPartnerMonthly.label} only after proof.`,
+  'Use recurring offer language only after the sprint exposes a real ongoing pain.',
   'Personalize from verified public evidence only; never invent a founder, campaign, revenue number, or private fact.',
   'Use social, LinkedIn, or competitor context only when it is present in the lead research payload; otherwise skip it.',
   'Never claim competitors are customers unless the lead record contains explicit competitor evidence.',
-  'Every email must include a clear booking CTA and a polite opt-out line.',
+  'Every email must include one thoughtful discovery question and a polite opt-out line.',
 ]
 
 const DIRECT_RULES = [
-  `Direct offer: ${XAVIRA_COMMERCIAL_MODEL.internalEnterpriseLicense.label} GBP internal enterprise license for Xavira Control Stack.`,
-  'Frame ROI as protecting outbound revenue, reducing failed follow-up waste, improving operator visibility, and lowering AI/compliance risk.',
-  'Mention Sovereign Engine as the outbound operations control plane and Sovereign Shield as the private AI governance/security layer.',
-  'Best CTA: short operational walkthrough after the buyer shows interest.',
+  `Direct offer after interest: ${XAVIRA_COMMERCIAL_MODEL.campaignRescueSprint.label} GBP Campaign Rescue Sprint.`,
+  'Frame ROI as finding why replies are low, reducing wasted follow-ups, improving proof, and clarifying whether lead quality or delivery is the real blocker.',
+  'Mention Xavira once in plain business language only.',
+  'Best CTA after curiosity: review one real campaign, not a generic demo.',
 ]
 
 const AGENCY_RULES = [
-  `Agency offer: ${XAVIRA_COMMERCIAL_MODEL.whiteLabelCommercialLicense.label} GBP white-label commercial license.`,
-  'Frame it as a premium infrastructure product agencies, RevOps firms, MSSPs, and consultancies can deploy for clients.',
-  'Mention white-label rights, reseller rights, commercial deployment rights, branding customization, multi-client deployment rights, and Xavira maintenance.',
-  'Best CTA: white-label demo and licensing-fit review.',
+  `Agency entry offer after interest: ${XAVIRA_COMMERCIAL_MODEL.campaignRescueSprint.label} GBP Campaign Rescue Sprint.`,
+  `Agency follow-on only after proof: ${XAVIRA_COMMERCIAL_MODEL.controlPartnerMonthly.label} Xavira Control Partner.`,
+  'Frame it as helping agencies diagnose client campaign underperformance and produce a clear client-facing proof summary.',
+  'Do not mention white-label rights, reseller rights, maintenance, or license language in outbound copy.',
+  'Best CTA after curiosity: rescue one live client campaign.',
 ]
 
 const FOLLOW_UP_RULES = [
@@ -98,9 +99,9 @@ export function salesBrainBulletPoints(offerType: SovereignOfferType): string[] 
   return [
     'Pain-first opener tied to outbound revenue risk',
     offerType === 'agency'
-      ? `${XAVIRA_COMMERCIAL_MODEL.whiteLabelCommercialLicense.label} GBP white-label commercial-license value stack`
-      : `${XAVIRA_COMMERCIAL_MODEL.internalEnterpriseLicense.label} GBP direct Xavira Control Stack value stack`,
-    'Low-friction audit/demo CTA with booking link',
+      ? `${XAVIRA_COMMERCIAL_MODEL.controlPartnerMonthly.label} agency follow-on only after a ${XAVIRA_COMMERCIAL_MODEL.campaignRescueSprint.label} sprint proves pain`
+      : `${XAVIRA_COMMERCIAL_MODEL.campaignRescueSprint.label} direct campaign rescue value stack`,
+    'Low-friction diagnostic question before any booking link',
     'Evidence-backed personalization only',
     'Compliance-safe opt-out and follow-up stop conditions',
   ]

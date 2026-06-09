@@ -14,32 +14,32 @@ type PreviewLead = SovereignCopyLead & {
 
 const sampleLeads: PreviewLead[] = [
   {
-    label: '£40,000 internal enterprise license',
+    label: '£500 Campaign Rescue Sprint',
     first_name: 'there',
     company: 'GrowthOps AI',
     companyDomain: 'growthops.ai',
     title: 'founder',
     reason_to_contact:
-      'GrowthOps AI appears to run outbound and AI-powered sales workflows where domain health and PII safety matter.',
+      'GrowthOps AI appears to run outbound workflows where reply quality, follow-up ownership, and sender risk matter.',
     customFields: {
       offer_type: 'direct',
       research_summary:
-        'Relevant to outbound infrastructure, follow-up reliability, and private AI governance.',
+        'Relevant to campaign rescue, reply blockers, and practical outbound fixes.',
     },
   },
   {
-    label: '£160,000 white-label commercial license',
+    label: '£1,500/month Control Partner',
     first_name: 'there',
     company: 'Northstar RevOps',
     companyDomain: 'northstarrevops.com',
     title: 'agency founder',
     reason_to_contact:
-      'Northstar RevOps looks like a growth agency that could package outbound protection and AI governance for clients.',
+      'Northstar RevOps looks like a growth agency that needs client-facing proof when outbound campaigns underperform.',
     customFields: {
       offer_type: 'agency',
       industry: 'growth marketing agency',
       research_summary:
-        'Agency lead; pitch white-label infrastructure and client monetization angle.',
+        'Agency lead; start with a £500 rescue sprint, then only discuss monthly partner support after proof.',
     },
   },
 ]

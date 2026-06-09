@@ -25,13 +25,22 @@ const qualificationSchema = z.object({
   company: z.string().trim().min(2).max(160),
   role: z.string().trim().max(120).optional().default(''),
   website: z.string().trim().max(220).optional().default(''),
-  useCase: option(['internal_operations', 'white_label', 'strategic_acquisition']),
+  useCase: option([
+    'agency_client_campaign',
+    'internal_outbound_campaign',
+    'partner_client_delivery',
+    'internal_operations',
+    'white_label',
+    'strategic_acquisition',
+  ]),
   currentSetup: z.string().trim().min(10).max(1200),
   monthlyOutboundVolume: z.string().trim().min(1).max(80),
   painPoints: z.array(z.string().trim().max(80)).max(10).optional().default([]),
-  timeline: option(['this_week', 'this_month', 'this_quarter', 'exploring']),
+  timeline: option(['this_week', 'next_week', 'this_month', 'this_quarter', 'exploring']),
   decisionOwner: z.string().trim().min(2).max(180),
   commercialPath: option([
+    'campaign_rescue_500',
+    'monthly_partner_1500',
     'internal_40000',
     'white_label_160000',
     'strategic_200000_plus',
@@ -64,14 +73,17 @@ const qualificationSchema = z.object({
 type QualificationInput = z.infer<typeof qualificationSchema>
 
 const commercialPathLabels: Record<QualificationInput['commercialPath'], string> = {
-  internal_40000: '£40,000 internal enterprise license',
-  white_label_160000: '£160,000 white-label commercial license',
-  strategic_200000_plus: '£200,000+ strategic/acquisition path',
-  need_guidance: 'Needs commercial guidance',
+  campaign_rescue_500: '£500 Campaign Rescue Sprint',
+  monthly_partner_1500: '£1,500/month Xavira Control Partner',
+  internal_40000: 'Legacy £500 Campaign Rescue Sprint',
+  white_label_160000: 'Legacy £1,500/month Xavira Control Partner',
+  strategic_200000_plus: 'Custom path after rescue proof',
+  need_guidance: 'Needs guidance',
 }
 
 const timelineLabels: Record<QualificationInput['timeline'], string> = {
   this_week: 'This week',
+  next_week: 'Next week',
   this_month: 'This month',
   this_quarter: 'This quarter',
   exploring: 'Exploring',
@@ -182,21 +194,21 @@ function escapeHtml(value: string): string {
 function qualificationMessage(input: QualificationInput): string {
   const bankTransfer = infinityBankTransferDetails()
   return [
-    'Sovereign Engine qualification submitted',
+    'Xavira Campaign Rescue Sprint intake submitted',
     `Name: ${input.fullName}`,
     `Email: ${input.workEmail}`,
     `Company: ${input.company}`,
     input.role ? `Role: ${input.role}` : null,
     input.website ? `Website: ${input.website}` : null,
-    `Path: ${commercialPathLabels[input.commercialPath]}`,
+    `Offer: ${commercialPathLabels[input.commercialPath]}`,
     `Timeline: ${timelineLabels[input.timeline]}`,
-    `Decision owner: ${input.decisionOwner}`,
+    `Owner: ${input.decisionOwner}`,
     `Preferred call: ${input.preferredCallWindow}`,
-    `Monthly outbound: ${input.monthlyOutboundVolume}`,
+    `Campaign volume: ${input.monthlyOutboundVolume}`,
     `Use case: ${input.useCase.replace(/_/g, ' ')}`,
-    input.painPoints.length ? `Pain points: ${input.painPoints.join(', ')}` : null,
+    input.painPoints.length ? `Priority areas: ${input.painPoints.join(', ')}` : null,
     `Setup: ${input.currentSetup}`,
-    input.notes ? `Notes: ${input.notes}` : null,
+    input.notes ? `Campaign notes: ${input.notes}` : null,
     '',
     'Payment / invoice details',
     `Legal buyer: ${input.legalBuyerName}`,
@@ -236,15 +248,15 @@ function qualificationEmailHtml(input: QualificationInput): string {
     ['Company', input.company],
     ['Role', input.role],
     ['Website', input.website],
-    ['Commercial path', commercialPathLabels[input.commercialPath]],
+    ['Offer', commercialPathLabels[input.commercialPath]],
     ['Timeline', timelineLabels[input.timeline]],
-    ['Decision owner', input.decisionOwner],
+    ['Owner', input.decisionOwner],
     ['Preferred call', input.preferredCallWindow],
-    ['Monthly outbound', input.monthlyOutboundVolume],
+    ['Campaign volume', input.monthlyOutboundVolume],
     ['Use case', input.useCase.replace(/_/g, ' ')],
-    ['Pain points', input.painPoints.join(', ')],
+    ['Priority areas', input.painPoints.join(', ')],
     ['Current setup', input.currentSetup],
-    ['Deal notes', input.notes],
+    ['Campaign notes', input.notes],
     ['Legal buyer', input.legalBuyerName],
     ['Billing email', input.billingEmail],
     ['Billing country', input.billingCountry],
@@ -281,9 +293,9 @@ function qualificationEmailHtml(input: QualificationInput): string {
     <div style="font-family:Inter,Arial,sans-serif;background:#f8fafc;padding:24px;color:#111827;">
       <div style="max-width:760px;margin:0 auto;background:#ffffff;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
         <div style="padding:20px 22px;background:#0f172a;color:#ffffff;">
-          <div style="font-size:12px;letter-spacing:0.08em;text-transform:uppercase;color:#93c5fd;">Sovereign Engine</div>
-          <h1 style="margin:8px 0 0 0;font-size:22px;line-height:1.25;">New qualification packet</h1>
-          <p style="margin:8px 0 0 0;color:#cbd5e1;font-size:14px;">Review the details, then use the Cal.com slot and Infinity payment details to close.</p>
+          <div style="font-size:12px;letter-spacing:0.08em;text-transform:uppercase;color:#93c5fd;">Xavira</div>
+          <h1 style="margin:8px 0 0 0;font-size:22px;line-height:1.25;">New Campaign Rescue Sprint intake</h1>
+          <p style="margin:8px 0 0 0;color:#cbd5e1;font-size:14px;">Review the campaign details, then use the Cal.com slot and Infinity payment details to start the £500 sprint.</p>
         </div>
         <table style="width:100%;border-collapse:collapse;">
           ${bodyRows}
@@ -327,7 +339,7 @@ async function notifyOperatorEmail(input: QualificationInput): Promise<void> {
   }
 
   try {
-    const subject = `New qualified walkthrough: ${input.company} (${commercialPathLabels[input.commercialPath]})`
+    const subject = `New Campaign Rescue Sprint: ${input.company} (${commercialPathLabels[input.commercialPath]})`
     const result = await sendViaSmtp({
       fromEmail: operatorNotificationFrom(),
       toEmail,
@@ -359,7 +371,7 @@ export async function POST(request: NextRequest) {
 
     if (!parsed.success) {
       return NextResponse.json(
-        { error: 'Check the required qualification fields and try again.' },
+        { error: 'Check the required sprint intake fields and try again.' },
         { status: 400 }
       )
     }
@@ -376,7 +388,7 @@ export async function POST(request: NextRequest) {
 
     if (!input.consent) {
       return NextResponse.json(
-        { error: 'Please confirm the walkthrough request before submitting.' },
+        { error: 'Please confirm the Campaign Rescue Sprint request before submitting.' },
         { status: 400 }
       )
     }
@@ -438,7 +450,7 @@ export async function POST(request: NextRequest) {
       calendarUrl: SOVEREIGN_CALENDAR_URL,
       paymentUrl: INFINITY_PAYMENT_URL,
       bankTransfer,
-      message: 'Qualification received. The operator has the call packet.',
+      message: 'Sprint intake received. The operator has the campaign packet.',
     })
   } catch (error) {
     console.error('[qualification] submit failed', error)

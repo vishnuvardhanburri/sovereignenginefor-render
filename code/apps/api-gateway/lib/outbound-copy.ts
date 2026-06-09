@@ -28,10 +28,10 @@ export type SovereignCopyRagContext = {
 }
 
 export const SOVEREIGN_STACK_DIRECT_SUBJECT =
-  'quick question about outbound infrastructure'
+  'campaign reply visibility'
 
 export const SOVEREIGN_STACK_AGENCY_SUBJECT =
-  'white-label communication infrastructure'
+  'client campaign proof'
 
 export const SOVEREIGN_DEFAULT_BOOKING_URL =
   'https://sovereignenginefor-render-d80m.onrender.com/book'
@@ -943,49 +943,46 @@ export const SOVEREIGN_STACK_DIRECT_SEQUENCE_STEPS = [
   {
     id: 'sovereign-stack-step-2',
     day: 3,
-    subject: 're: outbound infrastructure',
+    subject: 're: campaign reply visibility',
     body: `Hi {{FirstName}},
 
 Just following up on my earlier note.
 
 {{agent_followup_observation}}
 
-If useful, I can show the architecture and operating model behind Xavira Control Stack.
-
-No deck chase - just a practical comparison of how {{Company}} handles this today.
+The thing I am trying to understand is usually simple: when a campaign underperforms, is the issue lead quality, inbox placement, follow-up ownership, or the way results are reported back?
 
 Best,
 Vishnu
+Founder
 Xavira Tech Labs
 
-{{physical_address}}
+If not relevant, no worries.
 
-If this isn't relevant, just reply "no" and I won't follow up.`,
+{{physical_address}}
+`,
   },
   {
     id: 'sovereign-stack-step-3',
     day: 6,
-    subject: 'worth a conversation?',
+    subject: 'what breaks first?',
     body: `Hi {{FirstName}},
 
-A quick follow-up.
+One reason I asked is that campaign problems often get blamed on the wrong thing.
 
-I am not sure if communication infrastructure, deliverability governance, or AI operational controls are priorities for {{Company}} right now.
+Sometimes the list is weak. Sometimes emails land outside the inbox. Sometimes the follow-up path is inconsistent. Sometimes the reporting does not show enough proof for the client or internal team.
 
-If they are, I would be happy to share:
-* architecture overview
-* governance approach
-* deployment options
-
-Even if there is no immediate fit, it is often useful to compare infrastructure approaches.
+Which one tends to create the most friction for {{Company}}?
 
 Best,
 Vishnu
+Founder
 Xavira Tech Labs
 
-{{physical_address}}
+If not relevant, no worries.
 
-If this isn't relevant, just reply "no" and I won't follow up.`,
+{{physical_address}}
+`,
   },
   {
     id: 'sovereign-stack-step-4',
@@ -995,25 +992,21 @@ If this isn't relevant, just reply "no" and I won't follow up.`,
 
 I will close the loop after this message.
 
-The reason I reached out is that we built Xavira Control Stack to solve operational problems that typically do not become visible until organizations scale.
+The reason I reached out is that campaign issues can be hard to diagnose from surface metrics alone.
 
-That includes:
-* deliverability control
-* infrastructure observability
-* AI governance
-* communication operations
-
-If this becomes relevant later, feel free to reach out.
+If {{Company}} ever needs to separate lead quality, deliverability, follow-up, and reporting problems cleanly, I am happy to compare notes.
 
 Wishing you and the team continued success.
 
 Best,
 Vishnu
+Founder
 Xavira Tech Labs
 
-{{physical_address}}
+If not relevant, no worries.
 
-If this isn't relevant, just reply "no" and I won't follow up.`,
+{{physical_address}}
+`,
   },
 ]
 
@@ -1297,7 +1290,7 @@ function productWordShare(body: string): number {
 
 function hasForbiddenColdEmailLanguage(body: string): boolean {
   return /\b(?:revolutionary|disruptive|cutting-edge|game-changing|best-in-class|powerful|innovative|industry-leading|ai-powered platform)\b/i.test(body) ||
-    /\b(?:£40,000|£160,000|40k|160k|pricing|license|licensing|reseller rights|commercial rights|maintenance|white-label|white label|license recovery)\b/i.test(body) ||
+    /\b(?:£500|£1,500|£40,000|£160,000|40k|160k|pricing|license|licensing|reseller rights|commercial rights|maintenance|white-label|white label|license recovery|campaign rescue sprint|control partner)\b/i.test(body) ||
     /\b(?:book|schedule|hop on|jump on|demo|walkthrough|calendar|cal\.com)\b/i.test(body)
 }
 
@@ -1577,8 +1570,12 @@ export async function buildSovereignCopyForLead(
     },
     forbiddenFirstTouchClaims: [
       'GBP pricing',
+      '£500',
+      '£1,500/month',
       '£40,000',
       '£160,000',
+      'Campaign Rescue Sprint',
+      'Control Partner',
       'reseller rights',
       'commercial rights',
       'license recovery',
@@ -1612,7 +1609,7 @@ export async function buildSovereignCopyForLead(
       'Avoid technical jargon such as queue discipline, suppression architecture, governance layer, and internal platform terminology.',
       'Optimize for client generation, not lead generation: the email should make a qualified buyer think "this person actually looked at my company."',
       `Treat ${SOVEREIGN_CLIENT_GENERATION_TARGET.dailyQualifiedConversationsMin}-${SOVEREIGN_CLIENT_GENERATION_TARGET.dailyQualifiedConversationsMax} qualified conversations per day as the operating target, not a promise.`,
-      'Do not mention GBP pricing, £40,000, £160,000, reseller rights, commercial rights, license recovery, or deployment economics in cold first-touch/follow-up copy. Pricing belongs only after the buyer asks or a call is booked.',
+      'Do not mention GBP pricing, £500, £1,500/month, £40,000, £160,000, reseller rights, commercial rights, license recovery, or deployment economics in cold first-touch/follow-up copy. Pricing belongs only after the buyer asks or submits the intake.',
       'Do not ask for a meeting, call, demo, walkthrough, or calendar booking in first-touch copy.',
       'If researchContext has LinkedIn or social context, use it naturally in one sentence.',
       'If competitorSignal exists, phrase it as a category trend, not as a fake customer claim.',

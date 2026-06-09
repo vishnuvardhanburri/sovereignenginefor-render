@@ -360,13 +360,13 @@ class ReplyIntelligenceEngine {
         return {
           type: 'send_reply',
           priority: 'high',
-          reason: 'Contact showed interest - book walkthrough and collect pre-call details',
-          suggestedReply: `Thanks for the interest. Best next step is a short walkthrough: ${sovereignBookingUrl()}
+          reason: 'Contact showed interest - collect campaign rescue details',
+          suggestedReply: `Thanks for the interest. The practical next step is to share one live campaign for a rescue review: ${sovereignBookingUrl()}
 
-Before the call, please send:
-- use case: internal operations or client-facing/white-label
-- current setup: domains/mailboxes/providers and approximate monthly outbound volume
-- timeline and decision owner`
+Before I review it, please send:
+- campaign goal and target market
+- current tools, domains, mailboxes, provider, CRM, and follow-up process
+- what usually gets blamed when replies are low: lead quality, deliverability, message fit, follow-ups, or reporting`
         }
 
       case 'not_interested':
@@ -395,13 +395,13 @@ Before the call, please send:
         return {
           type: 'send_reply',
           priority: 'high',
-          reason: 'Contact asked question - answer on call and collect qualification details',
-          suggestedReply: `Happy to cover that. The fastest path is a short walkthrough: ${sovereignBookingUrl()}
+          reason: 'Contact asked question - answer and collect campaign context',
+          suggestedReply: `Happy to cover that. The fastest path is to look at one real campaign and separate the likely blockers: ${sovereignBookingUrl()}
 
-Before the call, please send:
-- use case: internal operations or client-facing/white-label
-- current setup: domains/mailboxes/providers and approximate monthly outbound volume
-- timeline and decision owner`
+Before I review it, please send:
+- campaign goal and target market
+- current tools, domains, mailboxes, provider, CRM, and follow-up process
+- what usually gets blamed when replies are low: lead quality, deliverability, message fit, follow-ups, or reporting`
         }
 
       case 'out_of_office':

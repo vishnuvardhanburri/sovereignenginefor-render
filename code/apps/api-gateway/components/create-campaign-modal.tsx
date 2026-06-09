@@ -24,7 +24,7 @@ import {
 import { Spinner } from '@/components/ui/spinner'
 
 const SAFE_DEFAULT_SEQUENCE = {
-  name: 'Xavira Control Stack £40,000 Internal License Sequence',
+  name: 'Xavira Campaign Rescue Conversation Sequence',
   steps: SOVEREIGN_STACK_DIRECT_SEQUENCE_STEPS,
 }
 

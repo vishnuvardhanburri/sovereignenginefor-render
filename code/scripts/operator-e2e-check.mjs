@@ -63,9 +63,9 @@ async function checkPricingCopy() {
   const ok =
     response.ok &&
     text.includes('Xavira Control Stack') &&
-        text.includes('40,000') &&
-    text.includes('White-label')
-  record(ok, 'pricing positioning', ok ? 'Xavira Control Stack licensing copy visible' : `HTTP ${response.status}`)
+    text.includes('Campaign Rescue Sprint') &&
+    text.includes('£500')
+  record(ok, 'pricing positioning', ok ? 'Campaign Rescue Sprint pricing copy visible' : `HTTP ${response.status}`)
 }
 
 async function checkHealth() {

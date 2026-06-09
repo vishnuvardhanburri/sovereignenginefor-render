@@ -28,10 +28,16 @@ const LICENSING = [
   'licensing',
   'commercial rights',
   'deployment rights',
+  '£500',
+  '£1,500',
   '£40',
   '£160',
+  '500',
+  '1500',
   '40k',
   '160k',
+  'campaign rescue',
+  'control partner',
   'pricing',
 ]
 

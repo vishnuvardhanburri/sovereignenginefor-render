@@ -37,11 +37,11 @@ export async function POST(request: NextRequest) {
           tone: 'professional',
           focus: ['relevance', 'clarity'],
           valueProps: ['domain reputation protection', 'AI compliance risk reduction'],
-          callToAction: 'Open to a quick infrastructure risk check?',
+          callToAction: 'Where does the campaign usually start breaking first?',
         },
         personalizationScore: 0.72,
         recommendedContent:
-          'Short, relevant, and specific to the recipient. Lead with outbound deliverability or AI compliance risk.',
+          'Short, relevant, and specific to the recipient. Lead with one campaign pain, then ask a diagnostic question.',
       }
       const generated = await tryXaviraAiJson({
         task: action,
@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
           recipientData: body.recipientData ?? {},
           campaignContext: body.campaignContext ?? {},
           requiredOffer:
-            'Xavira Control Stack: £40,000 GBP Internal Enterprise License combining Sovereign Engine outbound operations control plane and Sovereign Shield private AI governance layer.',
+            'Xavira Campaign Rescue Sprint: £500 GBP one-time founder-led review of one live outbound campaign. It checks lead quality, first email, follow-up flow, sender/domain risk, and client-facing proof. Optional follow-on is Xavira Control Partner at £1,500 GBP/month only after the sprint proves a real ongoing need.',
         }),
         fallback,
       })
@@ -73,8 +73,8 @@ export async function POST(request: NextRequest) {
         marketTrends: ['Outbound teams are prioritizing domain reputation', 'AI usage needs auditability'],
         competitorStrategies: ['Point tools focus on sequencing, not infrastructure risk'],
         industryBenchmarks: { openRate: 0.22, clickRate: 0.035, replyRate: 0.008 },
-        emergingOpportunities: ['Free infrastructure risk audits', 'Agency master license packaging'],
-        recommendedDifferentiators: ['One license for deliverability and AI security', 'Self-hosted audit trail'],
+        emergingOpportunities: ['Founder-led campaign rescue', 'Client-facing proof summaries'],
+        recommendedDifferentiators: ['Specific campaign evidence', 'Practical fixes before platform pitch'],
       }
       const generated = await tryXaviraAiJson({
         task: action,
@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
           company: body.company ?? body.recipientData?.company ?? null,
           industry: body.industry ?? body.campaignContext?.industry ?? null,
           offer:
-            'Xavira Control Stack: outbound operations control plane plus private AI governance layer. Internal Enterprise License £40,000 GBP; White-Label Commercial License £160,000 GBP; Operations & Maintenance £3,000 GBP/month.',
+            'Xavira Campaign Rescue Sprint: £500 GBP one-time review of one live outbound campaign. Xavira Control Partner is £1,500 GBP/month only after the rescue sprint proves an ongoing need.',
         }),
         fallback,
       })
@@ -115,7 +115,7 @@ export async function POST(request: NextRequest) {
           'You coach compliant B2B outbound. Return JSON only with coaching, suggestions, warnings, and nextBestActions.',
         user: JSON.stringify({
           draft: body.draft ?? body.content ?? '',
-          goal: 'Book a demo or operational audit for Xavira Control Stack',
+          goal: 'Start a relevant conversation about one outbound campaign problem before asking for a meeting',
         }),
         fallback,
       })

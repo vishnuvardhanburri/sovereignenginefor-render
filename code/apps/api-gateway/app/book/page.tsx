@@ -3,18 +3,18 @@ import { ArrowRight, Building2, CheckCircle2, ShieldCheck } from 'lucide-react'
 import { QualificationForm } from './qualification-form'
 
 export const metadata: Metadata = {
-  title: 'Book Walkthrough | Sovereign Engine',
+  title: 'Start Campaign Rescue Sprint | Xavira',
   description:
-    'Qualification page for Sovereign Engine and Xavira Control Stack walkthrough calls.',
+    'Submit the details for the £500 Xavira Campaign Rescue Sprint.',
 }
 
 const callPacket = [
-  'Use case and commercial path',
-  'Domains, mailboxes, providers, and outbound volume',
-  'Timeline, decision owner, and required proof',
-  'Billing entity, tax details, signer, and Infinity payment readiness',
-  'Infinity client setup data for the operator',
-  '30-minute Cal.com slot after details are submitted',
+  'Campaign goal, target market, and current reply problem',
+  'Domains, mailboxes, providers, CRM, and follow-up process',
+  'What clients or internal stakeholders blame when campaigns underperform',
+  'Billing entity, signer, and Infinity payment readiness for the £500 sprint',
+  'One 30-minute Cal.com slot after the intake is submitted',
+  'Founder-led review delivered in 3-5 days',
 ]
 
 export default function BookPage() {
@@ -29,7 +29,7 @@ export default function BookPage() {
             <div className="min-w-0">
               <div className="truncate text-sm font-semibold text-white">Sovereign Engine</div>
               <div className="truncate text-xs text-zinc-500">
-                Communication Operations Infrastructure
+                Xavira Campaign Rescue
               </div>
             </div>
           </div>
@@ -50,30 +50,30 @@ export default function BookPage() {
               <ShieldCheck className="size-5" />
             </div>
             <h1 className="text-3xl font-semibold tracking-tight text-white sm:text-4xl">
-              Book the operator walkthrough.
+              Start the £500 Campaign Rescue Sprint.
             </h1>
             <p className="text-sm leading-7 text-zinc-400">
-              This page collects the details required before a serious licensing call for Xavira
-              Control Stack.
+              Share one real campaign and the payment details needed to start. The goal is to
+              find why replies are low and return a useful fix, not force a dashboard demo.
             </p>
           </div>
 
           <div className="rounded-lg border border-white/10 bg-zinc-950/70 p-4">
             <div className="flex items-center gap-2 text-sm font-semibold text-blue-200">
               <Building2 className="size-4" />
-              Commercial paths
+              Current offer
             </div>
             <div className="mt-4 space-y-4">
               <div>
-                <div className="text-2xl font-semibold text-white">£40,000</div>
+                <div className="text-2xl font-semibold text-white">£500</div>
                 <p className="mt-1 text-sm leading-6 text-zinc-400">
-                  Internal enterprise operations license.
+                  One-time founder-led review of one live outbound campaign.
                 </p>
               </div>
               <div className="border-t border-white/10 pt-4">
-                <div className="text-2xl font-semibold text-white">£160,000</div>
+                <div className="text-2xl font-semibold text-white">£1,500/month</div>
                 <p className="mt-1 text-sm leading-6 text-zinc-400">
-                  White-label commercial license for client-facing deployment rights.
+                  Optional control partner only after the sprint proves a real ongoing need.
                 </p>
               </div>
             </div>

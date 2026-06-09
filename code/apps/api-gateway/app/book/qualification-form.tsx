@@ -15,47 +15,42 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 
 const painOptions = [
-  'Sender health',
-  'Delivery proof',
-  'Queue discipline',
-  'Client reporting',
-  'AI governance',
-  'Follow-up control',
+  'Low replies',
+  'Lead quality doubt',
+  'Deliverability / inbox placement',
+  'Follow-up gaps',
+  'Client reporting proof',
+  'Sender or domain risk',
 ]
 
 const pathOptions = [
   {
-    value: 'internal_40000',
-    label: '£40,000 internal',
-    description: 'Internal enterprise operations license.',
+    value: 'campaign_rescue_500',
+    label: '£500 Campaign Rescue Sprint',
+    description: 'One live campaign reviewed, rewritten, and summarized in 3-5 days.',
   },
   {
-    value: 'white_label_160000',
-    label: '£160,000 white-label',
-    description: 'Commercial rights for client-facing deployments.',
-  },
-  {
-    value: 'strategic_200000_plus',
-    label: '£200,000+ strategic',
-    description: 'Acquisition, partnership, or strategic control path.',
+    value: 'monthly_partner_1500',
+    label: '£1,500/month Control Partner',
+    description: 'Only if you already know you want ongoing weekly campaign control.',
   },
   {
     value: 'need_guidance',
     label: 'Need guidance',
-    description: 'Use the call to select the correct path.',
+    description: 'Use the intake to decide whether the sprint is worth doing.',
   },
 ]
 
 const useCaseOptions = [
-  { value: 'internal_operations', label: 'Internal operations' },
-  { value: 'white_label', label: 'Client-facing / white-label' },
-  { value: 'strategic_acquisition', label: 'Strategic / acquisition' },
+  { value: 'agency_client_campaign', label: 'Agency client campaign' },
+  { value: 'internal_outbound_campaign', label: 'Internal outbound campaign' },
+  { value: 'partner_client_delivery', label: 'Partner / client delivery' },
 ]
 
 const timelineOptions = [
   { value: 'this_week', label: 'This week' },
+  { value: 'next_week', label: 'Next week' },
   { value: 'this_month', label: 'This month' },
-  { value: 'this_quarter', label: 'This quarter' },
   { value: 'exploring', label: 'Exploring' },
 ]
 
@@ -64,11 +59,11 @@ const calendarFallbackUrl =
 const paymentFallbackUrl = process.env.NEXT_PUBLIC_INFINITY_PAYMENT_URL || ''
 
 const paymentReadinessOptions = [
-  { value: 'pay_today', label: 'Ready to pay today' },
-  { value: 'invoice_today', label: 'Needs invoice today' },
-  { value: 'payment_link_today', label: 'Needs Infinity payment link today' },
-  { value: 'bank_transfer_today', label: 'Ready for GBP bank transfer today' },
-  { value: 'procurement_review', label: 'Needs procurement/review' },
+  { value: 'payment_link_today', label: 'Send Infinity payment link' },
+  { value: 'bank_transfer_today', label: 'Ready for GBP bank transfer' },
+  { value: 'invoice_today', label: 'Need invoice first' },
+  { value: 'pay_today', label: 'Ready to pay now' },
+  { value: 'procurement_review', label: 'Need internal approval' },
 ]
 
 type BankTransferDetails = {
@@ -144,7 +139,7 @@ export function QualificationForm() {
       if (!response.ok) throw new Error(result?.error || 'Submit failed')
       setState({
         status: 'success',
-        message: result?.message || 'Qualification received. The operator has the call packet.',
+        message: result?.message || 'Sprint intake received. The operator has the campaign packet.',
         calendarUrl: result?.calendarUrl || calendarFallbackUrl,
         paymentUrl: result?.paymentUrl || paymentFallbackUrl,
         bankTransfer: result?.bankTransfer || null,
@@ -156,7 +151,7 @@ export function QualificationForm() {
         message:
           error instanceof Error
             ? error.message
-            : 'Could not submit the qualification packet.',
+            : 'Could not submit the campaign rescue packet.',
       })
     }
   }
@@ -176,9 +171,9 @@ export function QualificationForm() {
 
       <div className="flex flex-col gap-3 border-b border-white/10 pb-5 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-xl font-semibold text-white">Call qualification</h2>
+          <h2 className="text-xl font-semibold text-white">Campaign rescue intake</h2>
           <p className="mt-1 text-sm leading-6 text-zinc-400">
-            Share the setup, path, and timing so the walkthrough starts at decision level.
+            Share the campaign, payment, and timing details so the review starts with context.
           </p>
         </div>
         <div className="inline-flex w-fit items-center gap-2 rounded-md border border-emerald-400/30 bg-emerald-400/10 px-3 py-2 text-sm font-medium text-emerald-200">
@@ -209,18 +204,18 @@ export function QualificationForm() {
           <Input id="website" name="website" placeholder="company.com" inputMode="url" />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="monthlyOutboundVolume">Monthly outbound volume</Label>
+          <Label htmlFor="monthlyOutboundVolume">Campaign volume</Label>
           <Input
             id="monthlyOutboundVolume"
             name="monthlyOutboundVolume"
             required
-            placeholder="Example: 8,000 emails/month"
+            placeholder="Example: 1,200 emails sent, 9 replies"
           />
         </div>
       </div>
 
       <div className="mt-6 space-y-3">
-        <Label>Commercial path</Label>
+        <Label>Offer</Label>
         <div className="grid gap-3 md:grid-cols-2">
           {pathOptions.map((option, index) => (
             <label key={option.value} className="block cursor-pointer">
@@ -250,7 +245,7 @@ export function QualificationForm() {
             id="useCase"
             name="useCase"
             required
-            defaultValue="internal_operations"
+            defaultValue="agency_client_campaign"
             className="h-9 w-full rounded-md border border-input bg-zinc-900/60 px-3 text-sm text-white shadow-xs outline-none transition focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
           >
             {useCaseOptions.map((option) => (
@@ -285,7 +280,7 @@ export function QualificationForm() {
           name="currentSetup"
           required
           rows={4}
-          placeholder="Domains, mailboxes, providers, CRM/source list, suppression process, and any current delivery issue."
+          placeholder="Tools, sending domains, mailboxes, CRM/source list, follow-up process, sample campaign link, and what is not working."
         />
       </div>
 
@@ -311,12 +306,12 @@ export function QualificationForm() {
 
       <div className="mt-6 grid gap-4 md:grid-cols-2">
         <div className="space-y-2">
-          <Label htmlFor="decisionOwner">Decision owner</Label>
+          <Label htmlFor="decisionOwner">Owner</Label>
           <Input
             id="decisionOwner"
             name="decisionOwner"
             required
-            placeholder="Founder, RevOps lead, partner, or buyer group"
+            placeholder="Founder, agency owner, RevOps lead, or client owner"
           />
         </div>
         <div className="space-y-2">
@@ -331,12 +326,12 @@ export function QualificationForm() {
       </div>
 
       <div className="mt-6 space-y-2">
-        <Label htmlFor="notes">Deal notes</Label>
+        <Label htmlFor="notes">Campaign notes</Label>
         <Textarea
           id="notes"
           name="notes"
           rows={3}
-          placeholder="Buying reason, required proof, stakeholder risk, or anything the operator should know before the call."
+          placeholder="What clients blame, what you have already tried, sample results, or anything the operator should know before reviewing."
         />
       </div>
 
@@ -344,8 +339,8 @@ export function QualificationForm() {
         <div className="flex flex-col gap-1">
           <h3 className="text-sm font-semibold text-white">Infinity payment details</h3>
           <p className="text-sm leading-6 text-zinc-400">
-            These details go to the operator email so the Infinity client, invoice, payment link,
-            or bank transfer can be handled without another back-and-forth.
+            These details go to the operator email so the £500 sprint payment, invoice, or bank
+            transfer can be handled without another back-and-forth.
           </p>
         </div>
 
@@ -356,7 +351,7 @@ export function QualificationForm() {
               id="legalBuyerName"
               name="legalBuyerName"
               required
-              placeholder="Company/legal entity buying the license"
+              placeholder="Company/legal entity paying for the sprint"
             />
           </div>
           <div className="space-y-2">
@@ -379,7 +374,7 @@ export function QualificationForm() {
               id="authorizedSigner"
               name="authorizedSigner"
               required
-              placeholder="Person approved to sign/pay"
+            placeholder="Person approved to pay"
             />
           </div>
           <div className="space-y-2">
@@ -439,8 +434,8 @@ export function QualificationForm() {
           className="mt-1 size-4 rounded border-white/20 bg-zinc-900 accent-blue-500"
         />
         <span>
-          I am requesting a walkthrough and agree that these details can be used to prepare the
-          call.
+          I am requesting the Campaign Rescue Sprint intake and agree that these details can be
+          used to prepare the review.
         </span>
       </label>
 
@@ -524,7 +519,7 @@ export function QualificationForm() {
 
       <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-xs leading-5 text-zinc-500">
-          The operator receives the full qualification packet immediately.
+          The operator receives the full campaign rescue packet immediately.
         </p>
         <Button type="submit" size="lg" disabled={state.status === 'submitting'}>
           {state.status === 'submitting' ? (
@@ -532,7 +527,7 @@ export function QualificationForm() {
           ) : (
             <Send className="size-4" />
           )}
-          Request walkthrough
+          Start rescue intake
         </Button>
       </div>
     </form>

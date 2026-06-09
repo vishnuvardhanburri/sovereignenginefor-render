@@ -42,10 +42,10 @@ const agencyLead = {
   reason_to_contact: 'agency outreach because it shows public signals around demand generation',
 }
 
-assert(inferSovereignOfferType(directLead) === 'direct', 'direct lead should use £40,000 copy')
-assert(inferSovereignOfferType(agencyLead) === 'agency', 'agency lead should use master-license copy')
-assert(sovereignDealValueUsd(directLead) === 40000, 'direct lead should be valued at £40,000')
-assert(sovereignDealValueUsd(agencyLead) === 160000, 'agency lead should be valued at £160,000')
+assert(inferSovereignOfferType(directLead) === 'direct', 'direct lead should use rescue sprint copy')
+assert(inferSovereignOfferType(agencyLead) === 'agency', 'agency lead should use agency partner copy')
+assert(sovereignDealValueUsd(directLead) === 500, 'direct lead should be valued at the £500 rescue sprint')
+assert(sovereignDealValueUsd(agencyLead) === 1500, 'agency lead should be valued at the £1,500/month partner motion')
 assert(
   rankSovereignLeads([
     { ...directLead, company: 'Low Intent SaaS', customFields: { fit_score: 62 } },
@@ -160,7 +160,7 @@ assert(
   agencyDecision.value === 'Xavira Control Stack was built around that layer.',
   'agency decision should mention Xavira only once without feature dumping'
 )
-assert(!agencyDecision.value.includes('£160'), 'agency decision should not expose price in cold value line')
+assert(!agencyDecision.value.includes('£1,500'), 'agency decision should not expose price in cold value line')
 
 const technicalDecision = buildSovereignCopyDecision({
   ...directLead,
@@ -213,7 +213,10 @@ assert(
 
 const coldSequenceText = SOVEREIGN_STACK_DIRECT_SEQUENCE_STEPS.map((step) => step.body).join('\n')
 assert(
-  !coldSequenceText.includes('£160,000') && !coldSequenceText.includes('£40,000'),
+  !coldSequenceText.includes('£1,500') &&
+    !coldSequenceText.includes('£500') &&
+    !coldSequenceText.includes('£160,000') &&
+    !coldSequenceText.includes('£40,000'),
   'cold sequence should not mention pricing'
 )
 assert(
@@ -316,7 +319,7 @@ const agencyBody = renderSovereignTemplate(
   agencyLead,
   'Xavira Tech Labs, India'
 )
-assert(!agencyBody.includes('£160,000'), 'first-touch agency body should not mention final commercial license price')
+assert(!agencyBody.includes('£1,500') && !agencyBody.includes('£500'), 'first-touch agency body should not mention offer pricing')
 assert(!/reseller rights/i.test(agencyBody), 'first-touch agency body should not mention reseller rights before a reply')
 assert(!/3-4 serious client deployments/i.test(agencyBody), 'first-touch agency body should not explain resale economics')
 assert(
@@ -363,7 +366,7 @@ async function main() {
     'built copy should ask exactly one thoughtful question'
   )
   assert(
-    !/£40,000|£160,000|reseller rights|commercial rights/i.test(rendered.text),
+    !/£500|£1,500|£40,000|£160,000|reseller rights|commercial rights/i.test(rendered.text),
     'built copy should not mention pricing or license economics'
   )
   assert(

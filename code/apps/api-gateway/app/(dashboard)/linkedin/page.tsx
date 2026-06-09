@@ -233,7 +233,7 @@ export default function LinkedInDeskPage() {
         <div>
           <h1 className="text-3xl font-bold">LinkedIn DM Desk</h1>
           <p className="text-muted-foreground">
-            Daily 34-client Tier-1 100-score account queue for Xavira Control Stack: one-hour personalization, exact LinkedIn account DM, email fallback, and public email discovery.
+            Daily 34-client Tier-1 100-score account queue for campaign rescue: one-hour personalization, exact LinkedIn account DM, email fallback, and public email discovery.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -268,9 +268,9 @@ export default function LinkedInDeskPage() {
         <Card className="border-purple-500/20 bg-purple-500/[0.03]">
           <CardContent className="flex items-center justify-between p-5">
             <div>
-              <p className="text-sm text-muted-foreground">White-label clients</p>
+              <p className="text-sm text-muted-foreground">Agency partners</p>
               <p className="text-2xl font-bold text-purple-400">{summary?.agencyCount ?? 0}</p>
-              <p className="text-xs text-muted-foreground">£160,000 license motion</p>
+              <p className="text-xs text-muted-foreground">£1,500/month after proof</p>
             </div>
             <Sparkles className="h-5 w-5 text-purple-400" />
           </CardContent>
@@ -278,9 +278,9 @@ export default function LinkedInDeskPage() {
         <Card className="border-blue-500/20 bg-blue-500/[0.03]">
           <CardContent className="flex items-center justify-between p-5">
             <div>
-              <p className="text-sm text-muted-foreground">Internal clients</p>
+              <p className="text-sm text-muted-foreground">Rescue sprint prospects</p>
               <p className="text-2xl font-bold text-blue-400">{summary?.directCount ?? 0}</p>
-              <p className="text-xs text-muted-foreground">£40,000 license motion</p>
+              <p className="text-xs text-muted-foreground">£500 one-time entry</p>
             </div>
             <ShieldCheck className="h-5 w-5 text-blue-400" />
           </CardContent>
@@ -324,8 +324,8 @@ export default function LinkedInDeskPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All client motions</SelectItem>
-                <SelectItem value="agency">£160k white-label</SelectItem>
-                <SelectItem value="direct">£40k internal</SelectItem>
+                <SelectItem value="agency">Agency partner</SelectItem>
+                <SelectItem value="direct">£500 rescue</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -510,8 +510,8 @@ export default function LinkedInDeskPage() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="auto">Auto score each company</SelectItem>
-                      <SelectItem value="agency">Force £160k white-label</SelectItem>
-                      <SelectItem value="direct">Force £40k internal</SelectItem>
+                      <SelectItem value="agency">Force agency partner</SelectItem>
+                      <SelectItem value="direct">Force £500 rescue</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -546,7 +546,7 @@ export default function LinkedInDeskPage() {
                           </div>
                           <div className="flex flex-wrap gap-2 md:justify-end">
                             <Badge className={offerBadgeClass(result.offerType)}>
-                              {result.offerType === 'agency' ? '£160k white-label' : '£40k internal'}
+                              {result.offerType === 'agency' ? 'agency partner' : '£500 rescue'}
                             </Badge>
                             <Badge variant="outline">{result.confidence}</Badge>
                             <Badge variant="outline">{result.discoveredPages} pages</Badge>

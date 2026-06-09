@@ -35,108 +35,98 @@ async function healthStatus() {
 }
 
 const dealTrackerCsv = `deal_name,target_amount,buyer_segment,buyer_name,company,status,next_action,deadline,notes
-Fast License 1,40000,Outbound agency,,,lead_needed,send 20 targeted messages,today,Close first fast cash buyer
-Fast License 2,40000,AI automation or lead-gen agency,,,lead_needed,book 2 demo calls,this_week,Second £40K proof deal
-Strategic License A,160000,Growth infrastructure company,,,lead_needed,send strategic buyer message,this_week,Do not discount below £160K
-Strategic Buyer A,160000,Micro-SaaS/acquirer,,,lead_needed,share demo after reply,this_week,Protect £160K white-label anchor
-Strategic Buyer B,160000,Strategic infra buyer,,,lead_needed,start commercial license discussion,next_14_days,Second £160K commercial license path
+Rescue Sprint 1,500,Lead generation agency,,,lead_needed,send 20 targeted messages,today,Close first paid campaign rescue
+Rescue Sprint 2,500,RevOps agency,,,lead_needed,book 2 rescue intakes,this_week,Second paid proof deal
+Control Partner A,1500,Lead generation agency,,,lead_needed,send partner follow-up after sprint,this_month,Only discuss after rescue proof
+Control Partner B,1500,RevOps agency,,,lead_needed,share client-facing proof after sprint,this_month,Monthly support path after value is proven
+Control Partner C,1500,Outbound agency,,,lead_needed,start monthly partner discussion,next_14_days,Do not pitch before campaign pain is clear
 `
 
 const leadListCsv = `company,website,buyer_name,buyer_role,buyer_email,linkedin,segment,deal_target,reason_to_buy,status,next_action,last_contacted_at,notes
-,,,,,,outbound_agency,40000,,not_contacted,send_fast_license_message,,
-,,,,,,ai_automation_agency,40000,,not_contacted,send_fast_license_message,,
-,,,,,,growth_infra_company,160000,,not_contacted,send_strategic_license_message,,
-,,,,,,micro_saas_buyer,160000,,not_contacted,send_strategic_license_message,,
-,,,,,,strategic_infra_buyer,160000,,not_contacted,send_strategic_license_message,,
+,,,,,,lead_generation_agency,500,,not_contacted,send_rescue_sprint_message,,
+,,,,,,revops_agency,500,,not_contacted,send_rescue_sprint_message,,
+,,,,,,outbound_agency,500,,not_contacted,send_rescue_sprint_message,,
+,,,,,,agency_partner_candidate,1500,,not_contacted,send_post_sprint_partner_message,,
+,,,,,,client_services_agency,1500,,not_contacted,send_post_sprint_partner_message,,
 `
 
-const fast40kMessage = `# £40,000 Internal Enterprise License Messages
+const rescueSprintMessage = `# £500 Campaign Rescue Sprint Messages
 
 ## Subject Options
 
-- private outbound infrastructure asset
-- infrastructure your outbound team could own
-- quick question on outbound infra
+- campaign reply visibility
+- client campaign proof
+- what breaks first?
 
 ## Message
 
 Hi {{first_name}},
 
-I am Vishnu, founder of Xavira Tech Labs.
+I noticed {{company}} is close to outbound campaign delivery, where low replies can get blamed on lead quality, deliverability, message fit, follow-up timing, or reporting.
 
-I built Sovereign Engine + Sovereign Shield: a private outbound revenue infrastructure stack with a reputation command center, health oracle, queue control, audit evidence, Docker deployment, and buyer-ready proof artifacts.
+That becomes expensive when the team cannot show what is actually causing the campaign to underperform.
 
-It is not positioned as another email tool. It is an internal infrastructure system for teams that care about deliverability, monitoring, safe scaling, and operator control.
+Xavira helps diagnose one live campaign and turn the evidence into a clearer first email, follow-up, and client-facing summary.
 
-We are opening two fast £40,000 GBP Internal Enterprise License deployment slots while continuing larger strategic conversations.
-
-Would it make sense to show you the 5-minute local proof walkthrough?
+When a campaign underperforms, what do clients usually blame first?
 
 ## Follow-Up
 
 Quick follow-up, {{first_name}}.
 
-The fastest way to judge this is not a sales deck. I can show local Docker launch, reputation command center, health oracle, mock-safe stress proof, and the data-room ZIP.
+The reason I asked is that campaign problems are often misdiagnosed from surface metrics alone.
 
-If your team works with outbound, lead-gen, or growth infrastructure, this may be worth a quick look.
+Is the hardest part for {{company}} usually lead quality, deliverability, follow-up ownership, or reporting proof?
 `
 
-const strategic160kMessage = `# £160,000 White-Label Commercial License Messages
+const controlPartnerMessage = `# £1,500/month Control Partner Messages
 
 ## Subject Options
 
-- white-label outbound infrastructure
-- commercial infrastructure license
-- private growth infrastructure platform
+- after the rescue sprint
+- campaign control partner
+- client campaign proof
 
 ## Message
 
 Hi {{first_name}},
 
-I am Vishnu, founder of Xavira Tech Labs.
+After one campaign rescue proves a real gap, the monthly path is simple: Xavira helps the agency keep campaign diagnosis, reply learning, follow-up visibility, and client-facing proof under control.
 
-We built Sovereign Engine + Sovereign Shield as a commercial infrastructure asset: deliverability operating system, reputation command center, health oracle, audit/security evidence, Docker deployment, and cross-platform control-plane architecture.
+This should only be discussed when the agency already has a live campaign pain and wants ongoing support.
 
-We are currently exploring:
-
-- £40K Internal Enterprise License deployment slots for fast operators
-- £160K White-Label Commercial License conversations
-- commercial deployment and maintenance conversations
-
-If your team is buying or building outbound, growth, security, or automation infrastructure, this may be faster than starting from zero.
-
-Open to a short technical walkthrough?
+The entry point is still one £500 campaign rescue sprint. Monthly support comes after proof, not before.
 
 ## Qualification Question
 
-Which path is more relevant for you: private license/deployment, strategic license, or full acquisition?
+Which client campaign would be most useful to diagnose first?
 `
 
 const callScript = `# Demo Call Script
 
 ## Opening
 
-Thanks for taking a look. I will keep this practical. Sovereign Engine is not another sending tool. It is an operational control layer for outbound revenue infrastructure: reputation visibility, queue governance, worker health, audit evidence, and buyer-ready deployment proof.
+Thanks for taking a look. I will keep this practical. Xavira starts by rescuing one live outbound campaign, not by selling a big dashboard. The goal is to separate lead quality, message fit, inbox placement, follow-up, and reporting problems.
 
 ## Show In This Order
 
-1. Dashboard: ${appUrl}/dashboard
-2. Reputation investor view: ${appUrl}/reputation?investor=1
-3. Health oracle: ${appUrl}/api/health/stats?client_id=1
-4. Terminal proof: pnpm -C code launch:ready --quick
-5. Data-room ZIP: pnpm -C code generate:data-room
+1. Pricing: ${appUrl}/pricing
+2. Sprint intake: ${appUrl}/book
+3. Sent mail proof: ${appUrl}/sent
+4. Dashboard: ${appUrl}/dashboard
+5. Health oracle: ${appUrl}/api/health/stats?client_id=1
 
 ## Close
 
-Which path fits you better: the £40K Internal Enterprise License deployment sprint, or the £160K White-Label Commercial License path?
+Which one campaign should we diagnose first?
 
 ## If They Ask Price
 
-Internal Enterprise License is £40,000 GBP. White-Label Commercial License is £160,000 GBP. Operations & Maintenance is £3,000/month.
+The Campaign Rescue Sprint is £500 GBP one-time. If the sprint proves there is an ongoing campaign-control problem, the optional Xavira Control Partner path is £1,500/month.
 
 ## If They Ask About Production
 
-The demo is mock-safe and fully local. The architecture is production-oriented with Docker, Redis, Postgres, workers, audit evidence, and health checks. Real production use requires the buyer's domains, providers, secrets, and compliance review.
+The first deliverable is not infrastructure transfer. It is a founder-led review of one real campaign, one rewritten first email, one rewritten follow-up, and a simple proof summary.
 `
 
 const dailyPlan = `# 7-Day Closing Plan
@@ -147,13 +137,13 @@ const dailyPlan = `# 7-Day Closing Plan
 - Send 20 highly personalized emails
 - Send 10 LinkedIn messages
 - Follow up 10 prior prospects
-- Book 1-2 calls
-- Share data room only after clear interest
+- Get 1-2 campaign rescue intakes
+- Share proof only after clear interest
 
 ## Day 1
 
 - Build 50-person list.
-- Send first 20 £40K fast-license messages.
+- Send first 20 rescue-sprint messages.
 - Send 10 LinkedIn messages.
 
 ## Day 2
@@ -164,17 +154,17 @@ const dailyPlan = `# 7-Day Closing Plan
 
 ## Days 3-4
 
-- Push £40K close to fast operators.
-- Push £160K white-label path to bigger buyers.
+- Push £500 sprint to agencies with one live campaign pain.
+- Only discuss £1,500/month partner path after campaign proof.
 
 ## Days 5-7
 
-- Close two £40K internal buyers.
-- Keep 3 £160K white-label commercial conversations active.
+- Close two £500 Campaign Rescue Sprints.
+- Keep 3 monthly Control Partner conversations active after proof.
 
 ## Rule
 
-Do not say this is discounted. Say it is a limited fast license/deployment slot.
+Do not say this is discounted. Say it is a focused founder-led rescue of one live campaign.
 `
 
 async function main() {
@@ -193,8 +183,8 @@ ${health.ok ? 'PASS' : 'NEEDS START'} - ${health.note}
 
 ## Immediate Goal
 
-- Close 2 x £40K fast license/deployment deals.
-- Build the £160K white-label commercial pipeline while closing £40K internal license deployments.
+- Close 2 x £500 Campaign Rescue Sprint deals.
+- Build the £1,500/month Control Partner pipeline only after sprint proof.
 
 ## Run Demo
 
@@ -221,16 +211,16 @@ Demo1234!
 
 - deal-tracker.csv
 - lead-list.csv
-- outreach-40k.md
-- outreach-160k.md
+- outreach-rescue-sprint.md
+- outreach-control-partner.md
 - call-script.md
 - daily-plan.md
 `)
 
   await write('deal-tracker.csv', dealTrackerCsv)
   await write('lead-list.csv', leadListCsv)
-  await write('outreach-40k.md', fast40kMessage)
-  await write('outreach-160k.md', strategic160kMessage)
+  await write('outreach-rescue-sprint.md', rescueSprintMessage)
+  await write('outreach-control-partner.md', controlPartnerMessage)
   await write('call-script.md', callScript)
   await write('daily-plan.md', dailyPlan)
 
