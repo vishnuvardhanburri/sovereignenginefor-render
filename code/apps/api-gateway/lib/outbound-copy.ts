@@ -714,6 +714,18 @@ function questionForPersona(
   persona: SovereignBuyerPersona,
   intelligence: SovereignBuyerIntelligence
 ): string {
+  const agencyQuestion = `When a client campaign underperforms at ${company}, what gets blamed first: lead quality, deliverability, follow-ups, or reporting?`
+  if (/\b(?:agency|client acquisition|outbound|demand generation|lead generation|revops|revenue operations)\b/i.test(
+    [
+      intelligence.companyType,
+      intelligence.businessModel,
+      intelligence.revenueMotion,
+      intelligence.communicationComplexity,
+      intelligence.riskSummary,
+    ].join(' ')
+  )) {
+    return agencyQuestion
+  }
   if (persona === 'founder') {
     return `As ${company} scales this motion, what becomes hardest to keep visible: growth conversations, stakeholder coordination, or follow-up ownership?`
   }

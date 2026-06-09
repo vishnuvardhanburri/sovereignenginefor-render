@@ -353,6 +353,14 @@ assert(
   agencyBody.includes('?') && !/book|demo|walkthrough|schedule/i.test(agencyBody),
   'agency body should optimize for a reply, not a meeting ask'
 )
+assert(
+  agencyBody.includes('what gets blamed first'),
+  'agency body should use the client-blame diagnostic question'
+)
+assert(
+  !/what becomes hardest/i.test(agencyBody),
+  'agency body should not fall back to generic visibility wording'
+)
 assert(agencyBody.includes('Xavira Control Stack'), 'agency body should mention Xavira Control Stack')
 assert(!agencyBody.includes('{{'), 'agency body should render all placeholders')
 
