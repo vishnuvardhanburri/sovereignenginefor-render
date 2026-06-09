@@ -506,6 +506,14 @@ function asBool(value: unknown): boolean {
   return ['1', 'true', 'yes', 'on'].includes(String(value ?? '').trim().toLowerCase())
 }
 
+function balancedDiscoveryEnabled(): boolean {
+  return envBool(
+    process.env.DAILY_OUTBOUND_BALANCED_DISCOVERY ||
+      process.env.DAILY_OUTBOUND_50_50_DISCOVERY,
+    false
+  )
+}
+
 function normalizeDomain(value: string | null | undefined): string {
   return String(value ?? '')
     .trim()
@@ -913,6 +921,9 @@ async function runBalancedLeadScoutStage(input: DiscoveryStageInput): Promise<St
   if (asString(input.industry)) {
     return runLeadScoutStage(input)
   }
+  if (!balancedDiscoveryEnabled()) {
+    return runLeadScoutStage({ ...input, industry: 'agency' })
+  }
 
   const limits = splitDiscoveryLimit(input.limit)
   const directIndustry = resolveDirectDiscoveryIndustry()
@@ -1042,6 +1053,9 @@ async function runBalancedPublicSearchStage(
 ): Promise<StageResult> {
   if (asString(input.industry) || input.queries?.length) {
     return runPublicSearchStage(input)
+  }
+  if (!balancedDiscoveryEnabled()) {
+    return runPublicSearchStage({ ...input, industry: 'agency' })
   }
 
   const limits = splitDiscoveryLimit(input.limit)
