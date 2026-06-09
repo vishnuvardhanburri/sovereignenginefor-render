@@ -245,6 +245,17 @@ const BLOCKED_PUBLIC_EMAIL_PREFIXES = new Set([
 
 const DOMAIN_MAIL_EXCHANGE_CACHE = new Map<string, Promise<boolean>>()
 
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number, fallback: T): Promise<T> {
+  let timeout: NodeJS.Timeout | undefined
+  const timer = new Promise<T>((resolve) => {
+    timeout = setTimeout(() => resolve(fallback), Math.max(25, timeoutMs))
+  })
+
+  return Promise.race([promise, timer]).finally(() => {
+    if (timeout) clearTimeout(timeout)
+  })
+}
+
 function normalizeIndustry(input?: string): LeadScoutIndustry {
   const value = String(input || 'saas').trim().toLowerCase()
   if (value in INDUSTRY_ALIASES) return INDUSTRY_ALIASES[value]
@@ -441,7 +452,7 @@ function domainHasMailExchange(domain: string): Promise<boolean> {
   const cached = DOMAIN_MAIL_EXCHANGE_CACHE.get(normalized)
   if (cached) return cached
 
-  const lookup = resolveMx(normalized)
+  const lookup = withTimeout(resolveMx(normalized), 1_500, [])
     .then((records) => records.length > 0)
     .catch(() => false)
   DOMAIN_MAIL_EXCHANGE_CACHE.set(normalized, lookup)
@@ -764,7 +775,8 @@ export async function verifyOpenLeadEvidenceTimeboxed(
   options: VerifyOpenLeadEvidenceOptions = {}
 ): Promise<OpenLead[]> {
   const fallback = unverifiedOpenLeads(leads)
-  return verifyOpenLeadEvidence(leads, options).catch(() => fallback)
+  const deadlineMs = Math.max(100, Math.min(options.deadlineMs ?? 8_000, 60_000))
+  return withTimeout(verifyOpenLeadEvidence(leads, options), deadlineMs + 250, fallback).catch(() => fallback)
 }
 
 export function scoutOpenLeads(input: LeadScoutRequest = {}): {
