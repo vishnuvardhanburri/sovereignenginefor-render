@@ -133,6 +133,36 @@ function numberValue(value, fallback = 0) {
   return Number.isFinite(parsed) ? parsed : fallback
 }
 
+function dailyVolumeBand(safeMode) {
+  const configuredFloor = envInt(
+    'FREE_MAIL_PUMP_MIN_DAILY_VOLUME',
+    envInt(
+      'DAILY_OUTBOUND_MIN_DAILY_VOLUME',
+      envInt('DAILY_OUTBOUND_DAILY_FLOOR', 125, 1, 800),
+      1,
+      800
+    ),
+    1,
+    800
+  )
+  const configuredCeiling = envInt(
+    'FREE_MAIL_PUMP_MAX_DAILY_VOLUME',
+    envInt(
+      'DAILY_OUTBOUND_MAX_DAILY_VOLUME',
+      envInt('DAILY_OUTBOUND_DAILY_CEILING', safeMode ? 199 : 199, configuredFloor, 800),
+      configuredFloor,
+      800
+    ),
+    configuredFloor,
+    800
+  )
+
+  return {
+    minDailyVolume: configuredFloor,
+    maxDailyVolume: Math.max(configuredFloor, configuredCeiling),
+  }
+}
+
 function resultQueued(result) {
   return numberValue(result?.queued, 0)
 }
@@ -156,7 +186,7 @@ function appendCommonParams(url, kind, discoverySource = 'both') {
     1,
     safeMode ? 250 : 1_000
   )
-  const maxDailyVolume = envInt('FREE_MAIL_PUMP_MAX_DAILY_VOLUME', safeMode ? 80 : 120, 1, 800)
+  const { minDailyVolume, maxDailyVolume } = dailyVolumeBand(safeMode)
   const configuredTargetDailyVolume = envInt(
     'DAILY_OUTBOUND_TARGET_DAILY_VOLUME',
     envInt('DAILY_OUTBOUND_PROVIDER_MAX_SEND_LIMIT', 800, 1, 1_000_000),
@@ -176,7 +206,7 @@ function appendCommonParams(url, kind, discoverySource = 'both') {
   url.searchParams.set('cronCompact', '1')
   url.searchParams.set('mode', process.env.DAILY_OUTBOUND_MODE || 'growth')
   url.searchParams.set('targetDailyVolume', String(targetDailyVolume))
-  url.searchParams.set('minDailyVolume', '1')
+  url.searchParams.set('minDailyVolume', String(minDailyVolume))
   url.searchParams.set('maxDailyVolume', String(maxDailyVolume))
   url.searchParams.set('sendLimit', String(sendLimit))
   url.searchParams.set(
@@ -220,10 +250,10 @@ function appendCommonParams(url, kind, discoverySource = 'both') {
     discoverySource !== 'lead_scout' && envBool('PUBLIC_SEARCH_SOURCE_ENABLED', true)
 
   url.searchParams.set('leadScout', runLeadScout ? '1' : '0')
-  url.searchParams.set('leadScoutLimit', String(envInt('FREE_MAIL_PUMP_LEAD_SCOUT_LIMIT', safeMode ? 2 : 100, 0, safeMode ? 10 : 1_000)))
+  url.searchParams.set('leadScoutLimit', String(envInt('FREE_MAIL_PUMP_LEAD_SCOUT_LIMIT', safeMode ? 10 : 100, 0, safeMode ? 50 : 1_000)))
   url.searchParams.set('publicSearch', runPublicSearch ? '1' : '0')
-  url.searchParams.set('publicSearchLimit', String(envInt('FREE_MAIL_PUMP_PUBLIC_SEARCH_LIMIT', safeMode ? 2 : 100, 0, safeMode ? 10 : 1_000)))
-  url.searchParams.set('evidenceDeadlineMs', String(envInt('FREE_MAIL_PUMP_EVIDENCE_DEADLINE_MS', safeMode ? 3500 : 8000, 800, safeMode ? 6000 : 15000)))
+  url.searchParams.set('publicSearchLimit', String(envInt('FREE_MAIL_PUMP_PUBLIC_SEARCH_LIMIT', safeMode ? 10 : 100, 0, safeMode ? 50 : 1_000)))
+  url.searchParams.set('evidenceDeadlineMs', String(envInt('FREE_MAIL_PUMP_EVIDENCE_DEADLINE_MS', safeMode ? 5000 : 8000, 800, safeMode ? 10000 : 15000)))
   url.searchParams.set('evidenceMaxPages', String(envInt('FREE_MAIL_PUMP_EVIDENCE_MAX_PAGES', safeMode ? 2 : 3, 1, safeMode ? 3 : 4)))
   url.searchParams.set('evidenceRequestTimeoutMs', String(envInt('FREE_MAIL_PUMP_EVIDENCE_REQUEST_TIMEOUT_MS', safeMode ? 1200 : 1200, 400, safeMode ? 2000 : 2500)))
   url.searchParams.set(
@@ -331,7 +361,13 @@ function shouldRecoverStarvedQueue(queueResult, safeMode) {
   if (!queueResult || queueResult.transportFailed || queueResult.responseOk === false) return false
   const queued = resultQueued(queueResult)
   const sentToday = resultSentToday(queueResult)
-  const minSentToday = envInt('FREE_MAIL_PUMP_STARVATION_MIN_SENT_TODAY', safeMode ? 1 : 1, 0, 800)
+  const { minDailyVolume } = dailyVolumeBand(safeMode)
+  const minSentToday = envInt(
+    'FREE_MAIL_PUMP_STARVATION_MIN_SENT_TODAY',
+    Math.max(0, minDailyVolume - 1),
+    0,
+    800
+  )
   return queued === 0 && sentToday <= minSentToday
 }
 
