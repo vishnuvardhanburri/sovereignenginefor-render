@@ -362,12 +362,14 @@ function shouldRecoverStarvedQueue(queueResult, safeMode) {
   const queued = resultQueued(queueResult)
   const sentToday = resultSentToday(queueResult)
   const { minDailyVolume } = dailyVolumeBand(safeMode)
-  const minSentToday = envInt(
+  const dailyFloorThreshold = Math.max(0, minDailyVolume - 1)
+  const configuredMinSentToday = envInt(
     'FREE_MAIL_PUMP_STARVATION_MIN_SENT_TODAY',
-    Math.max(0, minDailyVolume - 1),
+    dailyFloorThreshold,
     0,
     800
   )
+  const minSentToday = Math.max(dailyFloorThreshold, configuredMinSentToday)
   return queued === 0 && sentToday <= minSentToday
 }
 
