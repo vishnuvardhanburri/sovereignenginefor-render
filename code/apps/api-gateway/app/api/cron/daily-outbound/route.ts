@@ -1474,6 +1474,13 @@ async function getResearchPool(clientId: number) {
        AND unsubscribed_at IS NULL
        AND COALESCE(custom_fields->>'send_status', 'not_approved') NOT IN ('approved', 'queued', 'blocked', 'review')
        AND COALESCE(verification_status, 'pending') NOT IN ('invalid', 'do_not_mail')
+       AND NOT EXISTS (
+         SELECT 1
+         FROM events e
+         WHERE e.client_id = contacts.client_id
+           AND e.contact_id = contacts.id
+           AND e.event_type IN ('sent', 'failed', 'bounce', 'bounced')
+       )
        AND (
          source IN ('google_sheet_import', 'google_maps_apify', 'hunter_domain_search', 'open_lead_graph', 'owned_open_lead_graph', 'public_search')
          OR COALESCE(custom_fields->>'sheet_import', 'false') = 'true'
