@@ -99,8 +99,8 @@ function statusBadge(type: SentItem['type']) {
 function offerBadge(offerType: string | null) {
   if (!offerType) return null
   if (offerType === 'agency')
-    return <Badge className="bg-purple-500/10 text-purple-400 text-xs">£1,500/month Partner</Badge>
-  return <Badge className="bg-blue-500/10 text-blue-400 text-xs">£500 Rescue Sprint</Badge>
+    return <Badge className="bg-purple-500/10 text-purple-400 text-xs">£3,000/month Partner</Badge>
+  return <Badge className="bg-blue-500/10 text-blue-400 text-xs">£5,000 Rescue Sprint</Badge>
 }
 
 function StatCard({
@@ -259,14 +259,14 @@ export default function SentMailPage() {
             icon={<Mail className="w-4 h-4" />}
             label="Agency partner (24h)"
             value={s.agencySent24h}
-            sub="£1,500/month after proof · 50% target"
+            sub="£3,000/month after proof · 50% target"
             accent="purple"
           />
           <StatCard
             icon={<Mail className="w-4 h-4" />}
             label="Direct rescue (24h)"
             value={s.directSent24h}
-            sub="£500 Campaign Rescue Sprint · 50% target"
+            sub="£5,000 Campaign Rescue Sprint · 50% target"
             accent="blue"
           />
           <StatCard
@@ -503,7 +503,7 @@ export default function SentMailPage() {
                   <div><span className="text-muted-foreground">Provider:</span> {selected.provider}</div>
                 ) : null}
                 {selected.offerType ? (
-                  <div><span className="text-muted-foreground">Offer:</span> {selected.offerType === 'agency' ? '£1,500/month Control Partner after proof' : '£500 Campaign Rescue Sprint'}</div>
+                  <div><span className="text-muted-foreground">Offer:</span> {selected.offerType === 'agency' ? '£3,000/month Control Partner after proof' : '£5,000 Campaign Rescue Sprint'}</div>
                 ) : null}
                 {selected.error ? (
                   <div className="text-amber-600 break-words"><span className="text-muted-foreground">Error:</span> {selected.error}</div>

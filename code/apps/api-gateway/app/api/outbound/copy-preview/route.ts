@@ -14,7 +14,7 @@ type PreviewLead = SovereignCopyLead & {
 
 const sampleLeads: PreviewLead[] = [
   {
-    label: '£500 Campaign Rescue Sprint',
+    label: '£5,000 Campaign Rescue Sprint',
     first_name: 'there',
     company: 'GrowthOps AI',
     companyDomain: 'growthops.ai',
@@ -28,7 +28,7 @@ const sampleLeads: PreviewLead[] = [
     },
   },
   {
-    label: '£1,500/month Control Partner',
+    label: '£3,000/month Control Partner',
     first_name: 'there',
     company: 'Northstar RevOps',
     companyDomain: 'northstarrevops.com',
@@ -39,7 +39,7 @@ const sampleLeads: PreviewLead[] = [
       offer_type: 'agency',
       industry: 'growth marketing agency',
       research_summary:
-        'Agency lead; start with a £500 rescue sprint, then only discuss monthly partner support after proof.',
+        'Agency lead; start with a £5,000 rescue sprint, then only discuss monthly partner support after proof.',
     },
   },
 ]

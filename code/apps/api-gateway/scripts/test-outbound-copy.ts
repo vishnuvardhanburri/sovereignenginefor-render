@@ -44,8 +44,8 @@ const agencyLead = {
 
 assert(inferSovereignOfferType(directLead) === 'direct', 'direct lead should use rescue sprint copy')
 assert(inferSovereignOfferType(agencyLead) === 'agency', 'agency lead should use agency partner copy')
-assert(sovereignDealValueUsd(directLead) === 500, 'direct lead should be valued at the £500 rescue sprint')
-assert(sovereignDealValueUsd(agencyLead) === 1500, 'agency lead should be valued at the £1,500/month partner motion')
+assert(sovereignDealValueUsd(directLead) === 5000, 'direct lead should be valued at the £5,000 rescue sprint')
+assert(sovereignDealValueUsd(agencyLead) === 3000, 'agency lead should be valued at the £3,000/month partner motion')
 assert(
   rankSovereignLeads([
     { ...directLead, company: 'Low Intent SaaS', customFields: { fit_score: 62 } },
@@ -160,7 +160,10 @@ assert(
   agencyDecision.value === 'Xavira Control Stack was built around that layer.',
   'agency decision should mention Xavira only once without feature dumping'
 )
-assert(!agencyDecision.value.includes('£1,500'), 'agency decision should not expose price in cold value line')
+assert(
+  !/£1,500|£3,000|£5,000/.test(agencyDecision.value),
+  'agency decision should not expose price in cold value line'
+)
 
 const technicalDecision = buildSovereignCopyDecision({
   ...directLead,
@@ -214,6 +217,8 @@ assert(
 const coldSequenceText = SOVEREIGN_STACK_DIRECT_SEQUENCE_STEPS.map((step) => step.body).join('\n')
 assert(
   !coldSequenceText.includes('£1,500') &&
+    !coldSequenceText.includes('£3,000') &&
+    !coldSequenceText.includes('£5,000') &&
     !coldSequenceText.includes('£500') &&
     !coldSequenceText.includes('£160,000') &&
     !coldSequenceText.includes('£40,000'),
@@ -319,7 +324,10 @@ const agencyBody = renderSovereignTemplate(
   agencyLead,
   'Xavira Tech Labs, India'
 )
-assert(!agencyBody.includes('£1,500') && !agencyBody.includes('£500'), 'first-touch agency body should not mention offer pricing')
+assert(
+  !/£1,500|£3,000|£5,000|£500/.test(agencyBody),
+  'first-touch agency body should not mention offer pricing'
+)
 assert(!/reseller rights/i.test(agencyBody), 'first-touch agency body should not mention reseller rights before a reply')
 assert(!/3-4 serious client deployments/i.test(agencyBody), 'first-touch agency body should not explain resale economics')
 assert(
@@ -366,7 +374,7 @@ async function main() {
     'built copy should ask exactly one thoughtful question'
   )
   assert(
-    !/£500|£1,500|£40,000|£160,000|reseller rights|commercial rights/i.test(rendered.text),
+    !/£500|£1,500|£3,000|£5,000|£15,000|£40,000|£160,000|reseller rights|commercial rights/i.test(rendered.text),
     'built copy should not mention pricing or license economics'
   )
   assert(

@@ -411,7 +411,7 @@ function contactToLead(contact: Contact): SovereignCopyLead {
 }
 
 function offerLabel(offerType: SovereignOfferType): string {
-  return offerType === 'agency' ? 'Agency partner after proof' : '£500 rescue sprint'
+  return offerType === 'agency' ? 'Agency partner after proof' : '£5,000 rescue sprint'
 }
 
 function linkedinUrlForContact(contact: Contact): string {
@@ -607,7 +607,7 @@ export function buildLinkedInDeskQueue(
         topMotion === 'white_label_first'
           ? 'Highest expected value: rescue an agency campaign first'
           : topMotion === 'internal_first'
-            ? 'Fastest close path today: push £500 rescue sprint first'
+            ? 'Fastest close path today: push £5,000 rescue sprint first'
             : 'Balanced close motion: work both rescue paths today',
     },
   }

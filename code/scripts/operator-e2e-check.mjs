@@ -64,7 +64,7 @@ async function checkPricingCopy() {
     response.ok &&
     text.includes('Xavira Control Stack') &&
     text.includes('Campaign Rescue Sprint') &&
-    text.includes('£500')
+    text.includes('£5,000')
   record(ok, 'pricing positioning', ok ? 'Campaign Rescue Sprint pricing copy visible' : `HTTP ${response.status}`)
 }
 

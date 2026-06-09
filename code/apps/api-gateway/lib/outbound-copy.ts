@@ -1290,7 +1290,7 @@ function productWordShare(body: string): number {
 
 function hasForbiddenColdEmailLanguage(body: string): boolean {
   return /\b(?:revolutionary|disruptive|cutting-edge|game-changing|best-in-class|powerful|innovative|industry-leading|ai-powered platform)\b/i.test(body) ||
-    /\b(?:£500|£1,500|£40,000|£160,000|40k|160k|pricing|license|licensing|reseller rights|commercial rights|maintenance|white-label|white label|license recovery|campaign rescue sprint|control partner)\b/i.test(body) ||
+    /\b(?:£500|£1,500|£3,000|£5,000|£15,000|£40,000|£160,000|3k|5k|15k|40k|160k|pricing|license|licensing|reseller rights|commercial rights|maintenance|white-label|white label|license recovery|campaign rescue sprint|control partner)\b/i.test(body) ||
     /\b(?:book|schedule|hop on|jump on|demo|walkthrough|calendar|cal\.com)\b/i.test(body)
 }
 
@@ -1572,6 +1572,9 @@ export async function buildSovereignCopyForLead(
       'GBP pricing',
       '£500',
       '£1,500/month',
+      '£3,000/month',
+      '£5,000',
+      '£15,000',
       '£40,000',
       '£160,000',
       'Campaign Rescue Sprint',
@@ -1609,7 +1612,7 @@ export async function buildSovereignCopyForLead(
       'Avoid technical jargon such as queue discipline, suppression architecture, governance layer, and internal platform terminology.',
       'Optimize for client generation, not lead generation: the email should make a qualified buyer think "this person actually looked at my company."',
       `Treat ${SOVEREIGN_CLIENT_GENERATION_TARGET.dailyQualifiedConversationsMin}-${SOVEREIGN_CLIENT_GENERATION_TARGET.dailyQualifiedConversationsMax} qualified conversations per day as the operating target, not a promise.`,
-      'Do not mention GBP pricing, £500, £1,500/month, £40,000, £160,000, reseller rights, commercial rights, license recovery, or deployment economics in cold first-touch/follow-up copy. Pricing belongs only after the buyer asks or submits the intake.',
+      'Do not mention GBP pricing, £500, £1,500/month, £3,000/month, £5,000, £15,000, £40,000, £160,000, reseller rights, commercial rights, license recovery, or deployment economics in cold first-touch/follow-up copy. Pricing belongs only after the buyer asks or submits the intake.',
       'Do not ask for a meeting, call, demo, walkthrough, or calendar booking in first-touch copy.',
       'If researchContext has LinkedIn or social context, use it naturally in one sentence.',
       'If competitorSignal exists, phrase it as a category trend, not as a fake customer claim.',

@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
         expires_at: active ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() : null,
       },
       acquisitionNote:
-        'Demo keys are for validation only. The current entry offer is the £500 Campaign Rescue Sprint.',
+        'Demo keys are for validation only. The current entry offer is the £5,000 Campaign Rescue Sprint.',
     },
     { status: active ? 200 : 401 }
   )

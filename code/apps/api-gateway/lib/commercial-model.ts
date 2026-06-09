@@ -4,40 +4,41 @@ export const XAVIRA_COMMERCIAL_MODEL = {
   productName: 'Xavira Control Stack',
   campaignRescueSprint: {
     name: 'Campaign Rescue Sprint',
-    price: 500,
-    label: '£500',
+    price: 5_000,
+    label: '£5,000',
     rights:
       'One-time founder-led review of one live outbound campaign: leads, copy, follow-ups, sender/domain risk, and client-facing proof.',
   },
   controlPartnerMonthly: {
     name: 'Xavira Control Partner',
-    priceMonthly: 1_500,
-    label: '£1,500/month',
+    priceMonthly: 3_000,
+    label: '£3,000/month',
     rights:
       'Ongoing founder-led control partner support after proof: weekly campaign reviews, delivery visibility, reply learning, and client reporting support.',
   },
   internalEnterpriseLicense: {
-    name: 'Campaign Rescue Sprint',
-    price: 500,
-    label: '£500',
+    name: 'Internal Enterprise License',
+    price: 40_000,
+    label: '£40,000/year',
     rights:
-      'One-time founder-led campaign rescue for a team running its own outbound campaign.',
+      'Annual internal license for teams that want Xavira as their own communication-control operating layer after proof.',
   },
   whiteLabelCommercialLicense: {
-    name: 'Xavira Control Partner',
-    price: 1_500,
-    label: '£1,500/month',
+    name: 'White-Label Commercial License',
+    price: 160_000,
+    label: '£160,000/year',
     rights:
-      'Monthly partner support for agencies that need campaign proof, delivery visibility, and client reporting control.',
+      'Annual commercial license for agencies that want to package Xavira as a client-facing proof and control layer.',
     partnerEconomics:
-      'Designed to start with one rescued campaign, then continue only if Xavira is helping the agency protect client trust and improve reply conversations.',
+      'Discuss only after proof, when the agency can resell campaign-control outcomes and protect client trust at scale.',
   },
   operationsMaintenance: {
-    name: 'Custom Platform Support',
-    priceMonthly: 1_500,
+    name: 'Agency White-Label Partner',
+    setupPrice: 15_000,
+    priceMonthly: 5_000,
     label: 'After proof',
     rights:
-      'Only discussed after the rescue sprint proves a real campaign pain and the buyer wants ongoing support.',
+      '£15,000 setup plus £5,000/month for agencies that want guided white-label rollout before a full annual commercial license.',
   },
 } as const
 

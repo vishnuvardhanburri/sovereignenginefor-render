@@ -39,6 +39,8 @@ const qualificationSchema = z.object({
   timeline: option(['this_week', 'next_week', 'this_month', 'this_quarter', 'exploring']),
   decisionOwner: z.string().trim().min(2).max(180),
   commercialPath: option([
+    'campaign_rescue_5000',
+    'monthly_partner_3000',
     'campaign_rescue_500',
     'monthly_partner_1500',
     'internal_40000',
@@ -73,10 +75,12 @@ const qualificationSchema = z.object({
 type QualificationInput = z.infer<typeof qualificationSchema>
 
 const commercialPathLabels: Record<QualificationInput['commercialPath'], string> = {
-  campaign_rescue_500: '£500 Campaign Rescue Sprint',
-  monthly_partner_1500: '£1,500/month Xavira Control Partner',
-  internal_40000: 'Legacy £500 Campaign Rescue Sprint',
-  white_label_160000: 'Legacy £1,500/month Xavira Control Partner',
+  campaign_rescue_5000: '£5,000 Campaign Rescue Sprint',
+  monthly_partner_3000: '£3,000/month Xavira Control Partner',
+  campaign_rescue_500: '£5,000 Campaign Rescue Sprint',
+  monthly_partner_1500: '£3,000/month Xavira Control Partner',
+  internal_40000: '£40,000/year Internal Enterprise License',
+  white_label_160000: '£160,000/year White-Label Commercial License',
   strategic_200000_plus: 'Custom path after rescue proof',
   need_guidance: 'Needs guidance',
 }
@@ -295,7 +299,7 @@ function qualificationEmailHtml(input: QualificationInput): string {
         <div style="padding:20px 22px;background:#0f172a;color:#ffffff;">
           <div style="font-size:12px;letter-spacing:0.08em;text-transform:uppercase;color:#93c5fd;">Xavira</div>
           <h1 style="margin:8px 0 0 0;font-size:22px;line-height:1.25;">New Campaign Rescue Sprint intake</h1>
-          <p style="margin:8px 0 0 0;color:#cbd5e1;font-size:14px;">Review the campaign details, then use the Cal.com slot and Infinity payment details to start the £500 sprint.</p>
+          <p style="margin:8px 0 0 0;color:#cbd5e1;font-size:14px;">Review the campaign details, then use the Cal.com slot and Infinity payment details to start the £5,000 sprint.</p>
         </div>
         <table style="width:100%;border-collapse:collapse;">
           ${bodyRows}

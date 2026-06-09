@@ -270,7 +270,7 @@ export default function LinkedInDeskPage() {
             <div>
               <p className="text-sm text-muted-foreground">Agency partners</p>
               <p className="text-2xl font-bold text-purple-400">{summary?.agencyCount ?? 0}</p>
-              <p className="text-xs text-muted-foreground">£1,500/month after proof</p>
+              <p className="text-xs text-muted-foreground">£3,000/month after proof</p>
             </div>
             <Sparkles className="h-5 w-5 text-purple-400" />
           </CardContent>
@@ -280,7 +280,7 @@ export default function LinkedInDeskPage() {
             <div>
               <p className="text-sm text-muted-foreground">Rescue sprint prospects</p>
               <p className="text-2xl font-bold text-blue-400">{summary?.directCount ?? 0}</p>
-              <p className="text-xs text-muted-foreground">£500 one-time entry</p>
+              <p className="text-xs text-muted-foreground">£5,000 one-time entry</p>
             </div>
             <ShieldCheck className="h-5 w-5 text-blue-400" />
           </CardContent>
@@ -325,7 +325,7 @@ export default function LinkedInDeskPage() {
               <SelectContent>
                 <SelectItem value="all">All client motions</SelectItem>
                 <SelectItem value="agency">Agency partner</SelectItem>
-                <SelectItem value="direct">£500 rescue</SelectItem>
+                <SelectItem value="direct">£5,000 rescue</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -511,7 +511,7 @@ export default function LinkedInDeskPage() {
                     <SelectContent>
                       <SelectItem value="auto">Auto score each company</SelectItem>
                       <SelectItem value="agency">Force agency partner</SelectItem>
-                      <SelectItem value="direct">Force £500 rescue</SelectItem>
+                      <SelectItem value="direct">Force £5,000 rescue</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -546,7 +546,7 @@ export default function LinkedInDeskPage() {
                           </div>
                           <div className="flex flex-wrap gap-2 md:justify-end">
                             <Badge className={offerBadgeClass(result.offerType)}>
-                              {result.offerType === 'agency' ? 'agency partner' : '£500 rescue'}
+                              {result.offerType === 'agency' ? 'agency partner' : '£5,000 rescue'}
                             </Badge>
                             <Badge variant="outline">{result.confidence}</Badge>
                             <Badge variant="outline">{result.discoveredPages} pages</Badge>

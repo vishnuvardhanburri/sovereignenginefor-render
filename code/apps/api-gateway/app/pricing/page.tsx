@@ -26,7 +26,7 @@ const followOnIncludes = [
 export const metadata = {
   title: 'Campaign Rescue Sprint | Xavira',
   description:
-    '£500 founder-led outbound campaign rescue sprint for agencies and operators that need better replies, proof, and client trust.',
+    '£5,000 founder-led outbound campaign rescue sprint for agencies and operators that need better replies, proof, and client trust.',
 }
 
 export default function PricingPage() {
@@ -38,7 +38,7 @@ export default function PricingPage() {
             <ClipboardCheck size={16} /> First Customer Offer
           </div>
           <h1 className="text-4xl font-black tracking-tight md:text-6xl">
-            Rescue one underperforming outbound campaign for £500.
+            Rescue one underperforming outbound campaign for £5,000.
           </h1>
           <p className="mt-5 text-lg leading-8 text-slate-300">
             Xavira starts as a founder-led Campaign Rescue Sprint. We review the campaign,
@@ -50,7 +50,7 @@ export default function PricingPage() {
               href="/book"
               className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-emerald-300 px-5 text-sm font-bold text-emerald-950 transition hover:bg-emerald-200"
             >
-              Start the £500 sprint
+              Start the £5,000 sprint
               <ArrowRight size={16} />
             </a>
             <a

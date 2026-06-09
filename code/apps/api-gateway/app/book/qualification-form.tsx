@@ -25,13 +25,13 @@ const painOptions = [
 
 const pathOptions = [
   {
-    value: 'campaign_rescue_500',
-    label: '£500 Campaign Rescue Sprint',
+    value: 'campaign_rescue_5000',
+    label: '£5,000 Campaign Rescue Sprint',
     description: 'One live campaign reviewed, rewritten, and summarized in 3-5 days.',
   },
   {
-    value: 'monthly_partner_1500',
-    label: '£1,500/month Control Partner',
+    value: 'monthly_partner_3000',
+    label: '£3,000/month Control Partner',
     description: 'Only if you already know you want ongoing weekly campaign control.',
   },
   {
@@ -339,7 +339,7 @@ export function QualificationForm() {
         <div className="flex flex-col gap-1">
           <h3 className="text-sm font-semibold text-white">Infinity payment details</h3>
           <p className="text-sm leading-6 text-zinc-400">
-            These details go to the operator email so the £500 sprint payment, invoice, or bank
+            These details go to the operator email so the £5,000 sprint payment, invoice, or bank
             transfer can be handled without another back-and-forth.
           </p>
         </div>

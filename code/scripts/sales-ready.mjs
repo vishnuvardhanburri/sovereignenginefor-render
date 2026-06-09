@@ -43,14 +43,14 @@ Control Partner C,1500,Outbound agency,,,lead_needed,start monthly partner discu
 `
 
 const leadListCsv = `company,website,buyer_name,buyer_role,buyer_email,linkedin,segment,deal_target,reason_to_buy,status,next_action,last_contacted_at,notes
-,,,,,,lead_generation_agency,500,,not_contacted,send_rescue_sprint_message,,
-,,,,,,revops_agency,500,,not_contacted,send_rescue_sprint_message,,
-,,,,,,outbound_agency,500,,not_contacted,send_rescue_sprint_message,,
-,,,,,,agency_partner_candidate,1500,,not_contacted,send_post_sprint_partner_message,,
-,,,,,,client_services_agency,1500,,not_contacted,send_post_sprint_partner_message,,
+,,,,,,lead_generation_agency,5000,,not_contacted,send_rescue_sprint_message,,
+,,,,,,revops_agency,5000,,not_contacted,send_rescue_sprint_message,,
+,,,,,,outbound_agency,5000,,not_contacted,send_rescue_sprint_message,,
+,,,,,,agency_partner_candidate,3000,,not_contacted,send_post_sprint_partner_message,,
+,,,,,,client_services_agency,3000,,not_contacted,send_post_sprint_partner_message,,
 `
 
-const rescueSprintMessage = `# £500 Campaign Rescue Sprint Messages
+const rescueSprintMessage = `# £5,000 Campaign Rescue Sprint Messages
 
 ## Subject Options
 
@@ -79,7 +79,7 @@ The reason I asked is that campaign problems are often misdiagnosed from surface
 Is the hardest part for {{company}} usually lead quality, deliverability, follow-up ownership, or reporting proof?
 `
 
-const controlPartnerMessage = `# £1,500/month Control Partner Messages
+const controlPartnerMessage = `# £3,000/month Control Partner Messages
 
 ## Subject Options
 
@@ -95,7 +95,7 @@ After one campaign rescue proves a real gap, the monthly path is simple: Xavira 
 
 This should only be discussed when the agency already has a live campaign pain and wants ongoing support.
 
-The entry point is still one £500 campaign rescue sprint. Monthly support comes after proof, not before.
+The entry point is still one £5,000 campaign rescue sprint. Monthly support comes after proof, not before.
 
 ## Qualification Question
 
@@ -122,7 +122,7 @@ Which one campaign should we diagnose first?
 
 ## If They Ask Price
 
-The Campaign Rescue Sprint is £500 GBP one-time. If the sprint proves there is an ongoing campaign-control problem, the optional Xavira Control Partner path is £1,500/month.
+The Campaign Rescue Sprint is £5,000 GBP one-time. If the sprint proves there is an ongoing campaign-control problem, the optional Xavira Control Partner path is £3,000/month.
 
 ## If They Ask About Production
 
@@ -154,12 +154,12 @@ const dailyPlan = `# 7-Day Closing Plan
 
 ## Days 3-4
 
-- Push £500 sprint to agencies with one live campaign pain.
-- Only discuss £1,500/month partner path after campaign proof.
+- Push £5,000 sprint to agencies with one live campaign pain.
+- Only discuss £3,000/month partner path after campaign proof.
 
 ## Days 5-7
 
-- Close two £500 Campaign Rescue Sprints.
+- Close two £5,000 Campaign Rescue Sprints.
 - Keep 3 monthly Control Partner conversations active after proof.
 
 ## Rule
@@ -183,8 +183,8 @@ ${health.ok ? 'PASS' : 'NEEDS START'} - ${health.note}
 
 ## Immediate Goal
 
-- Close 2 x £500 Campaign Rescue Sprint deals.
-- Build the £1,500/month Control Partner pipeline only after sprint proof.
+- Close 2 x £5,000 Campaign Rescue Sprint deals.
+- Build the £3,000/month Control Partner pipeline only after sprint proof.
 
 ## Run Demo
 

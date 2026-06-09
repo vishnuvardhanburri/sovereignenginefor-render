@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
           recipientData: body.recipientData ?? {},
           campaignContext: body.campaignContext ?? {},
           requiredOffer:
-            'Xavira Campaign Rescue Sprint: £500 GBP one-time founder-led review of one live outbound campaign. It checks lead quality, first email, follow-up flow, sender/domain risk, and client-facing proof. Optional follow-on is Xavira Control Partner at £1,500 GBP/month only after the sprint proves a real ongoing need.',
+            'Xavira Campaign Rescue Sprint: £5,000 GBP one-time founder-led review of one live outbound campaign. It checks lead quality, first email, follow-up flow, sender/domain risk, and client-facing proof. Optional follow-on is Xavira Control Partner at £3,000 GBP/month only after the sprint proves a real ongoing need.',
         }),
         fallback,
       })
@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
           company: body.company ?? body.recipientData?.company ?? null,
           industry: body.industry ?? body.campaignContext?.industry ?? null,
           offer:
-            'Xavira Campaign Rescue Sprint: £500 GBP one-time review of one live outbound campaign. Xavira Control Partner is £1,500 GBP/month only after the rescue sprint proves an ongoing need.',
+            'Xavira Campaign Rescue Sprint: £5,000 GBP one-time review of one live outbound campaign. Xavira Control Partner is £3,000 GBP/month only after the rescue sprint proves an ongoing need.',
         }),
         fallback,
       })
