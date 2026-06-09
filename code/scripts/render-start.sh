@@ -69,7 +69,7 @@ elif [ -n "${WEB_FREE_TIER_SAFE_MODE:-}" ]; then
 fi
 if [ "$free_tier_safe" = "true" ]; then
   export NODE_OPTIONS="${NODE_OPTIONS:---max-old-space-size=192}"
-  export PG_POOL_MAX="${PG_POOL_MAX:-1}"
+  export PG_POOL_MAX="$(int_between "${PG_POOL_MAX:-}" 1 1 3)"
   export DAILY_OUTBOUND_SMALL_MAX_MAPS_LIMIT="$(int_between "${DAILY_OUTBOUND_SMALL_MAX_MAPS_LIMIT:-}" 10 0 10)"
   export DAILY_OUTBOUND_SMALL_MAX_PUBLIC_SEARCH_LIMIT="$(int_between "${DAILY_OUTBOUND_SMALL_MAX_PUBLIC_SEARCH_LIMIT:-}" 120 0 120)"
   export DAILY_OUTBOUND_SMALL_MAX_LEAD_SCOUT_LIMIT="$(int_between "${DAILY_OUTBOUND_SMALL_MAX_LEAD_SCOUT_LIMIT:-}" 120 1 120)"

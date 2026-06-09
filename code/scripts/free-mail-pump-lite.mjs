@@ -279,9 +279,16 @@ async function runCycle(kind, discoverySource = 'both') {
     appendCommonParams(url, kind, discoverySource)
 
     const controller = new AbortController()
+    const requestTimeoutFallback = safeMode
+      ? kind === 'queue'
+        ? 18_000
+        : 45_000
+      : kind === 'queue'
+        ? 35_000
+        : 90_000
     const timeout = setTimeout(
       () => controller.abort(),
-      envInt('FREE_MAIL_PUMP_TIMEOUT_MS', kind === 'queue' ? (safeMode ? 18000 : 35000) : safeMode ? 22000 : 90000, 5000, safeMode ? 45000 : 120000)
+      envInt('FREE_MAIL_PUMP_TIMEOUT_MS', requestTimeoutFallback, 5000, safeMode ? 60000 : 120000)
     )
 
     try {

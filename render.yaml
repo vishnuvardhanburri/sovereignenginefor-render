@@ -217,6 +217,8 @@ services:
       - key: DAILY_OUTBOUND_RUN_LEAD_SCOUT
         value: "true"
       - key: DAILY_OUTBOUND_SKIP_LEAD_EVIDENCE_VERIFICATION
+        value: "false"
+      - key: DAILY_OUTBOUND_AGENCY_REQUIRE_EVIDENCE
         value: "true"
       - key: LEAD_SCOUT_DAILY_LIMIT
         value: "120"

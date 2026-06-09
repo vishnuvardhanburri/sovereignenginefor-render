@@ -144,6 +144,15 @@ function skipLeadEvidenceVerification(raw?: string | null): boolean {
   return envBool(raw || process.env.DAILY_OUTBOUND_SKIP_LEAD_EVIDENCE_VERIFICATION, false)
 }
 
+function shouldVerifyDiscoveryEvidence(input: {
+  skipEvidenceVerification?: boolean
+  industry?: string
+}): boolean {
+  if (!input.skipEvidenceVerification) return true
+  const agencyRequiresEvidence = envBool(process.env.DAILY_OUTBOUND_AGENCY_REQUIRE_EVIDENCE, true)
+  return agencyRequiresEvidence && asString(input.industry).toLowerCase() === 'agency'
+}
+
 function isSmallMemoryRuntime(): boolean {
   const profile = String(process.env.WEB_MEMORY_PROFILE ?? '').trim().toLowerCase()
   if (profile) return profile === 'small' || profile === 'free'
@@ -268,17 +277,22 @@ function clampLimit(value: unknown, fallback: number, max: number): number {
 }
 
 function resolveTargetDailyVolume(params: URLSearchParams): number {
-  return Math.max(
-    1,
-    clampLimit(
-      params.get('targetDailyVolume') ||
-        process.env.DAILY_OUTBOUND_TARGET_DAILY_VOLUME ||
-        process.env.TARGET_DAILY_VOLUME ||
-        process.env.INFRASTRUCTURE_TARGET_DAILY_VOLUME,
-      800,
-      1_000_000
-    )
+  const configuredTarget = clampLimit(
+    params.get('targetDailyVolume') ||
+      process.env.DAILY_OUTBOUND_TARGET_DAILY_VOLUME ||
+      process.env.TARGET_DAILY_VOLUME ||
+      process.env.INFRASTRUCTURE_TARGET_DAILY_VOLUME,
+    800,
+    1_000_000
   )
+  const configuredGrowthCeiling = clampLimit(
+    process.env.DAILY_OUTBOUND_GROWTH_MAX_SEND_LIMIT ||
+      process.env.DAILY_OUTBOUND_PROVIDER_MAX_SEND_LIMIT ||
+      process.env.DAILY_OUTBOUND_SEND_LIMIT,
+    800,
+    1_000_000
+  )
+  return Math.max(1, configuredTarget, configuredGrowthCeiling)
 }
 
 async function getSentToday(clientId: number): Promise<number> {
@@ -851,7 +865,11 @@ async function runLeadScoutStage(input: DiscoveryStageInput): Promise<StageResul
       limit: input.limit,
       offset: leadScoutOffset(input.limit),
     })
-    const skippedEvidenceVerification = Boolean(input.skipEvidenceVerification)
+    const verifyEvidence = shouldVerifyDiscoveryEvidence({
+      skipEvidenceVerification: input.skipEvidenceVerification,
+      industry: result.industry,
+    })
+    const skippedEvidenceVerification = !verifyEvidence
     const verifiedLeads = skippedEvidenceVerification
       ? result.leads
       : await verifyOpenLeadEvidenceTimeboxed(result.leads, {
@@ -973,7 +991,11 @@ async function runPublicSearchStage(input: DiscoveryStageInput & { queries?: str
       timeoutMs: searchTimeoutMs,
       queries: input.queries,
     })
-    const skippedEvidenceVerification = Boolean(input.skipEvidenceVerification)
+    const verifyEvidence = shouldVerifyDiscoveryEvidence({
+      skipEvidenceVerification: input.skipEvidenceVerification,
+      industry: result.industry,
+    })
+    const skippedEvidenceVerification = !verifyEvidence
     const verifiedLeads = skippedEvidenceVerification
       ? result.leads
       : await verifyOpenLeadEvidenceTimeboxed(result.leads, {
@@ -3031,6 +3053,10 @@ export async function GET(request: NextRequest) {
       if (!hasCycleBudget(cycleDeadlineAt, 1_500)) {
         stages.push(skipCycleDeadlineStage('research_approval'))
       } else {
+        const finalResearchNetworkBudgetMs = Math.max(
+          500,
+          Math.min(cycleRemainingMs(cycleDeadlineAt) - 500, isSmallMemoryRuntime() ? 8_000 : 20_000)
+        )
         stages.push(
           await runResearchApproval({
             clientId: plan.clientId,
@@ -3038,9 +3064,25 @@ export async function GET(request: NextRequest) {
             approveLimit: plan.approveLimit,
             recoveryMode,
             growthMode: plan.mode === 'growth',
-            evidenceFetchLimit: 0,
-            providerValidationLimit: 0,
-            networkDeadlineMs: Math.max(500, cycleRemainingMs(cycleDeadlineAt) - 500),
+            evidenceFetchLimit: params.has('evidenceFetchLimit')
+              ? clampLimit(params.get('evidenceFetchLimit'), 0, recoveryMode ? 40 : 20)
+              : isSmallMemoryRuntime()
+                ? 3
+                : recoveryMode
+                  ? 10
+                  : 5,
+            providerValidationLimit: params.has('providerValidationLimit')
+              ? clampLimit(
+                  params.get('providerValidationLimit'),
+                  0,
+                  recoveryMode || plan.mode === 'growth' ? 250 : 20
+                )
+              : isSmallMemoryRuntime()
+                ? 20
+                : recoveryMode || plan.mode === 'growth'
+                  ? 100
+                  : 20,
+            networkDeadlineMs: finalResearchNetworkBudgetMs,
           })
         )
       }
@@ -3312,6 +3354,8 @@ export async function GET(request: NextRequest) {
     const providerValidationChecks = getNumericField(approvalStage?.data, 'providerValidationChecks')
     const providerValidationValid = getNumericField(approvalStage?.data, 'providerValidationValid')
     const providerValidationInvalid = getNumericField(approvalStage?.data, 'providerValidationInvalid')
+    const providerValidationRisky = getNumericField(approvalStage?.data, 'providerValidationRisky')
+    const providerValidationUnknown = getNumericField(approvalStage?.data, 'providerValidationUnknown')
     const providerValidationBlocked = getNumericField(approvalStage?.data, 'providerValidationBlocked')
     const staleInvalidBlocked = getNumericField(approvalStage?.data, 'staleInvalidBlocked')
 
@@ -3372,6 +3416,8 @@ export async function GET(request: NextRequest) {
       providerValidationChecks,
       providerValidationValid,
       providerValidationInvalid,
+      providerValidationRisky,
+      providerValidationUnknown,
       providerValidationBlocked,
       staleInvalidBlocked,
       followupsProcessed,
@@ -3432,6 +3478,7 @@ export async function GET(request: NextRequest) {
           `mapsSource=${mapsSource}`,
           `approved=${approved}`,
           `queued=${queued}`,
+          `leadScout=${leadScoutImported}/${leadScoutEvidenceBacked}`,
           `agency=${agencyQueued}`,
           `direct=${directQueued}`,
           `quarantined=${quarantinedApprovedContacts}`,
@@ -3441,6 +3488,7 @@ export async function GET(request: NextRequest) {
           `agencyShortfall=${agencyShortfall}`,
           `directShortfall=${directShortfall}`,
           `failures=${hardFailures.length}`,
+          `validation=${providerValidationChecks}/${providerValidationValid}/${providerValidationRisky}/${providerValidationUnknown}/${providerValidationInvalid}/${providerValidationBlocked}`,
           `capacity=${capacityDiagnosis.currentRemainingCapacity}`,
           `blocker=${capacityDiagnosis.primaryBlocker}`,
           `floor=${volumeAdjustment.band.minDailyVolume}`,
