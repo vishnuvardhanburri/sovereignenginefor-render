@@ -51,10 +51,12 @@ function appendCommonParams(url: URL, kind: CycleKind, discoverySource: Discover
   url.searchParams.set('approveLimit', String(approveLimit))
   url.searchParams.set('providerValidationLimit', '0')
   url.searchParams.set('evidenceFetchLimit', '0')
+  url.searchParams.set('returnAfterQueue', '1')
   url.searchParams.set('mapsImport', '0')
   url.searchParams.set('hunterSearch', '0')
 
   if (kind === 'queue') {
+    url.searchParams.set('cycleDeadlineMs', String(envInt('FREE_MAIL_PUMP_QUEUE_DEADLINE_MS', safeMode ? 12000 : 20000, 5000, 60000)))
     url.searchParams.set('queueOnly', '1')
     url.searchParams.set('leadScout', '0')
     url.searchParams.set('publicSearch', '0')
@@ -73,6 +75,7 @@ function appendCommonParams(url: URL, kind: CycleKind, discoverySource: Discover
   url.searchParams.set('evidenceDeadlineMs', String(envInt('FREE_MAIL_PUMP_EVIDENCE_DEADLINE_MS', safeMode ? 3500 : 8000, 1000, 15000)))
   url.searchParams.set('evidenceMaxPages', String(envInt('FREE_MAIL_PUMP_EVIDENCE_MAX_PAGES', safeMode ? 1 : 3, 1, 4)))
   url.searchParams.set('evidenceRequestTimeoutMs', String(envInt('FREE_MAIL_PUMP_EVIDENCE_REQUEST_TIMEOUT_MS', safeMode ? 900 : 1200, 500, 2500)))
+  url.searchParams.set('cycleDeadlineMs', String(envInt('FREE_MAIL_PUMP_DISCOVERY_DEADLINE_MS', safeMode ? 16000 : 65000, 5000, 120000)))
 }
 
 function summarize(body: string): Record<string, unknown> {

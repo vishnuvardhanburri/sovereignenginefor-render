@@ -183,10 +183,15 @@ function appendCommonParams(url, kind, discoverySource = 'both') {
     'approveLimit',
     String(kind === 'queue' ? queueApproveLimit : Math.max(queueApproveLimit, researchApproveLimit))
   )
+  url.searchParams.set('returnAfterQueue', '1')
   url.searchParams.set('mapsImport', '0')
   url.searchParams.set('hunterSearch', '0')
 
   if (kind === 'queue') {
+    url.searchParams.set(
+      'cycleDeadlineMs',
+      String(envInt('FREE_MAIL_PUMP_QUEUE_DEADLINE_MS', safeMode ? 12000 : 20000, 5000, safeMode ? 25000 : 60000))
+    )
     url.searchParams.set('providerValidationLimit', '0')
     url.searchParams.set('evidenceFetchLimit', '0')
     url.searchParams.set('queueOnly', '1')
@@ -203,11 +208,11 @@ function appendCommonParams(url, kind, discoverySource = 'both') {
   )
   url.searchParams.set(
     'providerValidationLimit',
-    String(envInt('FREE_MAIL_PUMP_PROVIDER_VALIDATION_LIMIT', safeMode ? 80 : 250, 0, safeMode ? 250 : 1_000))
+    String(envInt('FREE_MAIL_PUMP_PROVIDER_VALIDATION_LIMIT', safeMode ? 25 : 250, 0, safeMode ? 80 : 1_000))
   )
   url.searchParams.set(
     'evidenceFetchLimit',
-    String(envInt('FREE_MAIL_PUMP_EVIDENCE_FETCH_LIMIT', safeMode ? 8 : 20, 0, safeMode ? 20 : 100))
+    String(envInt('FREE_MAIL_PUMP_EVIDENCE_FETCH_LIMIT', safeMode ? 4 : 20, 0, safeMode ? 8 : 100))
   )
   const runLeadScout =
     discoverySource !== 'public_search' && envBool('LEAD_SCOUT_ENABLED', true)
@@ -215,12 +220,16 @@ function appendCommonParams(url, kind, discoverySource = 'both') {
     discoverySource !== 'lead_scout' && envBool('PUBLIC_SEARCH_SOURCE_ENABLED', true)
 
   url.searchParams.set('leadScout', runLeadScout ? '1' : '0')
-  url.searchParams.set('leadScoutLimit', String(envInt('FREE_MAIL_PUMP_LEAD_SCOUT_LIMIT', safeMode ? 40 : 100, 0, safeMode ? 120 : 1_000)))
+  url.searchParams.set('leadScoutLimit', String(envInt('FREE_MAIL_PUMP_LEAD_SCOUT_LIMIT', safeMode ? 10 : 100, 0, safeMode ? 40 : 1_000)))
   url.searchParams.set('publicSearch', runPublicSearch ? '1' : '0')
-  url.searchParams.set('publicSearchLimit', String(envInt('FREE_MAIL_PUMP_PUBLIC_SEARCH_LIMIT', safeMode ? 20 : 100, 0, safeMode ? 120 : 1_000)))
-  url.searchParams.set('evidenceDeadlineMs', String(envInt('FREE_MAIL_PUMP_EVIDENCE_DEADLINE_MS', safeMode ? 6000 : 8000, 800, safeMode ? 10000 : 15000)))
+  url.searchParams.set('publicSearchLimit', String(envInt('FREE_MAIL_PUMP_PUBLIC_SEARCH_LIMIT', safeMode ? 8 : 100, 0, safeMode ? 30 : 1_000)))
+  url.searchParams.set('evidenceDeadlineMs', String(envInt('FREE_MAIL_PUMP_EVIDENCE_DEADLINE_MS', safeMode ? 3500 : 8000, 800, safeMode ? 6000 : 15000)))
   url.searchParams.set('evidenceMaxPages', String(envInt('FREE_MAIL_PUMP_EVIDENCE_MAX_PAGES', safeMode ? 2 : 3, 1, safeMode ? 3 : 4)))
   url.searchParams.set('evidenceRequestTimeoutMs', String(envInt('FREE_MAIL_PUMP_EVIDENCE_REQUEST_TIMEOUT_MS', safeMode ? 1200 : 1200, 400, safeMode ? 2000 : 2500)))
+  url.searchParams.set(
+    'cycleDeadlineMs',
+    String(envInt('FREE_MAIL_PUMP_DISCOVERY_DEADLINE_MS', safeMode ? 16000 : 65000, 5000, safeMode ? 25000 : 120000))
+  )
 }
 
 async function runCycle(kind, discoverySource = 'both') {
@@ -242,7 +251,7 @@ async function runCycle(kind, discoverySource = 'both') {
     const controller = new AbortController()
     const timeout = setTimeout(
       () => controller.abort(),
-      envInt('FREE_MAIL_PUMP_TIMEOUT_MS', kind === 'queue' ? 35000 : safeMode ? 18000 : 90000, 5000, safeMode ? 45000 : 120000)
+      envInt('FREE_MAIL_PUMP_TIMEOUT_MS', kind === 'queue' ? (safeMode ? 18000 : 35000) : safeMode ? 22000 : 90000, 5000, safeMode ? 45000 : 120000)
     )
 
     try {

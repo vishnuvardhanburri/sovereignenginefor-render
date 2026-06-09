@@ -108,6 +108,7 @@ type DiscoveryStageInput = {
   evidenceDeadlineMs?: string | null
   evidenceMaxPagesPerLead?: string | null
   evidenceRequestTimeoutMs?: string | null
+  cycleDeadlineAt?: number
   skipEvidenceVerification?: boolean
 }
 
@@ -154,6 +155,62 @@ function boundedEvidenceParam(raw: string | null, fallback: number, max: number)
   const parsed = Number.parseInt(raw ?? '', 10)
   const value = Number.isFinite(parsed) ? parsed : fallback
   return String(Math.max(1, Math.min(Math.trunc(value), max)))
+}
+
+function boundedInteger(value: unknown, fallback: number, min: number, max: number): number {
+  const parsed = Number.parseInt(String(value ?? ''), 10)
+  const numeric = Number.isFinite(parsed) ? Math.trunc(parsed) : fallback
+  return Math.max(min, Math.min(numeric, max))
+}
+
+function resolveCycleDeadlineMs(params: URLSearchParams, compactResponse: boolean): number {
+  const fallback = compactResponse || isSmallMemoryRuntime() ? 22_000 : 55_000
+  return boundedInteger(
+    params.get('cycleDeadlineMs') ||
+      params.get('deadlineMs') ||
+      process.env.DAILY_OUTBOUND_CYCLE_DEADLINE_MS,
+    fallback,
+    5_000,
+    120_000
+  )
+}
+
+function cycleRemainingMs(deadlineAt: number): number {
+  return Math.max(0, deadlineAt - Date.now())
+}
+
+function hasCycleBudget(deadlineAt: number, minimumMs = 1_500): boolean {
+  return cycleRemainingMs(deadlineAt) >= minimumMs
+}
+
+function capCycleBudgetMs(
+  value: string | null | undefined,
+  deadlineAt: number,
+  fallback: number,
+  reserveMs = 1_500
+): string | null {
+  const parsed = Number.parseInt(String(value ?? ''), 10)
+  const requested = Number.isFinite(parsed) ? Math.trunc(parsed) : fallback
+  const available = Math.max(1, cycleRemainingMs(deadlineAt) - reserveMs)
+  return String(Math.max(1, Math.min(requested, available)))
+}
+
+function skipCycleDeadlineStage(stage: StageResult['stage']): StageResult {
+  return {
+    stage,
+    ok: true,
+    status: 204,
+    skipped: 'cycle_deadline_reached',
+  }
+}
+
+function shouldReturnAfterQueue(params: URLSearchParams, compactResponse: boolean): boolean {
+  return envBool(
+    params.get('returnAfterQueue') ||
+      params.get('fastReturn') ||
+      process.env.DAILY_OUTBOUND_RETURN_AFTER_QUEUE,
+    compactResponse || isSmallMemoryRuntime()
+  )
 }
 
 function clampThreshold(value: unknown): number {
@@ -632,14 +689,14 @@ function resolveLeadScoutEvidenceOptions(input: {
 }) {
   return {
     deadlineMs: Math.max(
-      5_000,
+      800,
       Math.min(
         numberFromValue(input.deadlineMs, numberFromValue(process.env.LEAD_SCOUT_EVIDENCE_DEADLINE_MS, 25_000)),
         55_000
       )
     ),
     maxPagesPerLead: Math.max(
-      3,
+      1,
       Math.min(
         numberFromValue(input.maxPagesPerLead, numberFromValue(process.env.LEAD_SCOUT_EVIDENCE_MAX_PAGES, 8)),
         12
@@ -758,6 +815,10 @@ async function runSenderReconcileStage(clientId: number): Promise<StageResult> {
 
 async function runLeadScoutStage(input: DiscoveryStageInput): Promise<StageResult> {
   try {
+    if (input.cycleDeadlineAt && !hasCycleBudget(input.cycleDeadlineAt, 2_500)) {
+      return skipCycleDeadlineStage('lead_scout')
+    }
+
     const defaultIndustry =
       process.env.DAILY_OUTBOUND_PRIMARY_INDUSTRY ||
       process.env.DAILY_OUTBOUND_RESEARCH_INDUSTRY ||
@@ -774,9 +835,13 @@ async function runLeadScoutStage(input: DiscoveryStageInput): Promise<StageResul
       ? result.leads
       : await verifyOpenLeadEvidenceTimeboxed(result.leads, {
           ...resolveLeadScoutEvidenceOptions({
-            deadlineMs: input.evidenceDeadlineMs,
+            deadlineMs: input.cycleDeadlineAt
+              ? capCycleBudgetMs(input.evidenceDeadlineMs, input.cycleDeadlineAt, 25_000)
+              : input.evidenceDeadlineMs,
             maxPagesPerLead: input.evidenceMaxPagesPerLead,
-            requestTimeoutMs: input.evidenceRequestTimeoutMs,
+            requestTimeoutMs: input.cycleDeadlineAt
+              ? capCycleBudgetMs(input.evidenceRequestTimeoutMs, input.cycleDeadlineAt, 2_500, 1_000)
+              : input.evidenceRequestTimeoutMs,
           }),
         })
     const importableLeads = requireExactPublicEmailEvidence()
@@ -838,12 +903,14 @@ async function runBalancedLeadScoutStage(input: DiscoveryStageInput): Promise<St
 
   const limits = splitDiscoveryLimit(input.limit)
   const directIndustry = resolveDirectDiscoveryIndustry()
-  const stages = [
-    await runLeadScoutStage({ ...input, limit: limits.agency, industry: 'agency' }),
-    ...(limits.direct > 0
-      ? [await runLeadScoutStage({ ...input, limit: limits.direct, industry: directIndustry })]
-      : []),
-  ]
+  const stages = [await runLeadScoutStage({ ...input, limit: limits.agency, industry: 'agency' })]
+  if (limits.direct > 0) {
+    stages.push(
+      input.cycleDeadlineAt && !hasCycleBudget(input.cycleDeadlineAt, 2_500)
+        ? skipCycleDeadlineStage('lead_scout')
+        : await runLeadScoutStage({ ...input, limit: limits.direct, industry: directIndustry })
+    )
+  }
 
   return combineDiscoveryStages('lead_scout', stages, {
     limit: input.limit,
@@ -853,11 +920,24 @@ async function runBalancedLeadScoutStage(input: DiscoveryStageInput): Promise<St
 
 async function runPublicSearchStage(input: DiscoveryStageInput & { queries?: string[] | undefined }): Promise<StageResult> {
   try {
+    if (input.cycleDeadlineAt && !hasCycleBudget(input.cycleDeadlineAt, 2_500)) {
+      return skipCycleDeadlineStage('public_search')
+    }
+
     const apiKey = process.env.SERPAPI_API_KEY || process.env.PUBLIC_SEARCH_SERPAPI_KEY || ''
     const defaultIndustry =
       process.env.DAILY_OUTBOUND_PRIMARY_INDUSTRY ||
       process.env.DAILY_OUTBOUND_RESEARCH_INDUSTRY ||
       'agency'
+    const searchTimeoutMs = input.cycleDeadlineAt
+      ? Math.max(
+          1_000,
+          Math.min(
+            numberFromValue(process.env.PUBLIC_SEARCH_TIMEOUT_MS, 55_000),
+            cycleRemainingMs(input.cycleDeadlineAt) - 1_500
+          )
+        )
+      : numberFromValue(process.env.PUBLIC_SEARCH_TIMEOUT_MS, 55_000)
 
     const result = await searchPublicSearchLeads({
       provider: apiKey ? 'serpapi' : 'bing_html',
@@ -866,7 +946,7 @@ async function runPublicSearchStage(input: DiscoveryStageInput & { queries?: str
       persona: input.persona || process.env.LEAD_SCOUT_PERSONA || 'founder',
       region: input.region || process.env.LEAD_SCOUT_REGION || process.env.APIFY_GOOGLE_MAPS_LOCATION || 'United States',
       limit: input.limit,
-      timeoutMs: numberFromValue(process.env.PUBLIC_SEARCH_TIMEOUT_MS, 55_000),
+      timeoutMs: searchTimeoutMs,
       queries: input.queries,
     })
     const skippedEvidenceVerification = Boolean(input.skipEvidenceVerification)
@@ -874,9 +954,13 @@ async function runPublicSearchStage(input: DiscoveryStageInput & { queries?: str
       ? result.leads
       : await verifyOpenLeadEvidenceTimeboxed(result.leads, {
           ...resolveLeadScoutEvidenceOptions({
-            deadlineMs: input.evidenceDeadlineMs,
+            deadlineMs: input.cycleDeadlineAt
+              ? capCycleBudgetMs(input.evidenceDeadlineMs, input.cycleDeadlineAt, 25_000)
+              : input.evidenceDeadlineMs,
             maxPagesPerLead: input.evidenceMaxPagesPerLead,
-            requestTimeoutMs: input.evidenceRequestTimeoutMs,
+            requestTimeoutMs: input.cycleDeadlineAt
+              ? capCycleBudgetMs(input.evidenceRequestTimeoutMs, input.cycleDeadlineAt, 2_500, 1_000)
+              : input.evidenceRequestTimeoutMs,
           }),
         })
     const importableLeads = requireExactPublicEmailEvidence()
@@ -949,12 +1033,14 @@ async function runBalancedPublicSearchStage(
 
   const limits = splitDiscoveryLimit(input.limit)
   const directIndustry = resolveDirectDiscoveryIndustry()
-  const stages = [
-    await runPublicSearchStage({ ...input, limit: limits.agency, industry: 'agency' }),
-    ...(limits.direct > 0
-      ? [await runPublicSearchStage({ ...input, limit: limits.direct, industry: directIndustry })]
-      : []),
-  ]
+  const stages = [await runPublicSearchStage({ ...input, limit: limits.agency, industry: 'agency' })]
+  if (limits.direct > 0) {
+    stages.push(
+      input.cycleDeadlineAt && !hasCycleBudget(input.cycleDeadlineAt, 2_500)
+        ? skipCycleDeadlineStage('public_search')
+        : await runPublicSearchStage({ ...input, limit: limits.direct, industry: directIndustry })
+    )
+  }
 
   return combineDiscoveryStages('public_search', stages, {
     limit: input.limit,
@@ -1480,6 +1566,7 @@ async function runResearchApproval(input: {
   approveLimit: number
   evidenceFetchLimit?: number
   providerValidationLimit?: number
+  networkDeadlineMs?: number
   recoveryMode?: boolean
   growthMode?: boolean
 }): Promise<StageResult> {
@@ -1512,7 +1599,7 @@ async function runResearchApproval(input: {
           ? 250
           : 20
     )
-    const networkDeadlineMs = input.dryRun ? (recoveryMode ? 20_000 : 8_000) : 45_000
+    const networkDeadlineMs = input.networkDeadlineMs ?? (input.dryRun ? (recoveryMode ? 20_000 : 8_000) : 45_000)
     const networkDeadlineAt = Date.now() + networkDeadlineMs
     let evidenceFetches = 0
     let evidenceMatches = 0
@@ -2643,20 +2730,33 @@ export async function GET(request: NextRequest) {
         process.env.DAILY_OUTBOUND_QUEUE_ONLY,
       false
     )
-    const evidenceDeadlineMs = boundedEvidenceParam(
+    const returnAfterQueue = shouldReturnAfterQueue(params, compactResponse)
+    const cycleDeadlineMs = resolveCycleDeadlineMs(params, compactResponse)
+    const cycleDeadlineAt = Date.now() + cycleDeadlineMs
+    const configuredEvidenceDeadlineMs = boundedEvidenceParam(
       params.get('leadScoutEvidenceDeadlineMs') || params.get('evidenceDeadlineMs'),
       25_000,
       30_000
+    )
+    const evidenceDeadlineMs = capCycleBudgetMs(
+      configuredEvidenceDeadlineMs,
+      cycleDeadlineAt,
+      25_000
     )
     const evidenceMaxPages = boundedEvidenceParam(
       params.get('leadScoutEvidenceMaxPages') || params.get('evidenceMaxPages'),
       6,
       6
     )
-    const evidenceRequestTimeoutMs = boundedEvidenceParam(
-      params.get('leadScoutEvidenceRequestTimeoutMs') || params.get('evidenceRequestTimeoutMs'),
+    const evidenceRequestTimeoutMs = capCycleBudgetMs(
+      boundedEvidenceParam(
+        params.get('leadScoutEvidenceRequestTimeoutMs') || params.get('evidenceRequestTimeoutMs'),
+        2_500,
+        3_000
+      ),
+      cycleDeadlineAt,
       2_500,
-      3_000
+      1_000
     )
     const skipEvidenceVerification = skipLeadEvidenceVerification(
       params.get('skipLeadEvidence') || params.get('skipEvidence')
@@ -2700,7 +2800,11 @@ export async function GET(request: NextRequest) {
       }
 
       if (preResearchQueued > 0 || queueOnly) {
-        const continueResearchAfterQueue = plan.researchUnlimited && !queueOnly
+        const continueResearchAfterQueue =
+          plan.researchUnlimited &&
+          !queueOnly &&
+          !returnAfterQueue &&
+          hasCycleBudget(cycleDeadlineAt, 4_000)
         if (continueResearchAfterQueue) {
           plan.guardrails.push(
             'This cycle already queued send slots, but autonomous research will continue to build future ready inventory'
@@ -2770,7 +2874,7 @@ export async function GET(request: NextRequest) {
 
         if (getNumericField(fastQueueStage.data, 'queued') > 0) {
           sendSlotsAlreadyQueued = true
-          if (plan.researchUnlimited) {
+          if (plan.researchUnlimited && !returnAfterQueue && hasCycleBudget(cycleDeadlineAt, 4_000)) {
             plan.guardrails.push(
               'Fast approval queued send slots, but autonomous research will continue for future inventory'
             )
@@ -2820,6 +2924,9 @@ export async function GET(request: NextRequest) {
     }
 
     if (!queuedBeforeResearch && plan.runPublicSearch) {
+      if (!hasCycleBudget(cycleDeadlineAt, 3_000)) {
+        stages.push(skipCycleDeadlineStage('public_search'))
+      } else {
       stages.push(
         await runBalancedPublicSearchStage({
           clientId: plan.clientId,
@@ -2832,9 +2939,11 @@ export async function GET(request: NextRequest) {
           evidenceDeadlineMs,
           evidenceMaxPagesPerLead: evidenceMaxPages,
           evidenceRequestTimeoutMs,
+          cycleDeadlineAt,
           skipEvidenceVerification,
         })
       )
+      }
     } else if (!queuedBeforeResearch) {
       stages.push({
         stage: 'public_search',
@@ -2845,6 +2954,9 @@ export async function GET(request: NextRequest) {
     }
 
     if (!queuedBeforeResearch && plan.runLeadScout) {
+      if (!hasCycleBudget(cycleDeadlineAt, 3_000)) {
+        stages.push(skipCycleDeadlineStage('lead_scout'))
+      } else {
       stages.push(
         await runBalancedLeadScoutStage({
           clientId: plan.clientId,
@@ -2856,9 +2968,11 @@ export async function GET(request: NextRequest) {
           evidenceDeadlineMs,
           evidenceMaxPagesPerLead: evidenceMaxPages,
           evidenceRequestTimeoutMs,
+          cycleDeadlineAt,
           skipEvidenceVerification,
         })
       )
+      }
     } else if (!queuedBeforeResearch) {
       stages.push({
         stage: 'lead_scout',
@@ -2869,6 +2983,9 @@ export async function GET(request: NextRequest) {
     }
 
     if (!queuedBeforeResearch && plan.runResearchApproval) {
+      if (!hasCycleBudget(cycleDeadlineAt, 1_500)) {
+        stages.push(skipCycleDeadlineStage('research_approval'))
+      } else {
       stages.push(
         await runResearchApproval({
           clientId: plan.clientId,
@@ -2878,8 +2995,10 @@ export async function GET(request: NextRequest) {
           growthMode: plan.mode === 'growth',
           evidenceFetchLimit: 0,
           providerValidationLimit: 0,
+          networkDeadlineMs: Math.max(500, cycleRemainingMs(cycleDeadlineAt) - 500),
         })
       )
+      }
     }
 
     if (!queuedBeforeResearch && plan.runQueue && !sendSlotsAlreadyQueued) {
@@ -2891,7 +3010,7 @@ export async function GET(request: NextRequest) {
       stages.push(fastQueueStage)
       if (getNumericField(fastQueueStage.data, 'queued') > 0) {
         sendSlotsAlreadyQueued = true
-        if (plan.researchUnlimited) {
+        if (plan.researchUnlimited && !returnAfterQueue && hasCycleBudget(cycleDeadlineAt, 4_000)) {
           plan.guardrails.push(
             'Research-stage queue filled send slots, but later discovery sources will still run'
           )
@@ -2909,6 +3028,9 @@ export async function GET(request: NextRequest) {
     }
 
     if (!queuedBeforeResearch && plan.runMapsImport) {
+      if (!hasCycleBudget(cycleDeadlineAt, 4_000)) {
+        stages.push(skipCycleDeadlineStage('maps_import'))
+      } else {
       stages.push(
         await runMapsImport({
           clientId: plan.clientId,
@@ -2942,6 +3064,7 @@ export async function GET(request: NextRequest) {
           region: params.get('mapsRegion') || params.get('region'),
         })
       )
+      }
     } else if (!queuedBeforeResearch) {
       stages.push({
         stage: 'maps_import',
@@ -2952,6 +3075,9 @@ export async function GET(request: NextRequest) {
     }
 
     if (!queuedBeforeResearch && plan.runSheetImport) {
+      if (!hasCycleBudget(cycleDeadlineAt, 4_000)) {
+        stages.push(skipCycleDeadlineStage('sheet_import'))
+      } else {
       stages.push(
         await runSheetImport({
           clientId: plan.clientId,
@@ -2960,6 +3086,7 @@ export async function GET(request: NextRequest) {
           sheetLimit: plan.sheetLimit,
         })
       )
+      }
     } else if (!queuedBeforeResearch) {
       stages.push({
         stage: 'sheet_import',
@@ -2970,6 +3097,9 @@ export async function GET(request: NextRequest) {
     }
 
     if (!queuedBeforeResearch && runHunterSearch) {
+      if (!hasCycleBudget(cycleDeadlineAt, 5_000)) {
+        stages.push(skipCycleDeadlineStage('hunter_domain_search'))
+      } else {
       stages.push(
         await runHunterDomainSearch({
           clientId: plan.clientId,
@@ -2991,6 +3121,7 @@ export async function GET(request: NextRequest) {
           ),
         })
       )
+      }
     } else if (!queuedBeforeResearch) {
       stages.push({
         stage: 'hunter_domain_search',
@@ -3001,6 +3132,9 @@ export async function GET(request: NextRequest) {
     }
 
     if (!queuedBeforeResearch && plan.runResearchApproval) {
+      if (!hasCycleBudget(cycleDeadlineAt, 1_500)) {
+        stages.push(skipCycleDeadlineStage('research_approval'))
+      } else {
       stages.push(
         await runResearchApproval({
           clientId: plan.clientId,
@@ -3018,8 +3152,10 @@ export async function GET(request: NextRequest) {
                 recoveryMode || plan.mode === 'growth' ? 250 : 20
               )
             : undefined,
+          networkDeadlineMs: Math.max(500, cycleRemainingMs(cycleDeadlineAt) - 500),
         })
       )
+      }
     }
 
     if (!queuedBeforeResearch && plan.runQueue && !sendSlotsAlreadyQueued) {
@@ -3046,15 +3182,22 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    // Run follow-ups stage
-    stages.push(
-      await runFollowupsStage({
-        clientId: plan.clientId,
-        dryRun: plan.dryRun,
-      })
-    )
+    if (hasCycleBudget(cycleDeadlineAt, 1_000)) {
+      stages.push(
+        await runFollowupsStage({
+          clientId: plan.clientId,
+          dryRun: plan.dryRun,
+        })
+      )
+    } else {
+      stages.push(skipCycleDeadlineStage('run_followups'))
+    }
 
-    stages.push(await runEventRetentionStage(plan.clientId))
+    if (hasCycleBudget(cycleDeadlineAt, 1_000)) {
+      stages.push(await runEventRetentionStage(plan.clientId))
+    } else {
+      stages.push(skipCycleDeadlineStage('event_retention'))
+    }
 
     const queueStages = stages.filter((stage) => stage.stage === 'queue_outbound')
     const queuedStage = queueStages.at(-1)
@@ -3193,6 +3336,9 @@ export async function GET(request: NextRequest) {
       dailyRemainingToCeiling: volumeAdjustment.remainingToMax,
       researchUnlimited: plan.researchUnlimited,
       readyInventoryTarget: plan.readyInventoryTarget,
+      cycleDeadlineMs,
+      cycleRemainingMs: cycleRemainingMs(cycleDeadlineAt),
+      returnAfterQueue,
     }
 
     void notifyTelegramEvent({
@@ -3241,6 +3387,9 @@ export async function GET(request: NextRequest) {
           `sendLimit=${plan.sendLimit}`,
           `researchUnlimited=${plan.researchUnlimited ? 1 : 0}`,
           `readyTarget=${plan.readyInventoryTarget}`,
+          `deadlineMs=${cycleDeadlineMs}`,
+          `deadlineRemaining=${summary.cycleRemainingMs}`,
+          `returnAfterQueue=${returnAfterQueue ? 1 : 0}`,
         ].join(' '),
         {
           status: hardFailures.length === 0 ? 200 : 207,
