@@ -2990,36 +2990,6 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    if (!queuedBeforeResearch && plan.runPublicSearch) {
-      if (!hasCycleBudget(cycleDeadlineAt, 3_000)) {
-        stages.push(skipCycleDeadlineStage('public_search'))
-      } else {
-      stages.push(
-        await runBalancedPublicSearchStage({
-          clientId: plan.clientId,
-          dryRun: plan.dryRun,
-          limit: plan.publicSearchLimit,
-          industry: params.get('industry') || params.get('publicSearchIndustry') || params.get('leadScoutIndustry'),
-          persona: params.get('persona') || params.get('publicSearchPersona') || params.get('leadScoutPersona'),
-          region: params.get('region') || params.get('publicSearchRegion') || params.get('leadScoutRegion'),
-          queries: resolvePublicSearchQueries(params.get('publicSearchQueries') || params.get('serpApiQueries')),
-          evidenceDeadlineMs,
-          evidenceMaxPagesPerLead: evidenceMaxPages,
-          evidenceRequestTimeoutMs,
-          cycleDeadlineAt,
-          skipEvidenceVerification,
-        })
-      )
-      }
-    } else if (!queuedBeforeResearch) {
-      stages.push({
-        stage: 'public_search',
-        ok: true,
-        status: 204,
-        skipped: 'public_search_disabled_or_no_provider_key',
-      })
-    }
-
     if (!queuedBeforeResearch && plan.runLeadScout) {
       if (!hasCycleBudget(cycleDeadlineAt, 3_000)) {
         stages.push(skipCycleDeadlineStage('lead_scout'))
@@ -3046,6 +3016,45 @@ export async function GET(request: NextRequest) {
         ok: true,
         status: 204,
         skipped: 'lead_scout_disabled',
+      })
+    }
+
+    if (!queuedBeforeResearch && plan.runPublicSearch) {
+      if (!hasCycleBudget(cycleDeadlineAt, 12_000)) {
+        stages.push({
+          stage: 'public_search',
+          ok: true,
+          status: 204,
+          skipped: 'approval_time_reserved',
+        })
+      } else {
+      const publicSearchDeadlineAt = Math.min(
+        cycleDeadlineAt,
+        Date.now() + Math.max(1_000, cycleRemainingMs(cycleDeadlineAt) - 10_000)
+      )
+      stages.push(
+        await runBalancedPublicSearchStage({
+          clientId: plan.clientId,
+          dryRun: plan.dryRun,
+          limit: plan.publicSearchLimit,
+          industry: params.get('industry') || params.get('publicSearchIndustry') || params.get('leadScoutIndustry'),
+          persona: params.get('persona') || params.get('publicSearchPersona') || params.get('leadScoutPersona'),
+          region: params.get('region') || params.get('publicSearchRegion') || params.get('leadScoutRegion'),
+          queries: resolvePublicSearchQueries(params.get('publicSearchQueries') || params.get('serpApiQueries')),
+          evidenceDeadlineMs,
+          evidenceMaxPagesPerLead: evidenceMaxPages,
+          evidenceRequestTimeoutMs,
+          cycleDeadlineAt: publicSearchDeadlineAt,
+          skipEvidenceVerification,
+        })
+      )
+      }
+    } else if (!queuedBeforeResearch) {
+      stages.push({
+        stage: 'public_search',
+        ok: true,
+        status: 204,
+        skipped: 'public_search_disabled_or_no_provider_key',
       })
     }
 
@@ -3292,7 +3301,15 @@ export async function GET(request: NextRequest) {
 
     const queueStages = stages.filter((stage) => stage.stage === 'queue_outbound')
     const queuedStage = queueStages.at(-1)
-    const approvalStage = stages.find((stage) => stage.stage === 'research_approval')
+    const approvalStages = stages.filter((stage) => stage.stage === 'research_approval')
+    const approvalStage =
+      [...approvalStages]
+        .reverse()
+        .find((stage) =>
+          getNumericField(stage.data, 'scanned') > 0 ||
+          getNumericField(stage.data, 'approved') > 0 ||
+          getNumericField(stage.data, 'providerValidationChecks') > 0
+        ) ?? approvalStages[approvalStages.length - 1]
     const sheetStage = stages.find((stage) => stage.stage === 'sheet_import')
     const mapsStage = stages.find((stage) => stage.stage === 'maps_import')
     const publicSearchStage = stages.find((stage) => stage.stage === 'public_search')
@@ -3329,7 +3346,10 @@ export async function GET(request: NextRequest) {
       (total, stage) => total + getNumericField(stage.data, 'directShortfall'),
       0
     )
-    const approved = getNumericField(approvalStage?.data, 'approved')
+    const approved = approvalStages.reduce(
+      (total, stage) => total + getNumericField(stage.data, 'approved'),
+      0
+    )
     const imported = getNumericField(sheetStage?.data, 'imported')
     const mapsImported = getNumericField(mapsStage?.data, 'imported')
     const mapsPrepared = getNumericField(mapsStage?.data, 'prepared')
@@ -3351,13 +3371,34 @@ export async function GET(request: NextRequest) {
     const hunterRejected = getNumericField(hunterStage?.data, 'rejected')
     const senderReconcileStage = stages.find((stage) => stage.stage === 'sender_reconcile')
     const sendersReconciled = getNumericField(senderReconcileStage?.data, 'bootstrapped')
-    const providerValidationChecks = getNumericField(approvalStage?.data, 'providerValidationChecks')
-    const providerValidationValid = getNumericField(approvalStage?.data, 'providerValidationValid')
-    const providerValidationInvalid = getNumericField(approvalStage?.data, 'providerValidationInvalid')
-    const providerValidationRisky = getNumericField(approvalStage?.data, 'providerValidationRisky')
-    const providerValidationUnknown = getNumericField(approvalStage?.data, 'providerValidationUnknown')
-    const providerValidationBlocked = getNumericField(approvalStage?.data, 'providerValidationBlocked')
-    const staleInvalidBlocked = getNumericField(approvalStage?.data, 'staleInvalidBlocked')
+    const providerValidationChecks = approvalStages.reduce(
+      (total, stage) => total + getNumericField(stage.data, 'providerValidationChecks'),
+      0
+    )
+    const providerValidationValid = approvalStages.reduce(
+      (total, stage) => total + getNumericField(stage.data, 'providerValidationValid'),
+      0
+    )
+    const providerValidationInvalid = approvalStages.reduce(
+      (total, stage) => total + getNumericField(stage.data, 'providerValidationInvalid'),
+      0
+    )
+    const providerValidationRisky = approvalStages.reduce(
+      (total, stage) => total + getNumericField(stage.data, 'providerValidationRisky'),
+      0
+    )
+    const providerValidationUnknown = approvalStages.reduce(
+      (total, stage) => total + getNumericField(stage.data, 'providerValidationUnknown'),
+      0
+    )
+    const providerValidationBlocked = approvalStages.reduce(
+      (total, stage) => total + getNumericField(stage.data, 'providerValidationBlocked'),
+      0
+    )
+    const staleInvalidBlocked = approvalStages.reduce(
+      (total, stage) => total + getNumericField(stage.data, 'staleInvalidBlocked'),
+      0
+    )
 
     const followupsStage = stages.find((stage) => stage.stage === 'run_followups')
     const followupsProcessed = getNumericField(followupsStage?.data, 'processed')
