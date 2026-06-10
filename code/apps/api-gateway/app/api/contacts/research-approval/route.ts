@@ -54,6 +54,14 @@ async function getResearchPool(clientId: number) {
        AND bounced_at IS NULL
        AND unsubscribed_at IS NULL
        AND COALESCE(custom_fields->>'send_status', 'not_approved') NOT IN ('approved', 'queued', 'blocked', 'review')
+       AND COALESCE(verification_status, 'pending') NOT IN ('invalid', 'do_not_mail')
+       AND NOT EXISTS (
+         SELECT 1
+         FROM events e
+         WHERE e.client_id = contacts.client_id
+           AND e.contact_id = contacts.id
+           AND e.event_type IN ('sent', 'failed', 'bounce', 'bounced')
+       )
        AND (
          source IN (
            'google_sheet_import',
@@ -362,6 +370,14 @@ async function researchApproval(request: NextRequest, apply: boolean) {
        AND contacts.status = 'active'
        AND contacts.bounced_at IS NULL
        AND contacts.unsubscribed_at IS NULL
+       AND COALESCE(contacts.verification_status, 'pending') NOT IN ('invalid', 'do_not_mail')
+       AND NOT EXISTS (
+         SELECT 1
+         FROM events e
+         WHERE e.client_id = contacts.client_id
+           AND e.contact_id = contacts.id
+           AND e.event_type IN ('sent', 'failed', 'bounce', 'bounced')
+       )
      RETURNING contacts.id, contacts.email, contacts.company, contacts.custom_fields`,
     [
       clientId,

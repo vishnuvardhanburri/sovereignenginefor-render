@@ -132,6 +132,13 @@ function safeError(error: unknown): string {
   return String(error)
 }
 
+function freshImportCount(rows: unknown[]): number {
+  return rows.filter((row) => {
+    const value = (row as { created_by_import?: unknown }).created_by_import
+    return value === true || value === 'true'
+  }).length
+}
+
 function envBool(value: string | undefined, fallback: boolean): boolean {
   if (value === undefined || value === null || value === '') return fallback
   return ['1', 'true', 'yes', 'on'].includes(value.trim().toLowerCase())
@@ -897,11 +904,13 @@ async function runLeadScoutStage(input: DiscoveryStageInput): Promise<StageResul
           enrich: false,
           dedupeByDomain: true,
         })
+    const freshImported = freshImportCount(contacts)
+    const reusedExisting = Math.max(0, contacts.length - freshImported)
 
     if (!input.dryRun) {
       void notifyTelegramEvent({
         type: 'lead_scout',
-        imported: contacts.length,
+        imported: freshImported,
         scanned: result.leads.length,
         evidenceBacked,
         blockedUnverified: requireExactPublicEmailEvidence() ? verifiedLeads.length - importableLeads.length : 0,
@@ -916,7 +925,9 @@ async function runLeadScoutStage(input: DiscoveryStageInput): Promise<StageResul
       status: 200,
       data: {
         dryRun: input.dryRun,
-        imported: contacts.length,
+        imported: freshImported,
+        reusedExisting,
+        upserted: contacts.length,
         scanned: result.leads.length,
         evidenceBacked,
         blockedUnverified: requireExactPublicEmailEvidence() ? verifiedLeads.length - importableLeads.length : 0,
@@ -1023,11 +1034,13 @@ async function runPublicSearchStage(input: DiscoveryStageInput & { queries?: str
           enrich: false,
           dedupeByDomain: true,
         })
+    const freshImported = freshImportCount(contacts)
+    const reusedExisting = Math.max(0, contacts.length - freshImported)
 
     if (!input.dryRun) {
       void notifyTelegramEvent({
         type: 'lead_scout',
-        imported: contacts.length,
+        imported: freshImported,
         scanned: result.scannedResults,
         evidenceBacked,
         blockedUnverified: requireExactPublicEmailEvidence() ? verifiedLeads.length - importableLeads.length : 0,
@@ -1043,7 +1056,9 @@ async function runPublicSearchStage(input: DiscoveryStageInput & { queries?: str
       data: {
         dryRun: input.dryRun,
         provider: result.provider,
-        imported: contacts.length,
+        imported: freshImported,
+        reusedExisting,
+        upserted: contacts.length,
         scanned: result.scannedResults,
         prepared: result.leads.length,
         rejected: result.rejected,

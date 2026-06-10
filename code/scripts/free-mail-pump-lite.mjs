@@ -390,15 +390,19 @@ async function runDiscoverySequence(sourceMode, discoveryRuns, allowFallback) {
   for (const source of sources) {
     const result = await runCycle('discovery', source)
     results.push(result)
+    let foundSendableInventory = resultQueued(result) > 0 || resultApproved(result) > 0
     if (resultImported(result) > 0 && resultApproved(result) === 0 && resultQueued(result) === 0) {
       console.log('[free-mail-pump-lite] approval requested', {
         reason: 'post_discovery_imported_unapproved',
         imported: resultImported(result),
         discoverySource: source,
       })
-      results.push(await runCycle('approval'))
+      const approvalResult = await runCycle('approval')
+      results.push(approvalResult)
+      foundSendableInventory =
+        resultQueued(approvalResult) > 0 || resultApproved(approvalResult) > 0
     }
-    if (resultQueued(result) > 0 || resultImportedOrApproved(result) > 0) break
+    if (foundSendableInventory) break
   }
   return results
 }
@@ -501,7 +505,7 @@ async function main() {
         })
         const discoveryResults = await runDiscoverySequence(sourceMode, discoveryRuns, allowFallback)
         const foundInventory = discoveryResults.some(
-          (result) => resultQueued(result) > 0 || resultImportedOrApproved(result) > 0
+          (result) => resultQueued(result) > 0 || resultApproved(result) > 0
         )
         if (starvationDue || foundInventory) {
           await runCycle('queue')

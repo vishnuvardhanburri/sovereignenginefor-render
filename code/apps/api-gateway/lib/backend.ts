@@ -1308,10 +1308,23 @@ export async function bulkCreateContacts(
          timezone = COALESCE(NULLIF(EXCLUDED.timezone, ''), contacts.timezone),
          source = COALESCE(NULLIF(EXCLUDED.source, ''), contacts.source),
          email_domain = COALESCE(EXCLUDED.email_domain, contacts.email_domain),
-         custom_fields = COALESCE(contacts.custom_fields, '{}'::jsonb) || COALESCE(EXCLUDED.custom_fields, '{}'::jsonb),
+         custom_fields = CASE
+           WHEN COALESCE(contacts.custom_fields, '{}'::jsonb) ? 'sent_at'
+             OR COALESCE(contacts.custom_fields, '{}'::jsonb) ? 'provider_message_id'
+             OR COALESCE(contacts.custom_fields, '{}'::jsonb) ? 'terminal_event_at'
+           THEN COALESCE(contacts.custom_fields, '{}'::jsonb)
+             || COALESCE(EXCLUDED.custom_fields, '{}'::jsonb)
+             || jsonb_build_object(
+               'send_status',
+               COALESCE(NULLIF(contacts.custom_fields->>'terminal_event_type', ''), 'sent'),
+               'reimport_after_terminal_at',
+               to_char(CURRENT_TIMESTAMP AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
+             )
+           ELSE COALESCE(contacts.custom_fields, '{}'::jsonb) || COALESCE(EXCLUDED.custom_fields, '{}'::jsonb)
+         END,
          enrichment = COALESCE(contacts.enrichment, '{}'::jsonb) || COALESCE(EXCLUDED.enrichment, '{}'::jsonb),
          updated_at = CURRENT_TIMESTAMP
-     RETURNING *`,
+     RETURNING *, (xmax = 0) AS created_by_import`,
     [
       clientId,
       emails,
