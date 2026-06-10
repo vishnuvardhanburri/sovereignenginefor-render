@@ -235,6 +235,82 @@ const COMPANY_SEEDS: CompanySeed[] = [
   { company: 'Ledger Bennett', domain: 'ledgerbennett.com', industries: ['agency'], region: 'global', signals: ['b2b marketing', 'demand generation'] },
   { company: 'Fox Agency', domain: 'fox.agency', industries: ['agency'], region: 'eu', signals: ['b2b technology marketing', 'public relations'] },
   { company: 'Skona', domain: 'skona.com', industries: ['agency'], region: 'global', signals: ['b2b brand', 'technology marketing'] },
+  { company: 'Uptown Creation', domain: 'uptowncreation.com', industries: ['agency'], region: 'us', signals: ['linkedin lead generation', 'appointment setting'] },
+  { company: 'LeadFuze', domain: 'leadfuze.com', industries: ['agency'], region: 'us', signals: ['b2b lead generation', 'sales prospecting'] },
+  { company: 'LeadIQ', domain: 'leadiq.com', industries: ['agency', 'saas'], region: 'us', signals: ['sales prospecting', 'outbound data'] },
+  { company: 'Sapper Consulting', domain: 'sapperconsulting.com', industries: ['agency'], region: 'us', signals: ['b2b lead generation', 'sales development'] },
+  { company: 'Strategic Sales & Marketing', domain: 'manageyourleads.com', industries: ['agency'], region: 'us', signals: ['appointment setting', 'lead generation'] },
+  { company: 'Revnew', domain: 'revnew.com', industries: ['agency'], region: 'us', signals: ['sales development', 'pipeline generation'] },
+  { company: 'LevelUp Leads', domain: 'levelupleads.io', industries: ['agency'], region: 'us', signals: ['b2b lead generation', 'appointment setting'] },
+  { company: 'Remote CoWorker', domain: 'remotecoworker.com', industries: ['agency'], region: 'us', signals: ['sales support', 'appointment setting'] },
+  { company: 'OutboundView', domain: 'outboundview.com', industries: ['agency'], region: 'us', signals: ['sales development', 'outbound campaigns'] },
+  { company: 'Nexa', domain: 'nexa.com', industries: ['agency'], region: 'us', signals: ['lead response', 'appointment setting'] },
+  { company: 'Smith.ai', domain: 'smith.ai', industries: ['agency', 'saas'], region: 'us', signals: ['lead intake', 'sales conversations'] },
+  { company: 'TaskDrive', domain: 'taskdrive.com', industries: ['agency'], region: 'global', signals: ['sales development', 'lead research'] },
+  { company: 'B2B Only', domain: 'b2bonly.com', industries: ['agency'], region: 'us', signals: ['b2b marketing', 'lead generation'] },
+  { company: 'Vsynergize', domain: 'vsynergize.com', industries: ['agency'], region: 'global', signals: ['demand generation', 'sales development'] },
+  { company: 'The Sales Factory', domain: 'thesalesfactory.com', industries: ['agency'], region: 'global', signals: ['sales development', 'appointment setting'] },
+  { company: 'B2B Sales Arrow', domain: 'b2bsalesarrow.com', industries: ['agency'], region: 'global', signals: ['lead generation', 'appointment setting'] },
+  { company: 'UpLead', domain: 'uplead.com', industries: ['agency', 'saas'], region: 'us', signals: ['sales prospecting', 'lead generation'] },
+  { company: 'Lusha', domain: 'lusha.com', industries: ['agency', 'saas'], region: 'global', signals: ['sales prospecting', 'outbound data'] },
+  { company: 'ZoomInfo', domain: 'zoominfo.com', industries: ['agency', 'saas'], region: 'us', signals: ['go-to-market data', 'sales intelligence'] },
+  { company: 'Cognism', domain: 'cognism.com', industries: ['agency', 'saas'], region: 'eu', signals: ['sales intelligence', 'b2b prospecting'] },
+  { company: 'Kaspr', domain: 'kaspr.io', industries: ['agency', 'saas'], region: 'eu', signals: ['sales prospecting', 'linkedin outreach'] },
+  { company: 'Dealfront', domain: 'dealfront.com', industries: ['agency', 'saas'], region: 'eu', signals: ['b2b intent data', 'sales intelligence'] },
+  { company: 'Lead Gen Dept', domain: 'leadgendept.com', industries: ['agency'], region: 'eu', signals: ['lead generation', 'appointment setting'] },
+  { company: 'Lead Forensics', domain: 'leadforensics.com', industries: ['agency', 'saas'], region: 'eu', signals: ['website visitor identification', 'sales leads'] },
+  { company: 'Uplers', domain: 'uplers.com', industries: ['agency'], region: 'global', signals: ['digital marketing', 'staffing for agencies'] },
+  { company: 'Taktical Digital', domain: 'taktical.co', industries: ['agency'], region: 'us', signals: ['performance marketing', 'paid social'] },
+  { company: 'Metric Theory', domain: 'metrictheory.com', industries: ['agency'], region: 'us', signals: ['paid media', 'performance marketing'] },
+  { company: '3Q Digital', domain: '3qdigital.com', industries: ['agency'], region: 'us', signals: ['growth marketing', 'performance media'] },
+  { company: 'HawkSEM', domain: 'hawksem.com', industries: ['agency'], region: 'us', signals: ['performance marketing', 'lead generation'] },
+  { company: 'Searchbloom', domain: 'searchbloom.com', industries: ['agency'], region: 'us', signals: ['seo', 'ppc lead generation'] },
+  { company: 'Radd Interactive', domain: 'raddinteractive.com', industries: ['agency'], region: 'us', signals: ['seo', 'paid search'] },
+  { company: 'Obility', domain: 'obilityb2b.com', industries: ['agency'], region: 'us', signals: ['b2b demand generation', 'paid media'] },
+  { company: 'CSTMR', domain: 'cstmr.com', industries: ['agency'], region: 'us', signals: ['fintech marketing', 'growth marketing'] },
+  { company: 'Sagefrog', domain: 'sagefrog.com', industries: ['agency'], region: 'us', signals: ['b2b marketing', 'lead generation'] },
+  { company: 'TopSpot Internet Marketing', domain: 'topspot.com', industries: ['agency'], region: 'us', signals: ['industrial marketing', 'lead generation'] },
+  { company: 'Impulse Creative', domain: 'impulsecreative.com', industries: ['agency'], region: 'us', signals: ['hubspot consulting', 'growth marketing'] },
+  { company: 'Salted Stone', domain: 'saltedstone.com', industries: ['agency'], region: 'global', signals: ['hubspot consulting', 'growth marketing'] },
+  { company: 'Huble', domain: 'huble.com', industries: ['agency'], region: 'global', signals: ['hubspot consulting', 'revenue operations'] },
+  { company: 'Blend', domain: 'blendb2b.com', industries: ['agency'], region: 'eu', signals: ['hubspot consulting', 'b2b marketing'] },
+  { company: 'Avidly', domain: 'avidlyagency.com', industries: ['agency'], region: 'eu', signals: ['hubspot consulting', 'growth marketing'] },
+  { company: 'Elixir', domain: 'elixir-solutions.net', industries: ['agency'], region: 'eu', signals: ['hubspot consulting', 'revenue operations'] },
+  { company: 'Digital 22', domain: 'digital22.com', industries: ['agency'], region: 'eu', signals: ['hubspot consulting', 'inbound marketing'] },
+  { company: 'SaaScend', domain: 'saascend.com', industries: ['agency'], region: 'us', signals: ['revenue operations', 'salesforce consulting'] },
+  { company: 'Coastal Cloud', domain: 'coastalcloud.us', industries: ['agency'], region: 'us', signals: ['salesforce consulting', 'crm operations'] },
+  { company: 'CloudKettle', domain: 'cloudkettle.com', industries: ['agency'], region: 'global', signals: ['salesforce consulting', 'revenue operations'] },
+  { company: 'OpFocus', domain: 'opfocus.com', industries: ['agency'], region: 'us', signals: ['salesforce consulting', 'revops'] },
+  { company: 'Mavenlink Kantata Services', domain: 'kantata.com', industries: ['agency', 'saas'], region: 'global', signals: ['professional services operations', 'client delivery'] },
+  { company: 'Marketing Refresh', domain: 'marketingrefresh.com', industries: ['agency'], region: 'us', signals: ['b2b marketing', 'lead generation'] },
+  { company: 'Godfrey', domain: 'godfrey.com', industries: ['agency'], region: 'us', signals: ['b2b marketing', 'industrial marketing'] },
+  { company: 'Mower', domain: 'mower.com', industries: ['agency'], region: 'us', signals: ['b2b marketing', 'public relations'] },
+  { company: 'PAN Communications', domain: 'pancommunications.com', industries: ['agency'], region: 'us', signals: ['b2b technology pr', 'growth communications'] },
+  { company: 'SHIFT Communications', domain: 'shiftcomm.com', industries: ['agency'], region: 'us', signals: ['technology pr', 'demand communications'] },
+  { company: 'Merritt Group', domain: 'merrittgrp.com', industries: ['agency'], region: 'us', signals: ['b2b technology marketing', 'public relations'] },
+  { company: 'Arketi Group', domain: 'arketi.com', industries: ['agency'], region: 'us', signals: ['b2b technology marketing', 'public relations'] },
+  { company: 'FINN Partners', domain: 'finnpartners.com', industries: ['agency'], region: 'global', signals: ['marketing communications', 'b2b pr'] },
+  { company: 'Mediabrands', domain: 'mbww.com', industries: ['agency'], region: 'global', signals: ['media agency', 'campaign operations'] },
+  { company: 'Merkle', domain: 'merkle.com', industries: ['agency'], region: 'global', signals: ['customer experience', 'performance marketing'] },
+  { company: 'Valtech', domain: 'valtech.com', industries: ['agency'], region: 'global', signals: ['digital agency', 'commerce growth'] },
+  { company: 'Bounteous', domain: 'bounteous.com', industries: ['agency'], region: 'global', signals: ['digital experience', 'marketing operations'] },
+  { company: 'DEPT', domain: 'deptagency.com', industries: ['agency'], region: 'global', signals: ['digital agency', 'growth marketing'] },
+  { company: 'Media.Monks', domain: 'mediamonks.com', industries: ['agency'], region: 'global', signals: ['digital marketing', 'creative production'] },
+  { company: 'Yatter', domain: 'yatter.co.uk', industries: ['agency'], region: 'eu', signals: ['paid social', 'lead generation'] },
+  { company: 'The Brains', domain: 'thebrainsmarketing.co.uk', industries: ['agency'], region: 'eu', signals: ['lead generation', 'digital marketing'] },
+  { company: 'Exposure Ninja', domain: 'exposureninja.com', industries: ['agency'], region: 'eu', signals: ['digital marketing', 'lead generation'] },
+  { company: 'Reboot Online', domain: 'rebootonline.com', industries: ['agency'], region: 'eu', signals: ['seo', 'digital pr'] },
+  { company: 'Digitaloft', domain: 'digitaloft.co.uk', industries: ['agency'], region: 'eu', signals: ['seo', 'digital pr'] },
+  { company: 'Rise at Seven', domain: 'riseatseven.com', industries: ['agency'], region: 'eu', signals: ['digital pr', 'seo'] },
+  { company: 'Journey Further', domain: 'journeyfurther.com', industries: ['agency'], region: 'eu', signals: ['performance marketing', 'digital pr'] },
+  { company: 'Kaizen', domain: 'kaizen.co.uk', industries: ['agency'], region: 'eu', signals: ['digital pr', 'seo'] },
+  { company: 'Tangent', domain: 'tangent.co.uk', industries: ['agency'], region: 'eu', signals: ['digital agency', 'customer experience'] },
+  { company: 'Adtrak', domain: 'adtrak.co.uk', industries: ['agency'], region: 'eu', signals: ['lead generation', 'digital marketing'] },
+  { company: 'Soap Media', domain: 'soapmedia.co.uk', industries: ['agency'], region: 'eu', signals: ['digital marketing', 'lead generation'] },
+  { company: 'Click Consult', domain: 'click.co.uk', industries: ['agency'], region: 'eu', signals: ['search marketing', 'lead generation'] },
+  { company: 'Absolute Digital Media', domain: 'absolute.digital', industries: ['agency'], region: 'eu', signals: ['performance marketing', 'seo'] },
+  { company: 'Climb Online', domain: 'climb-online.co.uk', industries: ['agency'], region: 'eu', signals: ['digital marketing', 'lead generation'] },
+  { company: 'Greenlight', domain: 'greenlightdigital.com', industries: ['agency'], region: 'eu', signals: ['digital marketing', 'performance media'] },
   { company: 'Wiz', domain: 'wiz.io', industries: ['cybersecurity'], region: 'global', signals: ['cloud security', 'enterprise security'] },
   { company: 'Snyk', domain: 'snyk.io', industries: ['cybersecurity', 'devtools'], region: 'global', signals: ['developer security', 'software supply chain'] },
   { company: 'CrowdStrike', domain: 'crowdstrike.com', industries: ['cybersecurity'], region: 'us', signals: ['endpoint security', 'enterprise security'] },
@@ -417,6 +493,10 @@ function scoreSeed(seed: CompanySeed, industry: LeadScoutIndustry, region: strin
   if (seed.industries.length > 1) score += 4
   score += targetMarketScoreBonus(seed.company, seed.domain, seed.region, seed.signals.join(' '))
   return Math.min(score, 98)
+}
+
+function seedIdentity(seed: CompanySeed): string {
+  return seed.domain.trim().toLowerCase().replace(/^www\./, '') || seed.company.trim().toLowerCase()
 }
 
 function reasonFor(seed: CompanySeed, industry: LeadScoutIndustry): string {
@@ -916,8 +996,17 @@ export function scoutOpenLeads(input: LeadScoutRequest = {}): {
       fitScore: scoreSeed(seed, industry, region),
     }))
     .sort((a, b) => b.fitScore - a.fitScore || a.seed.company.localeCompare(b.seed.company))
-  const rotatedSeeds = rankedSeeds.length
-    ? rankedSeeds.slice(offset % rankedSeeds.length).concat(rankedSeeds.slice(0, offset % rankedSeeds.length))
+  const seenSeeds = new Set<string>()
+  const uniqueRankedSeeds = rankedSeeds.filter(({ seed }) => {
+    const identity = seedIdentity(seed)
+    if (seenSeeds.has(identity)) return false
+    seenSeeds.add(identity)
+    return true
+  })
+  const rotatedSeeds = uniqueRankedSeeds.length
+    ? uniqueRankedSeeds
+        .slice(offset % uniqueRankedSeeds.length)
+        .concat(uniqueRankedSeeds.slice(0, offset % uniqueRankedSeeds.length))
     : []
   const seeds = rotatedSeeds.slice(0, limit)
 

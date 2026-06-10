@@ -32,62 +32,67 @@ export async function GET(request: NextRequest) {
   try {
     const clientId = await resolveClientId({ headers: request.headers })
     const limit = Math.max(1, Math.min(Number(request.nextUrl.searchParams.get('limit') ?? 100), 500))
+    const summaryOnly = ['1', 'true', 'yes'].includes(
+      String(request.nextUrl.searchParams.get('summaryOnly') ?? '').toLowerCase()
+    )
 
     const [eventsRes, statsRes] = await Promise.all([
       // Main event feed
-      query<{
-        id: number
-        event_type: string
-        created_at: string
-        campaign_id: number | null
-        campaign_name: string | null
-        queue_job_id: number | null
-        provider_message_id: string | null
-        to_email: string | null
-        from_email: string | null
-        subject: string | null
-        error: string | null
-        body_text: string | null
-        body_html: string | null
-        provider: string | null
-        offer_type: string | null
-      }>(
-        `SELECT
-           e.id,
-           e.event_type,
-           e.created_at::text AS created_at,
-           NULL::bigint AS campaign_id,
-           NULL::text AS campaign_name,
-           NULL::bigint AS queue_job_id,
-           NULL::text AS provider_message_id,
-           CASE
-             WHEN e.event_type = 'reply' THEN COALESCE(NULLIF(e.metadata->>'from_email',''), NULLIF(e.metadata->>'from',''), c.email)
-             ELSE COALESCE(NULLIF(e.metadata->>'to_email',''), NULLIF(e.metadata->>'to',''), NULLIF(e.metadata->>'recipient',''), c.email)
-           END AS to_email,
-           CASE
-             WHEN e.event_type = 'reply' THEN COALESCE(NULLIF(e.metadata->>'to_email',''), NULLIF(e.metadata->>'to',''))
-             ELSE COALESCE(NULLIF(e.metadata->>'from_email',''), NULLIF(e.metadata->>'from',''))
-           END AS from_email,
-           COALESCE(NULLIF(e.metadata->>'subject',''), NULLIF(e.metadata->>'email_subject','')) AS subject,
-           COALESCE(NULLIF(e.metadata->>'error',''), NULLIF(e.metadata->>'reason','')) AS error,
-           COALESCE(NULLIF(e.metadata->>'body_text',''), NULLIF(e.metadata->>'body','')) AS body_text,
-           e.metadata->>'body_html' AS body_html,
-           COALESCE(NULLIF(e.metadata->>'provider',''), NULLIF(e.metadata->>'sending_provider','')) AS provider,
-           NULLIF(e.metadata->>'offer_type','') AS offer_type
-         FROM events e
-         LEFT JOIN contacts c ON c.id = e.contact_id AND c.client_id = e.client_id
-         WHERE e.client_id = $1
-           AND (
-             e.event_type IN ('sent','failed','bounce')
-             OR (
-               e.event_type = 'reply'
-               AND ${HUMAN_MATCHED_REPLY_EVENT_SQL}
-             )
-           )
-         ORDER BY e.created_at DESC
-         LIMIT $2`,
-        [clientId, limit]
-      ),
+      summaryOnly
+        ? Promise.resolve({ rows: [], rowCount: 0 })
+        : query<{
+            id: number
+            event_type: string
+            created_at: string
+            campaign_id: number | null
+            campaign_name: string | null
+            queue_job_id: number | null
+            provider_message_id: string | null
+            to_email: string | null
+            from_email: string | null
+            subject: string | null
+            error: string | null
+            body_text: string | null
+            body_html: string | null
+            provider: string | null
+            offer_type: string | null
+          }>(
+            `SELECT
+               e.id,
+               e.event_type,
+               e.created_at::text AS created_at,
+               NULL::bigint AS campaign_id,
+               NULL::text AS campaign_name,
+               NULL::bigint AS queue_job_id,
+               NULL::text AS provider_message_id,
+               CASE
+                 WHEN e.event_type = 'reply' THEN COALESCE(NULLIF(e.metadata->>'from_email',''), NULLIF(e.metadata->>'from',''), c.email)
+                 ELSE COALESCE(NULLIF(e.metadata->>'to_email',''), NULLIF(e.metadata->>'to',''), NULLIF(e.metadata->>'recipient',''), c.email)
+               END AS to_email,
+               CASE
+                 WHEN e.event_type = 'reply' THEN COALESCE(NULLIF(e.metadata->>'to_email',''), NULLIF(e.metadata->>'to',''))
+                 ELSE COALESCE(NULLIF(e.metadata->>'from_email',''), NULLIF(e.metadata->>'from',''))
+               END AS from_email,
+               COALESCE(NULLIF(e.metadata->>'subject',''), NULLIF(e.metadata->>'email_subject','')) AS subject,
+               COALESCE(NULLIF(e.metadata->>'error',''), NULLIF(e.metadata->>'reason','')) AS error,
+               COALESCE(NULLIF(e.metadata->>'body_text',''), NULLIF(e.metadata->>'body','')) AS body_text,
+               e.metadata->>'body_html' AS body_html,
+               COALESCE(NULLIF(e.metadata->>'provider',''), NULLIF(e.metadata->>'sending_provider','')) AS provider,
+               NULLIF(e.metadata->>'offer_type','') AS offer_type
+             FROM events e
+             LEFT JOIN contacts c ON c.id = e.contact_id AND c.client_id = e.client_id
+             WHERE e.client_id = $1
+               AND (
+                 e.event_type IN ('sent','failed','bounce')
+                 OR (
+                   e.event_type = 'reply'
+                   AND ${HUMAN_MATCHED_REPLY_EVENT_SQL}
+                 )
+               )
+             ORDER BY e.created_at DESC
+             LIMIT $2`,
+            [clientId, limit]
+          ),
 
       // Summary stats: sent/failed/bounce + reply counts + follow-up + provider breakdown
       query<{

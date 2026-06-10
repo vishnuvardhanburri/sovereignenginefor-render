@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import {
@@ -71,26 +71,34 @@ async function fetchDashboardReadiness(): Promise<DashboardReadiness> {
 }
 
 export default function DashboardPage() {
+  const [loadDeepPanels, setLoadDeepPanels] = useState(false)
   const { data: stats, isLoading: statsLoading } = useDashboardStats()
-  const { data: chartData, isLoading: chartLoading } = useChartData()
+  const { data: chartData, isLoading: chartLoading } = useChartData({ enabled: loadDeepPanels })
   const { data: queue } = useQueueStats()
   const { data: health } = useInfrastructureHealth()
-  const { data: analytics } = useInfrastructureAnalytics()
-  const { data: executive } = useExecutiveSummary()
-  const { data: forecast } = useExecutiveForecast(5)
-  const { data: patterns } = usePatterns()
-  const { data: events } = useRecentEvents(70)
-  const { data: campaigns } = useCampaigns()
+  const { data: analytics } = useInfrastructureAnalytics({ enabled: loadDeepPanels })
+  const { data: executive } = useExecutiveSummary({ enabled: loadDeepPanels })
+  const { data: forecast } = useExecutiveForecast(5, { enabled: loadDeepPanels })
+  const { data: patterns } = usePatterns({ enabled: loadDeepPanels })
+  const { data: events } = useRecentEvents(30, { enabled: loadDeepPanels })
+  const { data: campaigns } = useCampaigns({ enabled: loadDeepPanels })
   const control = useInfrastructureControl()
-  const { data: operatorActions } = useOperatorActions(60)
+  const { data: operatorActions } = useOperatorActions(30, { enabled: loadDeepPanels })
   const readiness = useQuery({
     queryKey: ['dashboard-production-readiness'],
     queryFn: fetchDashboardReadiness,
-    refetchInterval: 60_000,
+    enabled: loadDeepPanels,
+    refetchInterval: 120_000,
+    staleTime: 60_000,
   })
 
   const [campaignToStart, setCampaignToStart] = useState<string>('')
   const [startOpen, setStartOpen] = useState(false)
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setLoadDeepPanels(true), 1_500)
+    return () => window.clearTimeout(timer)
+  }, [])
 
   const systemStatus: 'ACTIVE' | 'DEGRADED' | 'PAUSED' = useMemo(() => {
     if (health?.status === 'paused') return 'PAUSED'
@@ -462,7 +470,7 @@ export default function DashboardPage() {
                 <CardTitle className="text-base">Sending Volume</CardTitle>
               </CardHeader>
               <CardContent>
-                {chartLoading ? <Skeleton className="h-72" /> : <DashboardSentChart data={chartData ?? []} />}
+                {!loadDeepPanels || chartLoading ? <Skeleton className="h-72" /> : <DashboardSentChart data={chartData ?? []} />}
                 <div className="mt-3 text-xs text-muted-foreground">
                   Local: run the worker to drain queue continuously:{' '}
                   <code className="px-2 py-0.5 rounded bg-black/30 text-foreground">npm run worker:dev</code>

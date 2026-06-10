@@ -7,11 +7,17 @@ import {
 import { api } from '@/lib/api'
 import { toast } from 'sonner'
 
+type QueryLoadOptions = {
+  enabled?: boolean
+  refetchInterval?: number | false
+}
+
 // Campaigns
-export const useCampaigns = () => {
+export const useCampaigns = (options: QueryLoadOptions = {}) => {
   return useQuery({
     queryKey: ['campaigns'],
     queryFn: () => api.campaigns.getAll(),
+    enabled: options.enabled ?? true,
     placeholderData: keepPreviousData,
   })
 }
@@ -300,10 +306,11 @@ export const useDashboardStats = () => {
 }
 
 // Chart Data
-export const useChartData = () => {
+export const useChartData = (options: QueryLoadOptions = {}) => {
   return useQuery({
     queryKey: ['chart-data'],
     queryFn: () => api.dashboard.getChartData(),
+    enabled: options.enabled ?? true,
     placeholderData: keepPreviousData,
   })
 }
@@ -321,62 +328,68 @@ export const useInfrastructureHealth = () => {
   return useQuery({
     queryKey: ['infra-health'],
     queryFn: () => api.infrastructure.getHealth(),
-    refetchInterval: 8000,
-    staleTime: 2000,
+    refetchInterval: 30000,
+    staleTime: 15000,
   })
 }
 
-export const useInfrastructureAnalytics = () => {
+export const useInfrastructureAnalytics = (options: QueryLoadOptions = {}) => {
   return useQuery({
     queryKey: ['infra-analytics'],
     queryFn: () => api.infrastructure.getAnalytics(),
-    refetchInterval: 12000,
-    staleTime: 4000,
+    enabled: options.enabled ?? true,
+    refetchInterval: options.refetchInterval ?? 45000,
+    staleTime: 30000,
   })
 }
 
-export const usePatterns = () => {
+export const usePatterns = (options: QueryLoadOptions = {}) => {
   return useQuery({
     queryKey: ['patterns'],
     queryFn: () => api.patterns.getAll(),
-    refetchInterval: 30000,
-    staleTime: 10000,
+    enabled: options.enabled ?? true,
+    refetchInterval: options.refetchInterval ?? 60000,
+    staleTime: 30000,
   })
 }
 
-export const useRecentEvents = (limit = 50) => {
+export const useRecentEvents = (limit = 50, options: QueryLoadOptions = {}) => {
   return useQuery({
     queryKey: ['events', limit],
     queryFn: () => api.events.getRecent(limit),
-    refetchInterval: 6000,
-    staleTime: 1500,
+    enabled: options.enabled ?? true,
+    refetchInterval: options.refetchInterval ?? 30000,
+    staleTime: 15000,
   })
 }
 
-export const useOperatorActions = (limit = 60) => {
+export const useOperatorActions = (limit = 60, options: QueryLoadOptions = {}) => {
   return useQuery({
     queryKey: ['operator-actions', limit],
     queryFn: () => api.operator.getActions(limit),
-    refetchInterval: 9000,
-    staleTime: 2000,
+    enabled: options.enabled ?? true,
+    refetchInterval: options.refetchInterval ?? 45000,
+    staleTime: 20000,
   })
 }
 
-export const useExecutiveSummary = () => {
+export const useExecutiveSummary = (options: QueryLoadOptions = {}) => {
   return useQuery({
     queryKey: ['executive-summary'],
     queryFn: () => api.executive.getSummary(),
-    refetchInterval: 8000,
-    staleTime: 2000,
+    enabled: options.enabled ?? true,
+    refetchInterval: options.refetchInterval ?? 45000,
+    staleTime: 20000,
   })
 }
 
-export const useExecutiveForecast = (days = 5) => {
+export const useExecutiveForecast = (days = 5, options: QueryLoadOptions = {}) => {
   return useQuery({
     queryKey: ['executive-forecast', days],
     queryFn: () => api.executive.getForecast(days),
-    refetchInterval: 12000,
-    staleTime: 4000,
+    enabled: options.enabled ?? true,
+    refetchInterval: options.refetchInterval ?? 60000,
+    staleTime: 30000,
   })
 }
 

@@ -84,7 +84,7 @@ async function fetchReputation(): Promise<ReputationMonitor> {
 }
 
 async function fetchDeliveryProof(): Promise<DeliveryProof> {
-  const response = await fetch('/api/dashboard/sent?client_id=1', { cache: 'no-store' })
+  const response = await fetch('/api/dashboard/sent?client_id=1&summaryOnly=1', { cache: 'no-store' })
   if (!response.ok) throw new Error('delivery proof unavailable')
   return response.json()
 }
@@ -108,9 +108,24 @@ function laneTone(status: string) {
 }
 
 export function OperationsCommandCenter({ mode = 'executive' }: { mode?: 'executive' | 'reputation' }) {
-  const health = useQuery({ queryKey: ['enterprise-ops-health'], queryFn: fetchHealth, refetchInterval: 3_000 })
-  const reputation = useQuery({ queryKey: ['enterprise-ops-reputation'], queryFn: fetchReputation, refetchInterval: 4_000 })
-  const deliveryProof = useQuery({ queryKey: ['enterprise-delivery-proof'], queryFn: fetchDeliveryProof, refetchInterval: 8_000 })
+  const health = useQuery({
+    queryKey: ['enterprise-ops-health'],
+    queryFn: fetchHealth,
+    refetchInterval: 20_000,
+    staleTime: 10_000,
+  })
+  const reputation = useQuery({
+    queryKey: ['enterprise-ops-reputation'],
+    queryFn: fetchReputation,
+    refetchInterval: 30_000,
+    staleTime: 15_000,
+  })
+  const deliveryProof = useQuery({
+    queryKey: ['enterprise-delivery-proof-summary'],
+    queryFn: fetchDeliveryProof,
+    refetchInterval: 30_000,
+    staleTime: 15_000,
+  })
 
   const waiting = Number(health.data?.bullmq?.waiting ?? 0) + Number(health.data?.db_queue?.waiting ?? 0)
   const active = Number(health.data?.bullmq?.active ?? 0) + Number(health.data?.db_queue?.active ?? 0)
