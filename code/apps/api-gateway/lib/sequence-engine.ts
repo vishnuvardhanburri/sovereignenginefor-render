@@ -89,16 +89,16 @@ const DEFAULT_SEQUENCES: SequenceTemplate[] = [
         emailTemplate: {
           id: 'initial-value-prop',
           name: 'Client Campaign Diagnosis',
-          subject: 'client campaign proof',
+          subject: 'campaign proof question',
           body: `Hi {{firstName}},
 
-I noticed {{company}} works around client acquisition, outbound, or revenue operations.
+I noticed {{company}} works around client acquisition, outbound, or revenue operations, where client trust depends on explaining why a campaign is underperforming, not just showing activity.
 
-When a client campaign underperforms, the hard part is usually proving what actually broke: lead quality, deliverability, follow-up ownership, or reporting.
+When a client campaign underperforms, the hard part is usually proving whether the blocker is lead quality, spam folders, Promotions tabs, follow-up ownership, or reporting proof.
 
 Xavira was built around that diagnosis layer.
 
-When this happens at {{company}}, what do clients usually blame first?
+When this happens at {{company}}, which blame shows up first?
 
 Best,
 {{senderName}}`,
@@ -116,10 +116,10 @@ Best,
         emailTemplate: {
           id: 'follow-up-value',
           name: 'Decision Clarity',
-          subject: 're: client campaign proof',
+          subject: 're: campaign proof question',
           body: `Hi {{firstName}},
 
-The reason I asked is simple: underperforming campaigns usually get misdiagnosed from surface metrics.
+The reason I asked is simple: underperforming campaigns usually get misdiagnosed from surface metrics before anyone can prove the real blocker.
 
 Worth diagnosing now, or not a priority for {{company}}?
 

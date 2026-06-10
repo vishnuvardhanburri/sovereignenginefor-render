@@ -11,7 +11,7 @@ const SPAM_TERMS = [
 ]
 
 const DEFAULT_DIAGNOSTIC_QUESTION =
-  'When a client campaign underperforms, what gets blamed first: lead quality, deliverability, follow-ups, or reporting?'
+  'When a client campaign underperforms, what gets blamed first: lead quality, inbox placement, follow-up ownership, or reporting proof?'
 
 function toTitleCase(value: string) {
   return value

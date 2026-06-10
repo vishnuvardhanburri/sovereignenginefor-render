@@ -27,7 +27,7 @@ const CORE_RULES = [
   `Keep the ask low-friction: ask this diagnostic question or a close variant: "${XAVIRA_AGENCY_GTM_MOTION.discoveryQuestion}"`,
   'Use proof language over hype: one campaign, real evidence, practical rewrite, simple client-facing summary, no fake customer claims.',
   'Write like a founder/operator: short sentences, specific business pain, calm confidence, no buzzword pileups, no AI-sounding filler.',
-  'Preferred language: campaign proof, reply blockers, inbox placement, follow-up ownership, client reporting, sender risk, simple diagnosis, campaign rescue.',
+  'Preferred language: client blame, campaign proof, reply blockers, spam folders or Promotions tabs, inbox placement, follow-up ownership, client reporting, sender risk, simple diagnosis, campaign rescue.',
   'Avoid language that sounds like spam or hype: bulk email software, mass blasting, unlimited emails, growth hacks, AI spam system, send millions, scale instantly, buy today, limited time.',
   `Preserve entry value: the Campaign Rescue Sprint is ${XAVIRA_COMMERCIAL_MODEL.campaignRescueSprint.label} GBP one-time; the optional Control Partner follow-on is ${XAVIRA_COMMERCIAL_MODEL.controlPartnerMonthly.label} only after proof.`,
   'Use recurring offer language only after the sprint exposes a real ongoing pain.',
@@ -40,7 +40,7 @@ const CORE_RULES = [
 const DIRECT_RULES = [
   `Direct offer after interest: ${XAVIRA_COMMERCIAL_MODEL.campaignRescueSprint.label} GBP Campaign Rescue Sprint.`,
   'Direct non-agency prospects are fallback only; do not let them crowd out agency owners.',
-  'Frame ROI as finding why replies are low, reducing wasted follow-ups, improving proof, and clarifying whether lead quality or delivery is the real blocker.',
+  'Frame ROI as finding why replies are low, reducing wasted follow-ups, improving proof, and clarifying whether lead quality, spam folders, Promotions tabs, or delivery is the real blocker.',
   'Mention Xavira once in plain business language only.',
   'Best CTA after curiosity: review one real campaign, not a generic demo.',
 ]
@@ -48,7 +48,7 @@ const DIRECT_RULES = [
 const AGENCY_RULES = [
   `Agency entry offer after interest: ${XAVIRA_COMMERCIAL_MODEL.campaignRescueSprint.label} GBP Campaign Rescue Sprint.`,
   `Agency follow-on only after proof: ${XAVIRA_COMMERCIAL_MODEL.controlPartnerMonthly.label} Xavira Control Partner.`,
-  'Frame it as helping agencies diagnose client campaign underperformance and produce a clear client-facing proof summary.',
+  'Frame it as helping agencies diagnose client campaign underperformance before clients default to blaming lead quality, copy, follow-ups, or reporting.',
   'Do not mention white-label rights, reseller rights, maintenance, or license language in outbound copy.',
   'Best CTA after curiosity: rescue one live client campaign.',
 ]

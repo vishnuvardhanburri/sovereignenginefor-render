@@ -597,7 +597,7 @@ export function buildSovereignBuyerIntelligence(
     ? operationalRiskIndicators.join(', ')
     : 'reply visibility, follow-up ownership, and communication context'
   const communicationHypothesis = offerType === 'agency'
-    ? `When a client campaign underperforms at ${company}, the hard part is usually separating whether the blocker is lead quality, deliverability, follow-up ownership, or reporting proof.`
+    ? `When a client campaign underperforms at ${company}, the hard part is usually proving whether the blocker is lead quality, spam folders, Promotions tabs, follow-up ownership, or reporting proof before the client loses trust.`
     : `When ${company} has to coordinate ${communicationComplexity}, the first problems are usually visibility, ownership, and knowing which conversations need action.`
 
   return {
@@ -673,9 +673,30 @@ function isRejectedObservation(observation: string): boolean {
 }
 
 function isOperationalObservation(observation: string): boolean {
-  return /\b(?:coordinate|communication|stakeholder|investor|lender|broker|partner|follow-up|client|reporting|pipeline|governance|visibility|delivery|operations|outreach|growth|workflow)\b/i.test(
+  return /\b(?:coordinate|communication|stakeholder|investor|lender|broker|partner|follow-up|client|reporting|pipeline|governance|visibility|delivery|operations|outreach|growth|workflow|campaign|proof)\b/i.test(
     observation
   )
+}
+
+function agencyServiceMotionForLead(lead: SovereignCopyLead): string {
+  const text = leadTextForCopyAgent(lead)
+  if (/\bappointment setting|sdr as a service|sales development|sales outsourcing\b/.test(text)) {
+    return 'appointment-setting and outsourced sales development'
+  }
+  if (/\blinkedin|social selling|dm\b/.test(text)) return 'LinkedIn-led prospecting'
+  if (/\brevops|revenue operations|hubspot|salesforce|gtm ops|pipeline operations\b/.test(text)) {
+    return 'RevOps and pipeline operations'
+  }
+  if (/\bdemand gen|demand generation|abm|b2b marketing|pipeline generation\b/.test(text)) {
+    return 'demand-generation and client acquisition'
+  }
+  if (/\bseo|content|paid media|performance marketing|digital pr\b/.test(text)) {
+    return 'performance, search, or content campaigns'
+  }
+  if (/\blead generation|outbound|cold email|client acquisition\b/.test(text)) {
+    return 'lead generation and outbound'
+  }
+  return 'client acquisition'
 }
 
 function selectOperationalObservation(
@@ -684,7 +705,8 @@ function selectOperationalObservation(
 ): string {
   const company = safeCompanyName(lead)
   if (inferSovereignOfferType(lead) === 'agency') {
-    return `I noticed ${company} works in the layer where client campaign performance has to be explained, not just executed.`
+    const motion = agencyServiceMotionForLead(lead)
+    return `I noticed ${company} works around ${motion}, where client trust depends on explaining why a campaign is underperforming, not just showing activity.`
   }
 
   const complexity = intelligence.communicationComplexity
@@ -724,7 +746,7 @@ function questionForPersona(
   persona: SovereignBuyerPersona,
   intelligence: SovereignBuyerIntelligence
 ): string {
-  const agencyQuestion = `When a client campaign underperforms at ${company}, what gets blamed first: lead quality, deliverability, follow-ups, or reporting?`
+  const agencyQuestion = `When a campaign is under pressure at ${company}, which blame shows up first: lead quality, inbox placement, follow-up ownership, or reporting proof?`
   if (/\b(?:agency|client acquisition|outbound|demand generation|lead generation|revops|revenue operations)\b/i.test(
     [
       intelligence.companyType,
@@ -767,13 +789,13 @@ function subjectForCopyDecision(
   persona: SovereignBuyerPersona
 ): string {
   if (offerType === 'agency') {
-    if (persona === 'partnerships') return 'partnership communication visibility'
-    if (industry === 'revops') return 'follow-up visibility'
-    return 'client outreach visibility'
+    if (persona === 'partnerships') return 'client proof question'
+    if (industry === 'revops') return 'campaign diagnosis question'
+    return 'campaign proof question'
   }
   if (industry === 'cybersecurity' || industry === 'compliance') return 'communication control question'
-  if (industry === 'ai' || industry === 'devtools') return 'buyer communication visibility'
-  return 'communication visibility'
+  if (industry === 'ai' || industry === 'devtools') return 'buyer reply diagnosis'
+  return 'reply diagnosis question'
 }
 
 function hookForCopyDecision(
@@ -801,7 +823,7 @@ function hookForCopyDecision(
 
 function painForCopyDecision(industry: SovereignBuyerIndustry): string {
   if (industry === 'agency') {
-    return 'That usually creates hard-to-see operating gaps: replies get missed, client reporting becomes fuzzy, prospects are touched twice, and deliverability problems show up only after performance drops.'
+    return 'That usually creates the client-trust gap: low replies get blamed on lead quality, but the real blocker may be spam folders, Promotions tabs, weak follow-up ownership, or missing reporting proof.'
   }
   if (industry === 'revops') {
     return 'As volume grows, the issue is less activity and more control: knowing what reached the buyer, what needs follow-up, and which conversations are leaking between tools.'
@@ -831,7 +853,7 @@ function ctaForCopyDecision(
   persona: SovereignBuyerPersona
 ): string {
   if (industry === 'agency' || industry === 'revops' || persona === 'partnerships') {
-    return `When a client campaign underperforms at ${company}, what gets blamed first: lead quality, deliverability, follow-ups, or reporting?`
+    return `When a campaign is under pressure at ${company}, which blame shows up first: lead quality, inbox placement, follow-up ownership, or reporting proof?`
   }
   if (persona === 'founder') {
     return 'What tends to break first for you as communication volume grows?'
@@ -844,7 +866,7 @@ function ctaForCopyDecision(
 
 function followupObservationForCopyDecision(industry: SovereignBuyerIndustry): string {
   if (industry === 'agency') {
-    return 'Most agencies focus on campaign execution, but the client trust gap usually sits behind it: sender capacity, domain protection, suppression, inbox placement, and proof.'
+    return 'Most agencies focus on campaign execution, but client trust usually depends on proving whether the issue is lead quality, spam folders, Promotions tabs, follow-up ownership, or reporting proof.'
   }
   if (industry === 'revops') {
     return 'Most pipeline reports explain activity, but not whether sender health, spam/promotions placement, suppression, and follow-up governance are protecting qualified conversations.'
@@ -1470,13 +1492,13 @@ function buildDeterministicXaviraRagCopy(
     decision.industry === 'revops'
 
   const observation = agencyMotion
-    ? `I noticed ${company} works in the layer where client campaign performance has to be explained, not just executed.`
+    ? decision.proof
     : decision.proof
   const hypothesis = agencyMotion
-    ? 'When a client campaign underperforms, the hard part is usually separating whether the blocker is lead quality, deliverability, follow-up ownership, or reporting proof.'
+    ? decision.pain
     : decision.pain
   const question = agencyMotion
-    ? `When that happens at ${company}, what does the client usually blame first: lead quality, deliverability, follow-ups, or reporting?`
+    ? decision.cta
     : decision.cta
   const body = `Hi ${firstName},
 

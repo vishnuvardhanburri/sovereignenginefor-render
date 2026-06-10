@@ -147,12 +147,12 @@ assert(
   'final sequence step should be the soft breakup'
 )
 assert(
-  sovereignSubjectForLead(directLead).includes('communication visibility'),
-  'direct subject should lead with communication visibility'
+  sovereignSubjectForLead(directLead).includes('reply diagnosis'),
+  'direct subject should lead with reply diagnosis'
 )
 assert(
-  /client outreach visibility|partnership communication visibility|follow-up visibility/.test(sovereignSubjectForLead(agencyLead)),
-  'agency subject should adapt to buyer role without generic quick-check wording'
+  /campaign proof question|client proof question|campaign diagnosis question/.test(sovereignSubjectForLead(agencyLead)),
+  'agency subject should adapt to client proof or campaign diagnosis'
 )
 
 const agencyDecision = buildSovereignCopyDecision(agencyLead)
@@ -354,8 +354,14 @@ assert(
   'agency body should optimize for a reply, not a meeting ask'
 )
 assert(
-  agencyBody.includes('what gets blamed first'),
+  agencyBody.includes('which blame shows up first'),
   'agency body should use the client-blame diagnostic question'
+)
+assert(
+  agencyBody.includes('spam folders') &&
+    agencyBody.includes('Promotions tabs') &&
+    agencyBody.includes('client trust'),
+  'agency body should mention the real client-trust and inbox-placement risk'
 )
 assert(
   !/what becomes hardest/i.test(agencyBody),

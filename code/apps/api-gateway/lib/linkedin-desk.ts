@@ -458,8 +458,8 @@ function buildLinkedInDmText(lead: SovereignCopyLead, offerType: SovereignOfferT
   if (offerType === 'agency') {
     return [
       `Hi ${firstName}, noticed ${company} sits close to client acquisition and campaign delivery.`,
-      'When an outbound campaign underperforms, agencies often have to separate lead quality, inbox placement, follow-up ownership, and client reporting without much clean proof.',
-      `Where does that usually get hardest for ${company}?`,
+      'When a campaign underperforms, the client often blames lead quality before anyone can prove whether the real issue is inbox placement, follow-up ownership, or reporting proof.',
+      `Which blame shows up first at ${company}?`,
     ].join('\n\n')
   }
 
@@ -473,7 +473,7 @@ function buildLinkedInDmText(lead: SovereignCopyLead, offerType: SovereignOfferT
 function buildLinkedInFollowUpText(lead: SovereignCopyLead, offerType: SovereignOfferType): string {
   const company = asString(lead.company, 'your team')
   if (offerType === 'agency') {
-    return `The reason I thought of ${company}: agencies usually win on execution, but client trust depends on proving what is actually causing low replies. Is this worth diagnosing now, or not a priority right now?`
+    return `The reason I thought of ${company}: agencies usually win on execution, but client trust depends on proving what is actually causing low replies. Worth diagnosing now, or not a priority right now?`
   }
   return `I am not sure if outbound campaign diagnosis is a priority for ${company} right now. When campaigns underperform, do you usually blame lead quality, message fit, or inbox placement first?`
 }

@@ -1,5 +1,5 @@
 export const XAVIRA_AGENCY_GTM_MOTION = {
-  version: '2026-06-agency-rescue-motion-v1',
+  version: '2026-06-agency-rescue-motion-v2',
   primaryIcp:
     'Lead generation agencies, RevOps agencies, outbound agencies, appointment-setting agencies, SDR-as-a-service firms, and B2B demand-generation agencies.',
   entryOffer: '£5,000 Campaign Rescue Sprint',
@@ -9,7 +9,7 @@ export const XAVIRA_AGENCY_GTM_MOTION = {
   dailyConversationGoal: 10,
   firstCustomerTarget: 10,
   discoveryQuestion:
-    'When a client campaign underperforms, what do clients blame first: lead quality, deliverability, follow-ups, or reporting?',
+    'When a client campaign underperforms, what gets blamed first: lead quality, inbox placement, follow-up ownership, or reporting proof?',
   agencyIntentTerms: [
     'abm',
     'appointment setting',
@@ -32,12 +32,14 @@ export const XAVIRA_AGENCY_GTM_MOTION = {
   ],
   agencyPainSignals: [
     'client reporting proof',
+    'client blame',
     'deliverability uncertainty',
     'duplicate outreach',
     'follow-up ownership',
     'inbox placement doubt',
     'lead quality blame',
     'low replies',
+    'spam folders or Promotions tabs',
     'sender/domain risk',
   ],
   forbiddenFirstTouch: [

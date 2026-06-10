@@ -34,7 +34,7 @@ const sampleLeads: PreviewLead[] = [
     companyDomain: 'northstarrevops.com',
     title: 'agency founder',
     reason_to_contact:
-      'Northstar RevOps looks like a growth agency that needs client-facing proof when outbound campaigns underperform.',
+      'Northstar RevOps looks like a growth agency where client campaigns, reporting proof, follow-up ownership, and inbox placement matter when outbound underperforms.',
     customFields: {
       offer_type: 'agency',
       industry: 'growth marketing agency',
