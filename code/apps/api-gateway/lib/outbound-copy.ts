@@ -122,7 +122,7 @@ export type SovereignRenderedCopy = {
   subject: string
   text: string
   html: string
-  source: 'template' | 'xavira_ai'
+  source: 'template' | 'xavira_ai' | 'xavira_rag'
   error?: string
 }
 
@@ -543,7 +543,7 @@ function inferCommunicationComplexity(text: string, offerType: SovereignOfferTyp
   if (includesAny(text, [/\bcapital raising\b|investor|lender|broker|project stakeholders?|development/])) {
     return 'investors, lenders, brokers, partners, and project stakeholders'
   }
-  if (offerType === 'agency') return 'clients, prospects, account owners, and delivery teams'
+  if (offerType === 'agency') return 'client campaigns, lead sources, sender trust, follow-ups, and reporting proof'
   if (includesAny(text, [/\benterprise|procurement|security|compliance|legal|risk/])) {
     return 'buyers, technical evaluators, legal, security, and internal operators'
   }
@@ -567,6 +567,9 @@ export function buildSovereignBuyerIntelligence(
   const growthMotion = inferGrowthMotion(text, offerType)
   const communicationComplexity = inferCommunicationComplexity(text, offerType)
   const operationalRiskIndicators = uniqueList([
+    offerType === 'agency' ? 'client campaign diagnosis' : '',
+    offerType === 'agency' ? 'lead quality versus deliverability blame' : '',
+    offerType === 'agency' ? 'follow-up and reporting proof gaps' : '',
     includesAny(text, [/\bfollow[- ]?up|reply|inbox|missed response/]) ? 'follow-up ownership' : '',
     includesAny(text, [/\bclient|reporting|account owner|delivery/]) ? 'client reporting visibility' : '',
     includesAny(text, [/\binvestor|lender|broker|partner|stakeholder/]) ? 'multi-stakeholder coordination' : '',
@@ -593,6 +596,9 @@ export function buildSovereignBuyerIntelligence(
   const risks = operationalRiskIndicators.length
     ? operationalRiskIndicators.join(', ')
     : 'reply visibility, follow-up ownership, and communication context'
+  const communicationHypothesis = offerType === 'agency'
+    ? `When a client campaign underperforms at ${company}, the hard part is usually separating whether the blocker is lead quality, deliverability, follow-up ownership, or reporting proof.`
+    : `When ${company} has to coordinate ${communicationComplexity}, the first problems are usually visibility, ownership, and knowing which conversations need action.`
 
   return {
     companyType,
@@ -606,7 +612,7 @@ export function buildSovereignBuyerIntelligence(
     likelyCommunicationChannels,
     businessSummary: `${company} appears to be a ${companyType} with a ${businessModel} model and a ${revenueMotion} motion.`,
     riskSummary: `The likely risk is ${risks} becoming hard to see as communication volume grows.`,
-    communicationHypothesis: `When ${company} has to coordinate ${communicationComplexity}, the first problems are usually visibility, ownership, and knowing which conversations need action.`,
+    communicationHypothesis,
   }
 }
 
@@ -677,6 +683,10 @@ function selectOperationalObservation(
   intelligence: SovereignBuyerIntelligence
 ): string {
   const company = safeCompanyName(lead)
+  if (inferSovereignOfferType(lead) === 'agency') {
+    return `I noticed ${company} works in the layer where client campaign performance has to be explained, not just executed.`
+  }
+
   const complexity = intelligence.communicationComplexity
   const candidates = [
     /\binvestors?, lenders?, brokers?, partners?, and project stakeholders?\b/i.test(complexity)
@@ -1445,6 +1455,51 @@ function cleanBody(
   return body
 }
 
+function buildDeterministicXaviraRagCopy(
+  lead: SovereignCopyLead,
+  physicalAddress: string,
+  ragContext: SovereignCopyRagContext = {},
+  options: { includeBookingCta?: boolean } = {}
+): string {
+  const firstName = safeGreetingName(lead.first_name || lead.firstName)
+  const company = safeCompanyName(lead)
+  const decision = buildSovereignCopyDecision(lead, ragContext)
+  const agencyMotion =
+    decision.offerType === 'agency' ||
+    decision.industry === 'agency' ||
+    decision.industry === 'revops'
+
+  const observation = agencyMotion
+    ? `I noticed ${company} works in the layer where client campaign performance has to be explained, not just executed.`
+    : decision.proof
+  const hypothesis = agencyMotion
+    ? 'When a client campaign underperforms, the hard part is usually separating whether the blocker is lead quality, deliverability, follow-up ownership, or reporting proof.'
+    : decision.pain
+  const question = agencyMotion
+    ? `When that happens at ${company}, what does the client usually blame first: lead quality, deliverability, follow-ups, or reporting?`
+    : decision.cta
+  const body = `Hi ${firstName},
+
+${observation}
+
+${hypothesis}
+
+${decision.value}
+
+${question}
+
+Best,
+Vishnu
+Founder
+Xavira Tech Labs
+
+If not relevant, no worries.`
+
+  return cleanBody(body, body, physicalAddress, {
+    includeBookingCta: options.includeBookingCta,
+  })
+}
+
 export async function buildSovereignCopyForLead(
   lead: SovereignCopyLead,
   options: {
@@ -1464,6 +1519,14 @@ export async function buildSovereignCopyForLead(
     lead,
     options.physicalAddress
   )
+  const deterministicText = options.bodyOverride
+    ? fallbackText.trim()
+    : buildDeterministicXaviraRagCopy(
+        lead,
+        options.physicalAddress,
+        options.ragContext ?? {},
+        { includeBookingCta: options.includeBookingCta }
+      )
   const shouldUseXaviraAi =
     options.useXaviraAi ??
     options.useOpenRouter ??
@@ -1474,12 +1537,14 @@ export async function buildSovereignCopyForLead(
       ))
 
   if (!shouldUseXaviraAi) {
-    const text = options.includeBookingCta ? withSovereignBookingCta(fallbackText) : fallbackText.trim()
+    const text = options.bodyOverride
+      ? (options.includeBookingCta ? withSovereignBookingCta(fallbackText) : fallbackText.trim())
+      : deterministicText
     return {
       subject: fallbackSubject,
       text,
       html: renderSovereignHtmlEmail(text),
-      source: 'template',
+      source: options.bodyOverride ? 'template' : 'xavira_rag',
     }
   }
 
@@ -1665,12 +1730,14 @@ export async function buildSovereignCopyForLead(
   }
 
   if (result.source !== 'xavira_ai') {
-    const text = options.includeBookingCta ? withSovereignBookingCta(fallbackText) : fallbackText.trim()
+    const text = options.bodyOverride
+      ? (options.includeBookingCta ? withSovereignBookingCta(fallbackText) : fallbackText.trim())
+      : deterministicText
     return {
       subject: fallbackSubject,
       text,
       html: renderSovereignHtmlEmail(text),
-      source: 'template',
+      source: options.bodyOverride ? 'template' : 'xavira_rag',
       error: result.error,
     }
   }
@@ -1683,12 +1750,14 @@ export async function buildSovereignCopyForLead(
     result.data.selfScore
   )
   if (!quality.ok) {
-    const text = options.includeBookingCta ? withSovereignBookingCta(fallbackText) : fallbackText.trim()
+    const text = options.bodyOverride
+      ? (options.includeBookingCta ? withSovereignBookingCta(fallbackText) : fallbackText.trim())
+      : deterministicText
     return {
       subject: fallbackSubject,
       text,
       html: renderSovereignHtmlEmail(text),
-      source: 'template',
+      source: options.bodyOverride ? 'template' : 'xavira_rag',
       error: `xavira_ai_quality_rejected:${quality.reasons.slice(0, 6).join(',')}`,
     }
   }

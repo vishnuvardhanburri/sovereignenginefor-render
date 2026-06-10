@@ -76,7 +76,7 @@ type CopyPreviewItem = {
   subject: string
   text: string
   html: string
-  source: 'template' | 'xavira_ai'
+  source: 'template' | 'xavira_ai' | 'xavira_rag'
   error: string | null
 }
 
@@ -311,9 +311,11 @@ export default function SentMailPage() {
                       <div className="flex items-center gap-2">
                         {offerBadge(preview.offerType)}
                         <Badge variant="outline" className="text-xs">
-                          {preview.source === 'template'
-                            ? 'Base template'
-                            : 'AI generated'}
+                          {preview.source === 'xavira_ai'
+                            ? 'AI generated'
+                            : preview.source === 'xavira_rag'
+                              ? 'Xavira RAG'
+                              : 'Base template'}
                         </Badge>
                       </div>
                       <p className="mt-2 text-sm font-medium">{preview.label}</p>

@@ -54,6 +54,14 @@ function setDefaultParam(runUrl: URL, params: URLSearchParams, key: string, valu
   if (!params.has(key)) runUrl.searchParams.set(key, value)
 }
 
+function requestBoolParam(params: URLSearchParams, keys: string[], fallback: boolean): boolean {
+  for (const key of keys) {
+    if (!params.has(key)) continue
+    return envBool(params.get(key), fallback)
+  }
+  return fallback
+}
+
 function buildRunUrl(request: NextRequest, clientId: number): string {
   const runUrl = new URL('/api/cron/daily-outbound', requestPublicOrigin(request))
   const params = request.nextUrl.searchParams
@@ -79,6 +87,12 @@ function buildRunUrl(request: NextRequest, clientId: number): string {
     'dailyCeiling',
     'minDailyVolume',
     'maxDailyVolume',
+    'researchUnlimited',
+    'research_unlimited',
+    'researchLimit',
+    'researchApproveLimit',
+    'readyInventoryTarget',
+    'ready_inventory_target',
     'publicSearch',
     'publicSearchLimit',
     'publicSearchIndustry',
@@ -126,15 +140,28 @@ function buildRunUrl(request: NextRequest, clientId: number): string {
   runUrl.searchParams.set('cronCompact', '1')
 
   if (freeTierSafeMode() && shouldRunOutboundCycleDirect(request)) {
+    const queueOnlyRequested = requestBoolParam(params, ['queueOnly', 'queue_only'], false)
+
     setDefaultParam(runUrl, params, 'providerValidationLimit', '0')
-    setDefaultParam(runUrl, params, 'evidenceFetchLimit', '0')
+    setDefaultParam(runUrl, params, 'evidenceFetchLimit', queueOnlyRequested ? '0' : '6')
     setDefaultParam(runUrl, params, 'hunterSearch', '0')
     setDefaultParam(runUrl, params, 'mapsLimit', '0')
-    setDefaultParam(runUrl, params, 'publicSearch', '0')
-    setDefaultParam(runUrl, params, 'leadScout', '0')
-    setDefaultParam(runUrl, params, 'evidenceDeadlineMs', '3500')
-    setDefaultParam(runUrl, params, 'evidenceMaxPages', '1')
-    setDefaultParam(runUrl, params, 'evidenceRequestTimeoutMs', '900')
+    setDefaultParam(runUrl, params, 'researchUnlimited', '1')
+    setDefaultParam(runUrl, params, 'readyInventoryTarget', '800')
+    setDefaultParam(runUrl, params, 'researchApproveLimit', queueOnlyRequested ? '25' : '200')
+    setDefaultParam(runUrl, params, 'evidenceDeadlineMs', queueOnlyRequested ? '3500' : '6000')
+    setDefaultParam(runUrl, params, 'evidenceMaxPages', queueOnlyRequested ? '1' : '2')
+    setDefaultParam(runUrl, params, 'evidenceRequestTimeoutMs', queueOnlyRequested ? '900' : '1200')
+
+    if (queueOnlyRequested) {
+      setDefaultParam(runUrl, params, 'publicSearch', '0')
+      setDefaultParam(runUrl, params, 'leadScout', '0')
+    } else {
+      setDefaultParam(runUrl, params, 'publicSearch', '1')
+      setDefaultParam(runUrl, params, 'publicSearchLimit', '40')
+      setDefaultParam(runUrl, params, 'leadScout', '1')
+      setDefaultParam(runUrl, params, 'leadScoutLimit', '80')
+    }
   }
 
   return runUrl.toString()
