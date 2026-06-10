@@ -952,29 +952,38 @@ export function scoutOpenLeads(input: LeadScoutRequest = {}): {
 }
 
 export function leadScoutToContacts(leads: OpenLead[]): ContactInput[] {
-  return leads.map((lead) => ({
-    email: lead.email,
-    name: '',
-    company: lead.company,
-    title: lead.title,
-    source: lead.source,
-    companyDomain: lead.companyDomain,
-    customFields: {
-      auto_approval_eligible: Boolean(lead.autoApprovalEligible),
-      data_source: 'owned_open_lead_graph',
-      email_evidence: lead.emailEvidence ?? 'synthetic_role_pattern',
-      lead_scout: true,
-      target_market: true,
-      target_region: 'us_foreign_paying_market',
-      fit_score: lead.fitScore,
-      confidence: lead.confidence,
-      reason_to_contact: lead.reason,
-      public_evidence_url: lead.publicEvidenceUrl ?? null,
-      lead_quality_warning: lead.autoApprovalEligible
-        ? 'Public evidence found; still monitor bounces and complaints.'
-        : 'Role inbox inferred from company domain; requires business-safe validation and scoring before queueing.',
-      approval_required: true,
-      send_status: 'not_approved',
-    },
-  }))
+  return leads.map((lead) => {
+    const agencyMotion =
+      /\bagency outreach\b|appointment setting|b2b lead generation|client acquisition|demand generation|lead generation|outbound|revops|revenue operations|sales development/i.test(
+        lead.reason
+      )
+
+    return {
+      email: lead.email,
+      name: '',
+      company: lead.company,
+      title: lead.title,
+      source: lead.source,
+      companyDomain: lead.companyDomain,
+      customFields: {
+        auto_approval_eligible: Boolean(lead.autoApprovalEligible),
+        data_source: 'owned_open_lead_graph',
+        email_evidence: lead.emailEvidence ?? 'synthetic_role_pattern',
+        lead_scout: true,
+        offer_type: agencyMotion ? 'agency' : 'direct',
+        industry: agencyMotion ? 'agency' : 'direct',
+        target_market: true,
+        target_region: 'us_foreign_paying_market',
+        fit_score: lead.fitScore,
+        confidence: lead.confidence,
+        reason_to_contact: lead.reason,
+        public_evidence_url: lead.publicEvidenceUrl ?? null,
+        lead_quality_warning: lead.autoApprovalEligible
+          ? 'Public evidence found; still monitor bounces and complaints.'
+          : 'Role inbox inferred from company domain; requires business-safe validation and scoring before queueing.',
+        approval_required: true,
+        send_status: 'not_approved',
+      },
+    }
+  })
 }
