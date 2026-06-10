@@ -11,8 +11,7 @@ ENV NEXT_TELEMETRY_DISABLED=1 \
 RUN apt-get update \
   && apt-get install -y --no-install-recommends ca-certificates openssl python3 make g++ \
   && rm -rf /var/lib/apt/lists/* \
-  && corepack enable \
-  && corepack prepare pnpm@9.0.0 --activate
+  && npm install -g pnpm@9.0.0
 
 COPY . .
 
@@ -78,8 +77,7 @@ ENV NODE_ENV=production \
 RUN apt-get update \
   && apt-get install -y --no-install-recommends ca-certificates openssl \
   && rm -rf /var/lib/apt/lists/* \
-  && corepack enable \
-  && corepack prepare pnpm@9.0.0 --activate
+  && npm install -g pnpm@9.0.0
 
 COPY --from=builder /app /app
 
