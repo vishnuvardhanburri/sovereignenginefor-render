@@ -2242,7 +2242,7 @@ async function repairTerminalQueuedContacts(clientId: number): Promise<number> {
         AND c.id = e.contact_id
        WHERE e.client_id = $1
          AND e.contact_id IS NOT NULL
-         AND COALESCE(c.custom_fields->>'send_status', '') = 'queued'
+         AND COALESCE(c.custom_fields->>'send_status', '') IN ('queued', 'approved', 'not_approved')
          AND e.event_type IN ('sent', 'failed', 'bounce', 'bounced')
        ORDER BY e.contact_id, e.created_at DESC
      ),
