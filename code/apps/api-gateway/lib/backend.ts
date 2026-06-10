@@ -2667,38 +2667,43 @@ export async function getAnalytics(clientId: number) {
 }
 
 export async function getDashboardStats(clientId: number) {
-  const [todaySent, replies, campaigns] = await Promise.all([
-    queryOne<{ count: string }>(
-      `SELECT COUNT(*)::text AS count
-       FROM events
-       WHERE client_id = $1
-         AND event_type = 'sent'
-         AND created_at >= CURRENT_DATE`,
-      [clientId]
-    ),
-    queryOne<{ count: string }>(
-      `SELECT COUNT(*)::text AS count
-       FROM events
-       WHERE client_id = $1
-         AND event_type = 'reply'
-         AND ${HUMAN_MATCHED_REPLY_EVENTS_SQL}`,
-      [clientId]
-    ),
-    query<Campaign>(
-      `SELECT *
-       FROM campaigns
-       WHERE client_id = $1`,
-      [clientId]
-    ),
-  ])
+  const stats = await queryOne<{
+    sent_today: string
+    replies: string
+    sent_total: string
+    open_total: string
+    bounce_total: string
+  }>(
+    `SELECT
+       (
+         SELECT COUNT(*)::text
+         FROM events
+         WHERE client_id = $1
+           AND event_type = 'sent'
+           AND created_at >= CURRENT_DATE
+       ) AS sent_today,
+       (
+         SELECT COUNT(*)::text
+         FROM events
+         WHERE client_id = $1
+           AND event_type = 'reply'
+           AND ${HUMAN_MATCHED_REPLY_EVENTS_SQL}
+       ) AS replies,
+       COALESCE(SUM(sent_count), 0)::text AS sent_total,
+       COALESCE(SUM(open_count), 0)::text AS open_total,
+       COALESCE(SUM(bounce_count), 0)::text AS bounce_total
+     FROM campaigns
+     WHERE client_id = $1`,
+    [clientId]
+  )
 
-  const sentTotal = campaigns.rows.reduce((sum, campaign) => sum + campaign.sent_count, 0)
-  const openTotal = campaigns.rows.reduce((sum, campaign) => sum + campaign.open_count, 0)
-  const bounceTotal = campaigns.rows.reduce((sum, campaign) => sum + campaign.bounce_count, 0)
+  const sentTotal = Number(stats?.sent_total ?? 0)
+  const openTotal = Number(stats?.open_total ?? 0)
+  const bounceTotal = Number(stats?.bounce_total ?? 0)
 
   return {
-    emailsSentToday: Number(todaySent?.count ?? 0),
-    replies: Number(replies?.count ?? 0),
+    emailsSentToday: Number(stats?.sent_today ?? 0),
+    replies: Number(stats?.replies ?? 0),
     openRate: sentTotal > 0 ? Math.round((openTotal / sentTotal) * 100) : 0,
     bounceRate: sentTotal > 0 ? Math.round((bounceTotal / sentTotal) * 100) : 0,
   }
