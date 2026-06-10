@@ -73,11 +73,18 @@ function envInt(names: string[], fallback: number, min: number, max: number): nu
 }
 
 function providerDailyLimit(provider: ApiProvider): number {
+  const totalDailySendCap = envInt(['DAILY_OUTBOUND_TOTAL_DAILY_SEND_CAP'], 150, 1, 100_000)
   if (provider === 'brevo') {
     if (isBrevoDisabled()) return 0
-    return envInt(['BREVO_DAILY_LIMIT', 'DAILY_BREVO_LIMIT', 'SENDINBLUE_DAILY_LIMIT'], 300, 0, 100_000)
+    return Math.min(
+      envInt(['BREVO_DAILY_LIMIT', 'DAILY_BREVO_LIMIT', 'SENDINBLUE_DAILY_LIMIT'], 150, 0, 100_000),
+      totalDailySendCap
+    )
   }
-  return envInt(['RESEND_DAILY_LIMIT', 'DAILY_RESEND_LIMIT'], 200, 0, 100_000)
+  return Math.min(
+    envInt(['RESEND_DAILY_LIMIT', 'DAILY_RESEND_LIMIT'], 150, 0, 100_000),
+    totalDailySendCap
+  )
 }
 
 function stableHash(value: string): number {

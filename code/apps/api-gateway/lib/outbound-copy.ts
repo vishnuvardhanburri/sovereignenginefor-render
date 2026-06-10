@@ -44,8 +44,8 @@ export const SOVEREIGN_DEFAULT_BOOKING_URL =
 export const SOVEREIGN_CLIENT_GENERATION_TARGET = {
   dailyQualifiedConversationsMin: 1,
   dailyQualifiedConversationsMax: 2,
-  operatingSendFloor: 125,
-  operatingSendCeiling: 199,
+  operatingSendFloor: 120,
+  operatingSendCeiling: 150,
   idealAgencySharePct: XAVIRA_AGENCY_GTM_MOTION.idealAgencySharePct,
 } as const
 

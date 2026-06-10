@@ -66,8 +66,8 @@ assert(
   'high-intent agency leads should be scored as serious client opportunities'
 )
 assert(
-  SOVEREIGN_CLIENT_GENERATION_TARGET.operatingSendFloor === 125 &&
-    SOVEREIGN_CLIENT_GENERATION_TARGET.operatingSendCeiling === 199 &&
+  SOVEREIGN_CLIENT_GENERATION_TARGET.operatingSendFloor === 120 &&
+    SOVEREIGN_CLIENT_GENERATION_TARGET.operatingSendCeiling === 150 &&
     SOVEREIGN_CLIENT_GENERATION_TARGET.idealAgencySharePct === 80,
   'client-generation operating range should be explicit'
 )

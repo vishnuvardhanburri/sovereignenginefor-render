@@ -203,7 +203,7 @@ export async function getSendingCapacityDiagnosis(
 ): Promise<SendingCapacityDiagnosis> {
   const envTargetDailyVolume = envInt(
     'DAILY_OUTBOUND_TARGET_DAILY_VOLUME',
-    envInt('TARGET_DAILY_VOLUME', envInt('INFRASTRUCTURE_TARGET_DAILY_VOLUME', 800, 1, 1_000_000), 1, 1_000_000),
+    envInt('TARGET_DAILY_VOLUME', envInt('INFRASTRUCTURE_TARGET_DAILY_VOLUME', 150, 1, 1_000_000), 1, 1_000_000),
     1,
     1_000_000
   )
@@ -213,7 +213,7 @@ export async function getSendingCapacityDiagnosis(
   )
   const perIdentityDailyPlanningTarget = envInt(
     'CAPACITY_PLANNER_PER_IDENTITY_DAILY_TARGET',
-    50,
+    75,
     1,
     500
   )
@@ -319,7 +319,7 @@ export async function getSendingCapacityDiagnosis(
     },
     guardrails: [
       'Health is not reset by operator approval; bounce and complaint evidence remain durable.',
-      'This deployment can target 800/day when configured; queueing still requires clean provider capacity, healthy identities, and validated contacts.',
+      'This deployment is capped at 150/day total across both sender inboxes; follow-ups consume the same capacity as first-touch sends.',
       '100k+/day is infrastructure-scale capability: it requires permissioned or transactional volume, many healthy domains, many identities, and provider approval.',
       'Cold outbound must remain reputation-aware, suppression-aware, and validation-backed before volume is increased.',
     ],

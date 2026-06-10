@@ -173,6 +173,19 @@ const LICENSING_KEY = process.env.LICENSING_KEY ?? ''
 const LICENSING_HEARTBEAT_INTERVAL_MS = Number(process.env.LICENSING_HEARTBEAT_INTERVAL_MS ?? 60_000)
 const LICENSING_FAIL_CLOSED = envBool('LICENSING_FAIL_CLOSED', false)
 const LICENSING_LOCK_TTL_SEC = Number(process.env.LICENSING_LOCK_TTL_SEC ?? 120)
+const DAILY_OUTBOUND_TOTAL_SEND_CAP = intEnv('DAILY_OUTBOUND_TOTAL_DAILY_SEND_CAP', 150, 1, 100_000)
+const SENDER_DOMAIN_HARD_DAILY_LIMIT = intEnv(
+  'SENDER_DOMAIN_HARD_DAILY_LIMIT',
+  75,
+  1,
+  DAILY_OUTBOUND_TOTAL_SEND_CAP
+)
+const SENDER_IDENTITY_HARD_DAILY_LIMIT = intEnv(
+  'SENDER_IDENTITY_HARD_DAILY_LIMIT',
+  75,
+  1,
+  DAILY_OUTBOUND_TOTAL_SEND_CAP
+)
 let heartbeatTimer: NodeJS.Timeout | null = null
 let licenseTimer: NodeJS.Timeout | null = null
 let bullWorker: BullWorker<SendJob> | null = null
@@ -228,10 +241,10 @@ function providerDailyLimit(provider: ApiSendProvider): number {
 
   for (const name of names) {
     const value = Number.parseInt(String(process.env[name] || ''), 10)
-    if (Number.isFinite(value)) return clamp(value, 0, 100_000)
+    if (Number.isFinite(value)) return Math.min(clamp(value, 0, 100_000), DAILY_OUTBOUND_TOTAL_SEND_CAP)
   }
 
-  return provider === 'brevo' ? 300 : 200
+  return DAILY_OUTBOUND_TOTAL_SEND_CAP
 }
 
 function parseProviderMode(rawValue: string): SendProvider | 'auto' | null {
@@ -1308,17 +1321,18 @@ async function reconcileSenderIdentitiesForWorker(clientId: number): Promise<{ b
   if (!emails.length) return { bootstrapped: 0, emails: [] }
 
   const targetDailyVolume = intEnv('DAILY_OUTBOUND_TARGET_DAILY_VOLUME', 200, 1, 100_000)
-  const domainDailyLimit = intEnv(
-    'BOOTSTRAP_DOMAIN_DAILY_LIMIT',
-    Math.max(50, targetDailyVolume),
-    1,
-    100_000
+  const domainDailyLimit = Math.min(
+    intEnv('BOOTSTRAP_DOMAIN_DAILY_LIMIT', Math.max(50, targetDailyVolume), 1, 100_000),
+    SENDER_DOMAIN_HARD_DAILY_LIMIT
   )
-  const identityDailyLimit = intEnv(
-    'BOOTSTRAP_IDENTITY_DAILY_LIMIT',
-    Math.max(25, Math.ceil(targetDailyVolume / Math.max(emails.length, 1))),
-    1,
-    100_000
+  const identityDailyLimit = Math.min(
+    intEnv(
+      'BOOTSTRAP_IDENTITY_DAILY_LIMIT',
+      Math.max(25, Math.ceil(targetDailyVolume / Math.max(emails.length, 1))),
+      1,
+      100_000
+    ),
+    SENDER_IDENTITY_HARD_DAILY_LIMIT
   )
   const markAuthValid = envBool('BOOTSTRAP_MARK_DNS_VALID', false)
   let bootstrapped = 0
@@ -1349,8 +1363,8 @@ async function reconcileSenderIdentitiesForWorker(clientId: number): Promise<{ b
            spf_valid = CASE WHEN $3 THEN TRUE ELSE domains.spf_valid END,
            dkim_valid = CASE WHEN $3 THEN TRUE ELSE domains.dkim_valid END,
            dmarc_valid = CASE WHEN $3 THEN TRUE ELSE domains.dmarc_valid END,
-           daily_limit = GREATEST(COALESCE(domains.daily_limit, 0), EXCLUDED.daily_limit),
-           daily_cap = GREATEST(COALESCE(domains.daily_cap, 0), EXCLUDED.daily_cap),
+           daily_limit = EXCLUDED.daily_limit,
+           daily_cap = EXCLUDED.daily_cap,
            updated_at = CURRENT_TIMESTAMP
        RETURNING id`,
       [clientId, domain, markAuthValid, domainDailyLimit]
@@ -1364,7 +1378,7 @@ async function reconcileSenderIdentitiesForWorker(clientId: number): Promise<{ b
        ON CONFLICT (client_id, email) DO UPDATE
        SET domain_id = EXCLUDED.domain_id,
            status = 'active',
-           daily_limit = GREATEST(COALESCE(identities.daily_limit, 0), EXCLUDED.daily_limit),
+           daily_limit = EXCLUDED.daily_limit,
            updated_at = CURRENT_TIMESTAMP`,
       [clientId, domainId, email, identityDailyLimit]
     )

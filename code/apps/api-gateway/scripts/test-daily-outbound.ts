@@ -298,8 +298,8 @@ assert.equal(researchInventoryPlan.approveLimit, 1600)
 assert.equal(researchInventoryPlan.sendLimit, 1)
 
 assert.deepEqual(resolveDailyVolumeBand({ env: {} }), {
-  minDailyVolume: 125,
-  maxDailyVolume: 199,
+  minDailyVolume: 120,
+  maxDailyVolume: 150,
 })
 
 const catchUpPlan = buildDailyOutboundPlan({
@@ -322,31 +322,31 @@ const catchUpAdjustment = applyDailyVolumeBand({
   },
 })
 
-assert.equal(catchUpAdjustment.sendLimit, 108)
+assert.equal(catchUpAdjustment.sendLimit, 103)
 assert.equal(catchUpAdjustment.runQueue, true)
-assert.equal(catchUpAdjustment.remainingToMin, 108)
+assert.equal(catchUpAdjustment.remainingToMin, 103)
 assert.ok(
   catchUpAdjustment.guardrails.some((guardrail) =>
-    guardrail.includes('raising this cycle from 8 to 108')
+    guardrail.includes('raising this cycle from 8 to 103')
   )
 )
 
 const ceilingAdjustment = applyDailyVolumeBand({
   plan: catchUpPlan,
   approvalWindow: highCapacityWindow,
-  sentToday: 195,
+  sentToday: 145,
   env: {
     DAILY_OUTBOUND_GROWTH_MAX_SEND_LIMIT: '800',
   },
 })
 
-assert.equal(ceilingAdjustment.sendLimit, 4)
+assert.equal(ceilingAdjustment.sendLimit, 5)
 assert.equal(ceilingAdjustment.runQueue, true)
 
 const stoppedAtCeilingAdjustment = applyDailyVolumeBand({
   plan: catchUpPlan,
   approvalWindow: highCapacityWindow,
-  sentToday: 199,
+  sentToday: 150,
   env: {
     DAILY_OUTBOUND_GROWTH_MAX_SEND_LIMIT: '800',
   },
@@ -439,11 +439,11 @@ const providerBackedGrowthPlan = buildDailyOutboundPlan({
   query: {},
 })
 
-assert.equal(providerBackedGrowthPlan.sendLimit, 800)
+assert.equal(providerBackedGrowthPlan.sendLimit, 150)
 assert.equal(providerBackedGrowthPlan.approveLimit, 1_000_000)
 assert.ok(
   providerBackedGrowthPlan.guardrails.includes(
-    'Provider-backed growth ceiling is configured at 800/day; queueing still requires verified contacts, healthy domains, and active sender capacity'
+    'Provider-backed growth ceiling is configured at 150/day; queueing still requires verified contacts, healthy domains, and active sender capacity'
   )
 )
 

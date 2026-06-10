@@ -98,10 +98,13 @@ EMAIL_PROVIDER=auto
 FORCE_EMAIL_PROVIDER=false
 DAILY_OUTBOUND_MODE=growth
 DAILY_OUTBOUND_RUN_MAPS=true
-DAILY_OUTBOUND_TARGET_DAILY_VOLUME=800
+DAILY_OUTBOUND_TARGET_DAILY_VOLUME=150
 DAILY_OUTBOUND_APPROVE_LIMIT=50
-DAILY_OUTBOUND_GROWTH_MAX_SEND_LIMIT=800
-DAILY_OUTBOUND_PROVIDER_MAX_SEND_LIMIT=800
+DAILY_OUTBOUND_GROWTH_MAX_SEND_LIMIT=150
+DAILY_OUTBOUND_PROVIDER_MAX_SEND_LIMIT=150
+DAILY_OUTBOUND_TOTAL_DAILY_SEND_CAP=150
+SENDER_DOMAIN_HARD_DAILY_LIMIT=75
+SENDER_IDENTITY_HARD_DAILY_LIMIT=75
 DAILY_OUTBOUND_PROVIDER_VALIDATION_LIMIT=100
 GOOGLE_MAPS_DAILY_LIMIT=100
 LEAD_SCOUT_ENABLED=true
@@ -118,8 +121,8 @@ BOOTSTRAP_SENDING_EMAILS=["hello@vishnulabs.com","contact@vishnuvardhanburri.in"
 RESEND_API_KEY=your_vishnulabs_resend_key
 RESEND_API_KEY_VISHNUVARDHANBURRI_IN=your_vishnuvardhanburri_resend_key
 BREVO_API_KEY=your_brevo_key
-BREVO_DAILY_LIMIT=300
-RESEND_DAILY_LIMIT=100
+BREVO_DAILY_LIMIT=150
+RESEND_DAILY_LIMIT=150
 ```
 
 If you only keep one sender identity in Render, the system can only safely rotate from one sender identity. Add the second identity to `BOOTSTRAP_SENDING_EMAILS` before expecting two-domain capacity.
@@ -139,4 +142,3 @@ Fast means:
 - Avoid wasting sender reputation on bad rows.
 
 This is the version buyers can trust because the system shows discipline, evidence, and delivery control instead of reckless blasting.
-

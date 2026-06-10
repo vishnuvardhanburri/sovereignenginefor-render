@@ -71,6 +71,12 @@ function intEnv(name: string, fallback: number, min: number, max: number): numbe
   return Math.max(min, Math.min(max, parsed))
 }
 
+function cappedIntEnv(name: string, fallback: number, capName: string, capFallback: number, max: number): number {
+  const configured = intEnv(name, fallback, 1, max)
+  const cap = intEnv(capName, capFallback, 1, max)
+  return Math.min(configured, cap)
+}
+
 function bootstrapEnabled(emails: string[]): { enabled: boolean; reason?: string } {
   const raw = process.env.BOOTSTRAP_SENDING_DOMAIN
   if (explicitlyDisabled(raw)) return { enabled: false, reason: 'BOOTSTRAP_SENDING_DOMAIN disabled' }
@@ -87,8 +93,20 @@ export async function reconcileBootstrapSendingDomain(
 ): Promise<BootstrapSendingDomainResult> {
   const emails = resolveBootstrapEmails()
   const clientId = input.clientId ?? intEnv('DEFAULT_CLIENT_ID', 1, 1, 1_000_000)
-  const domainDailyLimit = intEnv('BOOTSTRAP_DOMAIN_DAILY_LIMIT', 50, 1, 1_000)
-  const identityDailyLimit = intEnv('BOOTSTRAP_IDENTITY_DAILY_LIMIT', 25, 1, 500)
+  const domainDailyLimit = cappedIntEnv(
+    'BOOTSTRAP_DOMAIN_DAILY_LIMIT',
+    75,
+    'SENDER_DOMAIN_HARD_DAILY_LIMIT',
+    75,
+    1_000
+  )
+  const identityDailyLimit = cappedIntEnv(
+    'BOOTSTRAP_IDENTITY_DAILY_LIMIT',
+    75,
+    'SENDER_IDENTITY_HARD_DAILY_LIMIT',
+    75,
+    500
+  )
   const markAuthValid = truthy(process.env.BOOTSTRAP_MARK_DNS_VALID)
   const enabled = bootstrapEnabled(emails)
 
@@ -138,8 +156,8 @@ export async function reconcileBootstrapSendingDomain(
            spf_valid = CASE WHEN $3 THEN TRUE ELSE domains.spf_valid END,
            dkim_valid = CASE WHEN $3 THEN TRUE ELSE domains.dkim_valid END,
            dmarc_valid = CASE WHEN $3 THEN TRUE ELSE domains.dmarc_valid END,
-           daily_limit = GREATEST(COALESCE(domains.daily_limit, 0), EXCLUDED.daily_limit),
-           daily_cap = GREATEST(COALESCE(domains.daily_cap, 0), EXCLUDED.daily_cap),
+           daily_limit = EXCLUDED.daily_limit,
+           daily_cap = EXCLUDED.daily_cap,
            updated_at = CURRENT_TIMESTAMP
        RETURNING id`,
       [clientId, domain, markAuthValid, domainDailyLimit]
@@ -153,7 +171,7 @@ export async function reconcileBootstrapSendingDomain(
        ON CONFLICT (client_id, email) DO UPDATE
        SET domain_id = EXCLUDED.domain_id,
            status = 'active',
-           daily_limit = GREATEST(COALESCE(identities.daily_limit, 0), EXCLUDED.daily_limit),
+           daily_limit = EXCLUDED.daily_limit,
            updated_at = CURRENT_TIMESTAMP`,
       [clientId, domainId, email, identityDailyLimit]
     )

@@ -96,9 +96,9 @@ const MAX_APPROVE_LIMIT = 1_000_000
 const DEFAULT_GROWTH_APPROVAL_FLOOR = 1_000_000
 const CONSERVATIVE_MAX_SEND_LIMIT = 5
 const DEFAULT_GROWTH_MAX_SEND_LIMIT = 100
-const ABSOLUTE_GROWTH_MAX_SEND_LIMIT = 800
-const DEFAULT_MIN_DAILY_VOLUME = 125
-const DEFAULT_MAX_DAILY_VOLUME = 199
+const ABSOLUTE_GROWTH_MAX_SEND_LIMIT = 150
+const DEFAULT_MIN_DAILY_VOLUME = 120
+const DEFAULT_MAX_DAILY_VOLUME = 150
 
 export function resolveDailyBoolean(value: string | undefined | null, fallback: boolean): boolean {
   const normalized = String(value ?? '').trim().toLowerCase()
@@ -675,6 +675,7 @@ export function buildDailyOutboundPlan(input: PlanInput): DailyOutboundPlan {
     'Bounced, unsubscribed, suppressed, and unsafe inboxes stay blocked',
     'Generic inboxes require validation before auto-approval',
     'Daily queueing is capped by reputation health and domain capacity',
+    'Daily mail is capped at 150 total across the two sender inboxes; follow-ups consume the same cap',
     'If Google Sheet intake fails, the system falls back to existing approved contacts',
   ]
   if (runMapsImport && mapsLimit > 0) {

@@ -2116,7 +2116,7 @@ export async function createDomain(
     `INSERT INTO domains (client_id, domain, daily_limit)
      VALUES ($1, $2, $3)
      RETURNING *`,
-    [clientId, normalized, clamp(input.dailyLimit ?? 400, 200, 5_000)]
+    [clientId, normalized, clamp(input.dailyLimit ?? 75, 1, 5_000)]
   )
 }
 
@@ -2215,7 +2215,7 @@ export async function createIdentity(
     `INSERT INTO identities (client_id, domain_id, email, daily_limit)
      VALUES ($1, $2, $3, $4)
      RETURNING *`,
-    [clientId, input.domainId, email, clamp(input.dailyLimit ?? 200, 200, 400)]
+    [clientId, input.domainId, email, clamp(input.dailyLimit ?? 75, 1, 400)]
   )
 }
 

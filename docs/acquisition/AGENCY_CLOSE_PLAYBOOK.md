@@ -475,6 +475,13 @@ Every day:
 - Review sent proof, bounces, failures, and reply quality.
 - Save objections and wording that works.
 
+Mail safety cap:
+
+- Total email volume is capped at 150/day across both sender inboxes.
+- Each sender inbox is capped at 75/day.
+- Follow-ups count inside the same 150/day total. They are not extra volume.
+- Research inventory can keep growing separately; sending is the constrained resource.
+
 Daily scoreboard:
 
 ```text
@@ -533,4 +540,3 @@ Start:
 3. Send only personalized messages using the core question.
 4. Track replies and objections in one place.
 5. Offer the GBP 5,000 Campaign Rescue Sprint only after pain is confirmed.
-

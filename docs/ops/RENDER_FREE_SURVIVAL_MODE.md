@@ -46,5 +46,6 @@ The free mail pump runs compact local cycles: queue one safe send every interval
 lead discovery roughly hourly. This keeps mail moving without keeping the heavier outbound cycle
 worker resident in memory.
 
-Do not run 800 sends as one web request on the free instance. Keep the commercial target at
-800/day, but let free-tier execution advance in small chunks so the service stays alive.
+Do not run high-volume sends as one web request on the free instance. Keep the live commercial
+send cap at 150/day total across both sender inboxes, with follow-ups counted inside that same
+cap, and let free-tier execution advance in small chunks so the service stays alive.

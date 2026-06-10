@@ -65,9 +65,13 @@ services:
       - key: BOOTSTRAP_MARK_DNS_VALID
         value: "true"
       - key: BOOTSTRAP_DOMAIN_DAILY_LIMIT
-        value: "200"
+        value: "75"
       - key: BOOTSTRAP_IDENTITY_DAILY_LIMIT
-        value: "200"
+        value: "75"
+      - key: SENDER_DOMAIN_HARD_DAILY_LIMIT
+        value: "75"
+      - key: SENDER_IDENTITY_HARD_DAILY_LIMIT
+        value: "75"
       - key: BOOTSTRAP_ADMIN_EMAIL
         sync: false   # demo@sovereign.local
       - key: BOOTSTRAP_ADMIN_PASSWORD
@@ -77,7 +81,7 @@ services:
       - key: BREVO_API_KEY
         sync: false   # xkeysib-...
       - key: BREVO_DAILY_LIMIT
-        value: "600"
+        value: "150"
       - key: EMAIL_PROVIDER_VISHNULABS_COM
         value: brevo
       - key: RESEND_API_KEY
@@ -85,7 +89,7 @@ services:
       - key: RESEND_API_KEY_VISHNUVARDHANBURRI_IN
         sync: false   # re_DEjeSbea_...
       - key: RESEND_DAILY_LIMIT
-        value: "200"
+        value: "150"
       - key: RESEND_FROM_EMAIL
         value: hello@vishnulabs.com
       - key: RESEND_WEBHOOK_SECRET
@@ -115,13 +119,15 @@ services:
       - key: DAILY_OUTBOUND_MODE
         value: growth
       - key: DAILY_OUTBOUND_TARGET_DAILY_VOLUME
-        value: "800"
+        value: "150"
       - key: DAILY_OUTBOUND_SEND_LIMIT
-        value: "800"
+        value: "150"
       - key: DAILY_OUTBOUND_GROWTH_MAX_SEND_LIMIT
-        value: "800"
+        value: "150"
       - key: DAILY_OUTBOUND_PROVIDER_MAX_SEND_LIMIT
-        value: "800"
+        value: "150"
+      - key: DAILY_OUTBOUND_TOTAL_DAILY_SEND_CAP
+        value: "150"
       - key: DAILY_OUTBOUND_APPROVE_LIMIT
         value: "800"
       - key: DAILY_OUTBOUND_RESEARCH_UNLIMITED
@@ -409,7 +415,7 @@ services:
       - key: BREVO_API_KEY
         sync: false
       - key: BREVO_DAILY_LIMIT
-        value: "600"
+        value: "150"
       - key: BREVO_BLOCKED_SENDER_DOMAINS
         value: vishnuvardhanburri.in
       - key: EMAIL_PROVIDER_VISHNULABS_COM
@@ -419,7 +425,13 @@ services:
       - key: RESEND_API_KEY_VISHNUVARDHANBURRI_IN
         sync: false
       - key: RESEND_DAILY_LIMIT
-        value: "200"
+        value: "150"
+      - key: DAILY_OUTBOUND_TOTAL_DAILY_SEND_CAP
+        value: "150"
+      - key: SENDER_DOMAIN_HARD_DAILY_LIMIT
+        value: "75"
+      - key: SENDER_IDENTITY_HARD_DAILY_LIMIT
+        value: "75"
       - key: FORCE_EMAIL_PROVIDER
         value: "false"
       - key: ZEROBOUNCE_API_KEY
@@ -519,9 +531,15 @@ services:
       - key: DAILY_OUTBOUND_MODE
         value: growth
       - key: DAILY_OUTBOUND_TARGET_DAILY_VOLUME
-        value: "800"
+        value: "150"
       - key: DAILY_OUTBOUND_SEND_LIMIT
-        value: "80"
+        value: "75"
+      - key: DAILY_OUTBOUND_GROWTH_MAX_SEND_LIMIT
+        value: "150"
+      - key: DAILY_OUTBOUND_PROVIDER_MAX_SEND_LIMIT
+        value: "150"
+      - key: DAILY_OUTBOUND_TOTAL_DAILY_SEND_CAP
+        value: "150"
       - key: DAILY_OUTBOUND_APPROVE_LIMIT
         value: "500"
       - key: DAILY_OUTBOUND_RESEARCH_UNLIMITED
