@@ -171,6 +171,14 @@ function resultImportedOrApproved(result) {
   return numberValue(result?.imported, 0) + numberValue(result?.approved, 0)
 }
 
+function resultImported(result) {
+  return numberValue(result?.imported, 0)
+}
+
+function resultApproved(result) {
+  return numberValue(result?.approved, 0)
+}
+
 function resultSentToday(result) {
   return numberValue(result?.sentToday, 0)
 }
@@ -230,6 +238,30 @@ function appendCommonParams(url, kind, discoverySource = 'both') {
     return
   }
 
+  if (kind === 'approval') {
+    url.searchParams.set('queueOnly', '0')
+    url.searchParams.set('researchUnlimited', '1')
+    url.searchParams.set(
+      'readyInventoryTarget',
+      String(envInt('FREE_MAIL_PUMP_READY_INVENTORY_TARGET', safeMode ? 800 : 2_000, 1, 100_000))
+    )
+    url.searchParams.set(
+      'providerValidationLimit',
+      String(envInt('FREE_MAIL_PUMP_PROVIDER_VALIDATION_LIMIT', safeMode ? 20 : 250, 0, safeMode ? 40 : 1_000))
+    )
+    url.searchParams.set(
+      'evidenceFetchLimit',
+      String(envInt('FREE_MAIL_PUMP_EVIDENCE_FETCH_LIMIT', safeMode ? 4 : 20, 0, safeMode ? 10 : 100))
+    )
+    url.searchParams.set('leadScout', '0')
+    url.searchParams.set('publicSearch', '0')
+    url.searchParams.set(
+      'cycleDeadlineMs',
+      String(envInt('FREE_MAIL_PUMP_APPROVAL_DEADLINE_MS', safeMode ? 30000 : 45000, 8000, safeMode ? 60000 : 90000))
+    )
+    return
+  }
+
   url.searchParams.set('queueOnly', '0')
   url.searchParams.set('researchUnlimited', envBool('FREE_MAIL_PUMP_RESEARCH_UNLIMITED', true) ? '1' : '0')
   url.searchParams.set(
@@ -258,7 +290,7 @@ function appendCommonParams(url, kind, discoverySource = 'both') {
   url.searchParams.set('evidenceRequestTimeoutMs', String(envInt('FREE_MAIL_PUMP_EVIDENCE_REQUEST_TIMEOUT_MS', safeMode ? 1200 : 1200, 400, safeMode ? 2000 : 2500)))
   url.searchParams.set(
     'cycleDeadlineMs',
-    String(envInt('FREE_MAIL_PUMP_DISCOVERY_DEADLINE_MS', safeMode ? 16000 : 65000, 5000, safeMode ? 25000 : 120000))
+    String(envInt('FREE_MAIL_PUMP_DISCOVERY_DEADLINE_MS', safeMode ? 45000 : 65000, 15000, safeMode ? 60000 : 120000))
   )
 }
 
@@ -358,6 +390,14 @@ async function runDiscoverySequence(sourceMode, discoveryRuns, allowFallback) {
   for (const source of sources) {
     const result = await runCycle('discovery', source)
     results.push(result)
+    if (resultImported(result) > 0 && resultApproved(result) === 0 && resultQueued(result) === 0) {
+      console.log('[free-mail-pump-lite] approval requested', {
+        reason: 'post_discovery_imported_unapproved',
+        imported: resultImported(result),
+        discoverySource: source,
+      })
+      results.push(await runCycle('approval'))
+    }
     if (resultQueued(result) > 0 || resultImportedOrApproved(result) > 0) break
   }
   return results
