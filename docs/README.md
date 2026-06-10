@@ -16,6 +16,7 @@
 - `acquisition/HOMEPAGE_COPY.md`: revenue-protection homepage and founder/CTO narrative
 - `acquisition/ACQUIRE_LISTING_COPY.md`: Acquire.com listing copy
 - `acquisition/FAQ.md`: buyer FAQ with safe claim boundaries
+- `acquisition/AGENCY_CLOSE_PLAYBOOK.md`: current agency-only close-mode playbook for GBP 5,000 rescue sprints and GBP 3,000/month control partner motion
 - `acquisition/BUYER_REPLY_SYSTEM.md`: initial reply, data-room reply, negotiation reply, and close scripts
 - `acquisition/PRICE_STRATEGY.md`: listing range, target close range, and negotiation anchors
 - `acquisition/QUEUE_SCALING_PROOF.md`: queue system and 10,000 event proof narrative
