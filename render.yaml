@@ -215,9 +215,9 @@ services:
       - key: WEB_EMBED_AUTONOMOUS_OPS_WORKER
         value: "false"
       - key: WEB_EMBED_INBOUND_WORKER
-        value: "true"
+        value: "false"
       - key: WEB_EMBED_REPUTATION_WORKER
-        value: "true"
+        value: "false"
 
       # ── Lead scout ────────────────────────────────────────────────────────────
       - key: LEAD_SCOUT_ENABLED
