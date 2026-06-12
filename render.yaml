@@ -65,13 +65,13 @@ services:
       - key: BOOTSTRAP_MARK_DNS_VALID
         value: "true"
       - key: BOOTSTRAP_DOMAIN_DAILY_LIMIT
-        value: "75"
+        value: "200"
       - key: BOOTSTRAP_IDENTITY_DAILY_LIMIT
-        value: "75"
+        value: "200"
       - key: SENDER_DOMAIN_HARD_DAILY_LIMIT
-        value: "75"
+        value: "200"
       - key: SENDER_IDENTITY_HARD_DAILY_LIMIT
-        value: "75"
+        value: "200"
       - key: BOOTSTRAP_ADMIN_EMAIL
         sync: false   # demo@sovereign.local
       - key: BOOTSTRAP_ADMIN_PASSWORD
@@ -431,9 +431,9 @@ services:
       - key: DAILY_OUTBOUND_TOTAL_DAILY_SEND_CAP
         value: "150"
       - key: SENDER_DOMAIN_HARD_DAILY_LIMIT
-        value: "75"
+        value: "200"
       - key: SENDER_IDENTITY_HARD_DAILY_LIMIT
-        value: "75"
+        value: "200"
       - key: FORCE_EMAIL_PROVIDER
         value: "false"
       - key: ZEROBOUNCE_API_KEY
