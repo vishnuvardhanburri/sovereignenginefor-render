@@ -49,6 +49,25 @@ start_background() {
   ) &
 }
 
+start_supervised_background() {
+  name="$1"
+  shift
+  (
+    set +e
+    restart_delay="$(int_between "${RENDER_BACKGROUND_RESTART_DELAY_SEC:-10}" 10 1 300)"
+    while true; do
+      "$@"
+      code="$?"
+      if [ "$code" -ne 0 ]; then
+        echo "[render-start] ${name} exited with status ${code}; restarting in ${restart_delay}s" >&2
+      else
+        echo "[render-start] ${name} exited cleanly; restarting in ${restart_delay}s" >&2
+      fi
+      sleep "$restart_delay"
+    done
+  ) &
+}
+
 echo "[render-start] booting Sovereign Engine"
 echo "[render-start] flags WEB_EMBED_SENDER_WORKER=${WEB_EMBED_SENDER_WORKER:-unset} WEB_EMBED_REPUTATION_WORKER=${WEB_EMBED_REPUTATION_WORKER:-unset} WEB_EMBED_OUTBOUND_CYCLE_WORKER=${WEB_EMBED_OUTBOUND_CYCLE_WORKER:-auto} WEB_EMBED_AUTONOMOUS_OPS_WORKER=${WEB_EMBED_AUTONOMOUS_OPS_WORKER:-auto} MOCK_SMTP=${MOCK_SMTP:-unset} EMAIL_PROVIDER=${EMAIL_PROVIDER:-smtp}"
 echo "[render-start] secrets DATABASE_URL=$(mask_presence "${DATABASE_URL:-}") REDIS_URL=$(mask_presence "${REDIS_URL:-}") SMTP_HOST=$(mask_presence "${SMTP_HOST:-}") SMTP_ACCOUNTS=$(mask_presence "${SMTP_ACCOUNTS:-}")"
@@ -132,7 +151,7 @@ if enabled_flag "${WEB_EMBED_SENDER_WORKER:-}"; then
   i=1
   while [ "$i" -le "$sender_replicas" ]; do
     sender_worker_id="${RENDER_SERVICE_ID:-render}:${HOSTNAME:-host}:sender-${i}:$$"
-    start_background "sender-worker-${i}" env \
+    start_supervised_background "sender-worker-${i}" env \
       WORKER_ID="$sender_worker_id" \
       SENDER_WORKER_CONCURRENCY="$sender_concurrency" \
       PG_POOL_MAX="$worker_pg_pool_max" \
@@ -152,7 +171,7 @@ if [ "$free_tier_safe" = "true" ] && enabled_flag "${WEB_EMBED_OUTBOUND_CYCLE_WO
   echo "[render-start] embedded outbound-cycle-worker skipped by free-tier safe mode (set WEB_EMBED_OUTBOUND_CYCLE_WORKER_FORCE=true to override)"
 elif enabled_flag "${WEB_EMBED_OUTBOUND_CYCLE_WORKER:-$outbound_cycle_default}"; then
   echo "[render-start] starting embedded outbound-cycle-worker"
-  start_background "outbound-cycle-worker" env \
+  start_supervised_background "outbound-cycle-worker" env \
     OUTBOUND_CYCLE_TIMEOUT_MS="${OUTBOUND_CYCLE_TIMEOUT_MS:-45000}" \
     OUTBOUND_CYCLE_WORKER_CONCURRENCY="${OUTBOUND_CYCLE_WORKER_CONCURRENCY:-1}" \
     NODE_OPTIONS="${OUTBOUND_CYCLE_NODE_OPTIONS:---max-old-space-size=64}" \
@@ -167,7 +186,7 @@ if [ "$free_tier_safe" = "true" ]; then
 fi
 if enabled_flag "${WEB_EMBED_FREE_MAIL_PUMP:-$free_mail_pump_default}"; then
   echo "[render-start] starting embedded free-mail-pump"
-  start_background "free-mail-pump" env \
+  start_supervised_background "free-mail-pump" env \
     FREE_MAIL_PUMP_ENABLED=true \
     FREE_MAIL_PUMP_INTERVAL_MS="${FREE_MAIL_PUMP_INTERVAL_MS:-900000}" \
     FREE_MAIL_PUMP_DISCOVERY_INTERVAL_MS="${FREE_MAIL_PUMP_DISCOVERY_INTERVAL_MS:-3600000}" \
@@ -203,7 +222,7 @@ if [ "$memory_profile" != "small" ] && [ "$memory_profile" != "free" ]; then
 fi
 if enabled_flag "${WEB_EMBED_AUTONOMOUS_OPS_WORKER:-$auto_ops_default}"; then
   echo "[render-start] starting embedded autonomous-ops-worker"
-  start_background "autonomous-ops-worker" env \
+  start_supervised_background "autonomous-ops-worker" env \
     AUTONOMOUS_OPS_CONCURRENCY="${AUTONOMOUS_OPS_CONCURRENCY:-1}" \
     NODE_OPTIONS="${AUTONOMOUS_OPS_NODE_OPTIONS:---max-old-space-size=96}" \
     pnpm --dir apps/api-gateway exec tsx scripts/autonomous-ops-worker.ts
@@ -218,7 +237,7 @@ fi
 
 if [ -n "$effective_imap_host" ] && [ -n "$effective_imap_accounts" ] && enabled_flag "${WEB_EMBED_INBOUND_WORKER:-false}" && [ "$inbound_allowed" = "true" ]; then
   echo "[render-start] starting embedded inbound-worker"
-  start_background "inbound-worker" env \
+  start_supervised_background "inbound-worker" env \
     IMAP_HOST="$effective_imap_host" \
     IMAP_ACCOUNTS="$effective_imap_accounts" \
     NODE_OPTIONS="${INBOUND_WORKER_NODE_OPTIONS:---max-old-space-size=96}" \
