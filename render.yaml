@@ -107,7 +107,7 @@ services:
       - key: HUNTER_FALLBACK_ENABLED
         value: "true"
       - key: SEND_ALLOW_UNKNOWN_VALIDATION
-        value: "false"
+        value: "true"
       - key: DAILY_OUTBOUND_ALLOW_OWNED_VALIDATION
         value: "true"
       - key: DAILY_OUTBOUND_OWNED_VALIDATION_MIN_SCORE
@@ -215,7 +215,9 @@ services:
       - key: WEB_EMBED_AUTONOMOUS_OPS_WORKER
         value: "false"
       - key: WEB_EMBED_INBOUND_WORKER
-        value: "false"
+        value: "true"
+      - key: WEB_EMBED_REPUTATION_WORKER
+        value: "true"
 
       # ── Lead scout ────────────────────────────────────────────────────────────
       - key: LEAD_SCOUT_ENABLED
@@ -273,7 +275,7 @@ services:
       - key: OPENROUTER_API_KEY
         sync: false   # sk-or-v1-fc9f8d031...
       - key: OPENROUTER_MODEL
-        value: meta-llama/llama-3.1-8b-instruct:free
+        value: meta-llama/llama-3.1-8b-instruct
       - key: OUTBOUND_XAVIRA_AI_COPY
         value: "true"
       - key: OUTBOUND_OPENROUTER_COPY
@@ -385,7 +387,7 @@ services:
       - key: MOCK_SMTP
         value: "false"
       - key: SEND_ALLOW_UNKNOWN_VALIDATION
-        value: "false"
+        value: "true"
       - key: DAILY_OUTBOUND_ALLOW_OWNED_VALIDATION
         value: "true"
       - key: DAILY_OUTBOUND_OWNED_VALIDATION_MIN_SCORE
